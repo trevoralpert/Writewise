@@ -34,8 +34,10 @@ Text: """${text}"""
       temperature: 0.2,
     })
 
-    // Parse the LLM's response as JSON
-    const suggestions = JSON.parse(completion.choices[0].message.content || '[]')
+    // Remove code fences if present
+    let content = completion.choices[0].message.content || '[]'
+    content = content.replace(/```json|```/g, '').trim()
+    const suggestions = JSON.parse(content)
     res.json({ suggestions })
   } catch (err) {
     console.error(err)
