@@ -1,4 +1,5 @@
 // src/components/layout/Layout.tsx
+import React from 'react'
 import type { ReactNode } from 'react'
 import Auth from './Auth'
 import DocumentSidebar from './DocumentSidebar'
