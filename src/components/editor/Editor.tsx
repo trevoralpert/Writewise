@@ -13,7 +13,7 @@ const Editor = () => {
     extensions: [StarterKit],
     content: content || '<p>Start writing here...</p>',
     onUpdate: ({ editor }) => {
-      setContent(editor.getHTML())
+      setContent(editor.getText())
       requestSuggestions()
     },
   })

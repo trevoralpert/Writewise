@@ -19,11 +19,11 @@ app.post('/api/suggestions', async (req, res) => {
 Please analyze the following text for grammar, spelling, and style issues.
 Return a JSON array of suggestions, each with:
   - id: unique string
-  - start: character index of the issue
-  - end: character index of the issue
+  - text: the exact text in the input that should be replaced (copy it verbatim from the input)
   - message: suggestion message
   - type: grammar | spelling | style
-  - alternatives: [optional corrections]
+  - alternatives: [array of suggested corrections, always include at least one if possible]
+Do not include indices; the backend will compute them by searching for the text.
 Text: """${text}"""
   `
 
@@ -37,7 +37,27 @@ Text: """${text}"""
     // Remove code fences if present
     let content = completion.choices[0].message.content || '[]'
     content = content.replace(/```json|```/g, '').trim()
-    const suggestions = JSON.parse(content)
+    let suggestions = JSON.parse(content)
+
+    // Compute start/end by searching for s.text in the input
+    suggestions.forEach(s => {
+      if (s.text) {
+        const idx = text.indexOf(s.text);
+        if (idx !== -1) {
+          s.start = idx;
+          s.end = idx + s.text.length;
+        } else {
+          console.warn(`Suggestion text not found in input: ${s.text}`);
+        }
+      }
+    });
+
+    console.log('Text:', text)
+    suggestions.forEach(s => {
+      console.log('Suggestion:', s)
+      console.log('Extracted:', text.slice(s.start, s.end))
+    })
+
     res.json({ suggestions })
   } catch (err) {
     console.error(err)

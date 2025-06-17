@@ -8,10 +8,14 @@ export function useSuggestions() {
   // Debounced fetch
   const fetchSuggestions = useCallback(() => {
     if (!content) return
+    let safeText = content;
+    if (safeText && !/[.?!,;: ]$/.test(safeText)) {
+      safeText += ' ';
+    }
     fetch('http://localhost:3001/api/suggestions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: content }),
+      body: JSON.stringify({ text: safeText }),
     })
       .then(res => res.json())
       .then(data => setSuggestions(data.suggestions || []))

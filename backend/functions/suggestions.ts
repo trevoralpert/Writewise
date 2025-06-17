@@ -1,5 +1,6 @@
-import { OpenAI } from 'openai' // or 'openai-edge' if using edge functions
+// @ts-ignore
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { OpenAI } from 'openai' // or 'openai-edge' if using edge functions
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 
