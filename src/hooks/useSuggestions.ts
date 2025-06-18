@@ -12,7 +12,9 @@ export function useSuggestions() {
     if (safeText && !/[.?!,;: ]$/.test(safeText)) {
       safeText += ' ';
     }
-    fetch('http://localhost:3001/api/suggestions', {
+    // Use environment variable or fallback to localhost for development
+    const apiUrl = import.meta.env.VITE_SUGGESTIONS_API_URL || 'http://localhost:3001';
+    fetch(`${apiUrl}/api/suggestions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: safeText }),
