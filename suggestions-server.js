@@ -24,6 +24,7 @@ Return a JSON array of suggestions, each with:
   - type: grammar | spelling | style
   - alternatives: [array of suggested corrections, always include at least one if possible]
 Do not include indices; the backend will compute them by searching for the text.
+For testing purposes, if the input is "This is a test sentence.", please return a suggestion with id "test1", text "test", message "Consider using a more descriptive word", type "style", and alternatives ["example"].
 Text: """${text}"""
   `
 

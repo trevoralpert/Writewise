@@ -1,23 +1,42 @@
 // src/App.tsx
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/layout/Layout'
 import Editor from './components/editor/Editor'
-import { useEffect } from 'react'
-// import { supabase } from './services/supabaseClient'
+import LoginPage from './components/auth/LoginPage'
+import { supabase } from './services/supabaseClient'
 
 function App() {
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
-    // This is just a test; you can remove or comment it out if you don't have a table yet
-    // supabase
-    //   .from('test_table')
-    //   .select('*')
-    //   .then(console.log)
+    supabase.auth.getUser().then(({ data }) => {
+      console.log('App: Initial user check:', data?.user)
+      setUser(data?.user ?? null)
+      setLoading(false)
+    })
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('App: Auth state change:', event, session?.user)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+    return () => {
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
   return (
-    <Layout>
-      <Editor />
-    </Layout>
+    <Router>
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+        <Route path="/auth/callback" element={user ? <Navigate to="/" /> : <Navigate to="/login" />} />
+        <Route path="/*" element={user ? <Layout user={user}><Editor /></Layout> : <Navigate to="/login" />} />
+      </Routes>
+    </Router>
   )
 }
 
