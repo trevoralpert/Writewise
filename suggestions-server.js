@@ -51,6 +51,14 @@ Text: """${text}"""
           console.warn(`Suggestion text not found in input: ${s.text}`);
         }
       }
+      // Ensure each suggestion has a unique id
+      if (!s.id) {
+        s.id = `sugg-${Math.random().toString(36).slice(2, 10)}`;
+      }
+      // Default status when first returned
+      if (!s.status) {
+        s.status = 'pending';
+      }
     });
 
     console.log('Text:', text)
@@ -66,7 +74,7 @@ Text: """${text}"""
   }
 })
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Suggestions API listening on port ${PORT}`)
 })

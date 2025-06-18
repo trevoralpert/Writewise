@@ -8,10 +8,7 @@ export function useSuggestions() {
   // Debounced fetch
   const fetchSuggestions = useCallback(() => {
     if (!content) return
-    let safeText = content;
-    if (safeText && !/[.?!,;: ]$/.test(safeText)) {
-      safeText += ' ';
-    }
+    const safeText = content;
     // Use environment variable or fallback to localhost for development
     const apiUrl = import.meta.env.VITE_SUGGESTIONS_API_URL || 'http://localhost:3001';
     fetch(`${apiUrl}/api/suggestions`, {

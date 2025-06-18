@@ -1,5 +1,5 @@
 // src/components/editor/Editor.tsx
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { useEditorStore } from '../../store/editorStore'
@@ -17,6 +17,14 @@ const Editor = () => {
       requestSuggestions()
     },
   })
+
+  // Sync external content (e.g. after accepting a suggestion) into the editor
+  useEffect(() => {
+    if (editor && content !== editor?.getText()) {
+      // Update without triggering another onUpdate
+      editor.commands.setContent(content, false)
+    }
+  }, [content, editor])
 
   return (
     <div className="border rounded-lg p-4 bg-white shadow-md min-h-[300px]">

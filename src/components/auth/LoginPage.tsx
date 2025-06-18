@@ -43,34 +43,34 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-4 text-center">Sign In to Writewise</h2>
-        <form onSubmit={handleEmailAuth} className="flex flex-col gap-2">
-          <input
-            className="input"
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className="input"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-          <button className="btn" type="submit">
-            {isSignUp ? 'Sign Up' : 'Sign In'}
-          </button>
-          <button
-            className="btn"
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-          >
-            {isSignUp ? 'Have an account? Sign In' : 'No account? Sign Up'}
-          </button>
-        </form>
+      <form onSubmit={handleEmailAuth} className="flex flex-col gap-2">
+        <input
+          className="input"
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+        />
+        <input
+          className="input"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+        />
+        <button className="btn" type="submit">
+          {isSignUp ? 'Sign Up' : 'Sign In'}
+        </button>
+        <button
+          className="btn"
+          type="button"
+          onClick={() => setIsSignUp(!isSignUp)}
+        >
+          {isSignUp ? 'Have an account? Sign In' : 'No account? Sign Up'}
+        </button>
+      </form>
         <button
           type="button"
           className="btn mt-2 w-full"
@@ -92,8 +92,8 @@ export default function LoginPage() {
             }
           }}
         >
-          Sign in with Google
-        </button>
+        Sign in with Google
+      </button>
         {error && <p className="text-red-500 mt-2 text-center">{error}</p>}
       </div>
     </div>
