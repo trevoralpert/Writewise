@@ -40,15 +40,25 @@ Text: """${text}"""
     content = content.replace(/```json|```/g, '').trim()
     let suggestions = JSON.parse(content)
 
-    // Compute start/end by searching for s.text in the input
+    const escapeRegex = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     suggestions.forEach(s => {
       if (s.text) {
-        const idx = text.indexOf(s.text);
-        if (idx !== -1) {
-          s.start = idx;
-          s.end = idx + s.text.length;
+        // Prefer a whole-word match to avoid replacing partial substrings (e.g. "engin" in "engine")
+        const wordRegex = new RegExp(`\\b${escapeRegex(s.text)}\\b`, 'i');
+        const match = wordRegex.exec(text);
+        if (match) {
+          s.start = match.index;
+          s.end = match.index + match[0].length;
         } else {
-          console.warn(`Suggestion text not found in input: ${s.text}`);
+          // Fallback: use simple indexOf in case the suggestion is punctuation or at boundaries we didn't capture
+          const idx = text.indexOf(s.text);
+          if (idx !== -1) {
+            s.start = idx;
+            s.end = idx + s.text.length;
+          } else {
+            console.warn(`Suggestion text not found in input: ${s.text}`);
+          }
         }
       }
       // Ensure each suggestion has a unique id
