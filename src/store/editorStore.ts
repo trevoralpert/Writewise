@@ -45,5 +45,5 @@ export const useEditorStore = create<EditorState>((set) => ({
     })),
 
   currentDocument: null,
-  setCurrentDocument: (doc) => set({ currentDocument: doc, content: doc?.content || '' }),
+  setCurrentDocument: (doc) => set({ currentDocument: doc, content: doc?.content || '', suggestions: [] }),
 }))

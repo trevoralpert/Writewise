@@ -1,6 +1,6 @@
 import React from 'react'
 import { useEffect, useState } from 'react'
-import { getDocuments, createDocument, deleteDocument } from '../../services/documents'
+import { getDocuments, createDocument, deleteDocument, getDocumentById } from '../../services/documents'
 import { supabase } from '../../services/supabaseClient'
 import { useEditorStore } from '../../store/editorStore'
 
@@ -81,7 +81,10 @@ export default function DocumentSidebar({ onSelect, user }: { onSelect: (doc: an
               <>
                 <button
                   className={`text-left w-full py-1 ${currentDocument?.id === doc.id ? 'font-bold' : ''}`}
-                  onClick={() => onSelect(doc)}
+                  onClick={async () => {
+                    const { data } = await getDocumentById(doc.id)
+                    onSelect(data || doc)
+                  }}
                 >
                   {doc.title}
                 </button>

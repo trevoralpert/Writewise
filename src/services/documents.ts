@@ -35,3 +35,12 @@ export async function deleteDocument(id: string) {
     .eq('id', id)
   return { error }
 }
+
+export async function getDocumentById(id: string) {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('id', id)
+    .single()
+  return { data, error }
+}
