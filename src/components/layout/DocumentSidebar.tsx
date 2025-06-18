@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { getDocuments, createDocument, deleteDocument, getDocumentById } from '../../services/documents'
 import { supabase } from '../../services/supabaseClient'
 import { useEditorStore } from '../../store/editorStore'
+import { PencilIcon } from '@heroicons/react/24/outline'
 
 export default function DocumentSidebar({ onSelect, user }: { onSelect: (doc: any) => void, user: any }) {
   const [documents, setDocuments] = useState<any[]>([])
@@ -88,7 +89,9 @@ export default function DocumentSidebar({ onSelect, user }: { onSelect: (doc: an
                 >
                   {doc.title}
                 </button>
-                <button className="ml-2 text-blue-500" onClick={() => { setEditingId(doc.id); setEditTitle(doc.title); }}>✏️</button>
+                <button className="btn btn-circle btn-ghost btn-xs">
+                  <PencilIcon className="w-4 h-4" />
+                </button>
                 <button className="ml-2 text-red-500" onClick={() => handleDelete(doc.id)}>🗑️</button>
               </>
             )}

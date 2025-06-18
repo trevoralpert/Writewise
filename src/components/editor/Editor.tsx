@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
 import { useEditorStore } from '../../store/editorStore'
 import { useSuggestions } from '../../hooks/useSuggestions'
 import { updateDocument } from '../../services/documents'
@@ -12,8 +13,13 @@ const Editor = () => {
   const saveTimeout = React.useRef<NodeJS.Timeout | null>(null)
 
   const editor = useEditor({
-    extensions: [StarterKit],
-    content: content || '<p>Start writing here...</p>',
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder: 'Start writing here...',
+      }),
+    ],
+    content: content || '',
     onUpdate: ({ editor }) => {
       const newText = editor.getText();
       setContent(newText)
@@ -45,8 +51,13 @@ const Editor = () => {
   }, [])
 
   return (
-    <div className="border rounded-lg p-4 bg-white shadow-md min-h-[300px]">
-      <EditorContent editor={editor} />
+    <div className="card bg-base-100 shadow-lg w-full">
+      <div className="card-body p-4">
+        <EditorContent
+          editor={editor}
+          className="prose w-full min-h-[300px] focus:outline-none border border-base-300 rounded-md p-3"
+        />
+      </div>
     </div>
   )
 }

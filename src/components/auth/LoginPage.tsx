@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '../../services/auth'
 import { supabase } from '../../services/supabaseClient'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -39,62 +39,74 @@ export default function LoginPage() {
     if (error) setError(error.message)
   }
 
+  const googleHandler = async (e: React.FormEvent) => {
+    e.preventDefault()
+    console.log("Google sign-in clicked")
+    try {
+      const result = await signInWithGoogle()
+      console.log("Google sign-in result:", result)
+      if (result.data?.url) {
+        console.log("Redirecting to:", result.data.url)
+        window.location.href = result.data.url
+      } else {
+        console.error("No OAuth URL returned:", result)
+      }
+    } catch (error) {
+      console.error("Google sign-in error:", error)
+      alert(`Google sign-in error: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">Sign In to Writewise</h2>
-      <form onSubmit={handleEmailAuth} className="flex flex-col gap-2">
-        <input
-          className="input"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-        />
-        <input
-          className="input"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-        />
-        <button className="btn" type="submit">
-          {isSignUp ? 'Sign Up' : 'Sign In'}
-        </button>
-        <button
-          className="btn"
-          type="button"
-          onClick={() => setIsSignUp(!isSignUp)}
-        >
-          {isSignUp ? 'Have an account? Sign In' : 'No account? Sign Up'}
-        </button>
-      </form>
-        <button
-          type="button"
-          className="btn mt-2 w-full"
-          onClick={async (e) => {
-            e.preventDefault();
-            console.log("Google sign-in clicked");
-            try {
-              const result = await signInWithGoogle();
-              console.log("Google sign-in result:", result);
-              if (result.data?.url) {
-                console.log("Redirecting to:", result.data.url);
-                window.location.href = result.data.url;
-              } else {
-                console.error("No OAuth URL returned:", result);
-              }
-            } catch (error) {
-              console.error("Google sign-in error:", error);
-              alert(`Google sign-in error: ${error instanceof Error ? error.message : String(error)}`);
-            }
-          }}
-        >
-        Sign in with Google
-      </button>
-        {error && <p className="text-red-500 mt-2 text-center">{error}</p>}
+    <div className="min-h-screen flex items-center justify-center bg-base-200">
+      <div className="card w-full max-w-md shadow-xl">
+        <div className="card-body">
+          <h2 className="text-3xl font-bold mb-6 text-primary text-center">WriteWise</h2>
+          <p className="text-sm text-gray-500 text-center mb-4">Your AI-powered writing assistant</p>
+
+          <form onSubmit={handleEmailAuth} className="space-y-3">
+            <input
+              type="email"
+              placeholder="Email"
+              className="input input-bordered w-full"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              className="input input-bordered w-full"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button className="btn btn-primary w-full" type="submit">
+              {isSignUp ? 'Create account' : 'Sign in'}
+            </button>
+          </form>
+
+          <button
+            className="btn btn-outline btn-primary w-full mt-2 flex gap-2 normal-case"
+            onClick={googleHandler}
+          >
+            <img src="/Google.png" alt="" className="w-5 h-5" />
+            Continue with Google
+          </button>
+
+          <Link to="/demo" className="btn btn-secondary w-full normal-case mt-2">
+            Try Demo Without Account
+          </Link>
+
+          <button
+            className="btn btn-link btn-xs mt-2"
+            onClick={() => setIsSignUp(!isSignUp)}
+          >
+            {isSignUp ? 'Already have an account? Sign in' : 'New here? Create one'}
+          </button>
+
+          {error && <p className="text-error text-center">{error}</p>}
+        </div>
       </div>
     </div>
   )
