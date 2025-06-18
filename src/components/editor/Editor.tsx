@@ -51,11 +51,14 @@ const Editor = () => {
   }, [])
 
   return (
-    <div className="card bg-base-100 shadow-lg w-full">
+    <div
+      className="card bg-base-100 shadow-lg w-full cursor-text"
+      onClick={() => editor?.commands.focus('end')}
+    >
       <div className="card-body p-4">
         <EditorContent
           editor={editor}
-          className="prose w-full min-h-[300px] focus:outline-none border border-base-300 rounded-md p-3"
+          className="prose w-full min-h-[300px] focus:outline-none focus:ring-0"
         />
       </div>
     </div>
