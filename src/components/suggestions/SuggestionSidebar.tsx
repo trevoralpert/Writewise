@@ -27,6 +27,9 @@ export default function SuggestionSidebar() {
         {suggestions.filter(s => s.status !== 'accepted' && s.status !== 'ignored').map(s => (
           <li key={s.id} className="bg-white p-2 rounded shadow flex flex-col gap-1">
             <span className="text-sm font-medium">{s.message}</span>
+            {s.alternatives?.length ? (
+              <span className="text-xs text-green-700">Change to '{s.alternatives[0]}'</span>
+            ) : null}
             <span className="text-xs text-gray-500">Type: {s.type}</span>
             <div className="flex gap-2 mt-1">
               <button className="btn" onClick={() => acceptSuggestion(s)}>Accept</button>
