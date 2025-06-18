@@ -20,19 +20,19 @@ export default function SuggestionSidebar() {
   }
 
   return (
-    <aside className="w-64 bg-gray-100 border-l p-4">
+    <aside className="w-72 bg-base-200 p-4 space-y-4">
       <h2 className="font-bold mb-2">Suggestions</h2>
       {suggestions.length === 0 && <p className="text-gray-500">No suggestions yet.</p>}
       <ul className="space-y-2">
         {suggestions.filter(s => s.status !== 'accepted' && s.status !== 'ignored').map(s => (
-          <li key={s.id} className="bg-white p-2 rounded shadow flex flex-col gap-1">
-            <span className="text-sm font-medium">{s.message}</span>
+          <li key={s.id} className="card bg-base-100 shadow-md p-4 text-sm">
+            <h3 className="font-semibold">{s.message}</h3>
             {s.alternatives?.length ? (
-              <span className="text-xs text-green-700">Change to '{s.alternatives[0]}'</span>
+              <p className="text-xs text-success">Change to '{s.alternatives[0]}'</p>
             ) : null}
             <span className="text-xs text-gray-500">Type: {s.type}</span>
             <div className="flex gap-2 mt-1">
-              <button className="btn" onClick={() => acceptSuggestion(s)}>Accept</button>
+              <button className="btn btn-success btn-sm" onClick={() => acceptSuggestion(s)}>Accept</button>
               <button className="btn" onClick={() => updateSuggestionStatus(s.id, 'ignored')}>Ignore</button>
             </div>
           </li>
