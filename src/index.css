@@ -91,3 +91,9 @@ button:focus-visible {
   text-decoration-style: wavy;
   text-decoration-color: #2563eb; /* blue-600 */
 }
+
+.suggestion-underline,
+.suggestion-underline-style {
+  display: inline-block;      /* give it its own rect */
+  position: relative;         /* stays inline, but Popper sees real coords */
+}

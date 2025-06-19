@@ -62,6 +62,8 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                   Decoration.inline(from, to, {
                     class: className,
                     'data-suggestion-id': s.id,
+                    'data-from': String(from),
+                    'data-to': String(to),
                     title: s.message,
                   })
                 )
