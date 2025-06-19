@@ -19,10 +19,9 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
   }
 
   return (
-  <div className="min-h-screen bg-gray-50 flex flex-col items-center py-8">
-      <header className="mb-8 flex items-center gap-4">
-      <img src="/logo.png" alt="Writewise logo" className="w-8 h-8" />
-      <h1 className="text-3xl font-bold text-primary">Writewise</h1>
+  <div className="min-h-screen bg-gray-50 flex flex-col items-center py-1">
+      <header className="mb-2 flex flex-col items-center gap-1">
+      <img src="/app_logo.jpg" alt="Writewise" className="w-128 h-64 object-cover rounded-2xl overflow-hidden" />
         {user && (
           <button className="btn ml-4" onClick={handleLogout}>Logout</button>
         )}
