@@ -14,19 +14,30 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 app.post('/api/suggestions', async (req, res) => {
   const { text } = req.body
 
-  // Compose a prompt for grammar and style suggestions
-  const prompt = `
-Please analyze the following text for grammar, spelling, and style issues.
-Return a JSON array of suggestions, each with:
-  - id: unique string
-  - text: the exact text in the input that should be replaced (copy it verbatim from the input)
-  - message: suggestion message
-  - type: grammar | spelling | style
-  - alternatives: [array of suggested corrections, always include at least one if possible]
-Do not include indices; the backend will compute them by searching for the text.
-For testing purposes, if the input is "This is a test sentence.", please return a suggestion with id "test1", text "test", message "Consider using a more descriptive word", type "style", and alternatives ["example"].
-Text: """${text}"""
-  `
+  // Build a strict prompt that instructs the model to ONLY return raw JSON (no markdown fences)
+  const prompt = `You are a writing-assistant that reviews a given passage for grammar, spelling, and stylistic issues.
+
+Your task:
+1. Identify up to **10** issues in the provided *input*.
+2. For every issue create an object that matches this exact TypeScript shape (no extra keys):
+
+  interface Suggestion {
+    id: string           // unique, lowercase, no spaces (e.g. "sugg1")
+    text: string         // the exact substring from the input that needs improvement
+    message: string      // human-readable explanation of why it should change
+    type: "grammar" | "spelling" | "style"
+    alternatives: string[] // at least one improved replacement
+  }
+
+3. Return ONLY a JSON array of Suggestion – **do NOT** add markdown, comments, or any other wrapper.
+
+Example response:
+[
+  {"id":"sugg1","text":"teh","message":"Spelling mistake","type":"spelling","alternatives":["the"]}
+]
+
+Input:
+"""${text}"""`
 
   try {
     const completion = await openai.chat.completions.create({

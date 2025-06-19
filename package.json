@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"vite\" \"nodemon suggestions-server.js\"",
+    "dev:front": "vite",
+    "dev:api": "nodemon suggestions-server.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -18,7 +20,6 @@
     "@tiptap/react": "^2.14.0",
     "@tiptap/starter-kit": "^2.14.0",
     "@tiptap/extension-placeholder": "^2.14.0",
-    "@vercel/node": "^5.2.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
@@ -26,7 +27,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "tippy.js": "^6.3.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
@@ -43,6 +45,9 @@
     "tailwindcss": "^3.4.3",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.0",
+    "@vercel/node": "^5.2.2"
   }
 }
