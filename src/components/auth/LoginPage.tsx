@@ -61,7 +61,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-base-200">
       <div className="card w-full max-w-md shadow-xl">
         <div className="card-body">
-          <h2 className="text-3xl font-bold mb-6 text-primary text-center">WriteWise</h2>
+          <div className="flex flex-col items-center mb-6">
+            <img src="/logo.png" alt="Writewise logo" className="w-10 h-10 mb-2" />
+            <h2 className="text-3xl font-bold text-primary text-center">WriteWise</h2>
+          </div>
           <p className="text-sm text-gray-500 text-center mb-4">Your AI-powered writing assistant</p>
 
           <form onSubmit={handleEmailAuth} className="space-y-3">

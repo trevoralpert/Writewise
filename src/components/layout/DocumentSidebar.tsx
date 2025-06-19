@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { getDocuments, createDocument, deleteDocument, getDocumentById } from '../../services/documents'
 import { supabase } from '../../services/supabaseClient'
 import { useEditorStore } from '../../store/editorStore'
-import { PencilIcon } from '@heroicons/react/24/outline'
+import { PencilIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { Document as DocxDoc, Packer, Paragraph } from 'docx'
 
 export default function DocumentSidebar({ onSelect, user }: { onSelect: (doc: any) => void, user: any }) {
   const [documents, setDocuments] = useState<any[]>([])
@@ -52,6 +53,30 @@ export default function DocumentSidebar({ onSelect, user }: { onSelect: (doc: an
     }
   }
 
+  const handleExport = async (id: string, title: string) => {
+    const { data } = await getDocumentById(id)
+    if (!data) return
+    // Create a simple docx with the content as a single paragraph
+    const doc = new DocxDoc({
+      sections: [
+        {
+          properties: {},
+          children: [new Paragraph(data.content || '')],
+        },
+      ],
+    })
+
+    const buffer = await Packer.toBlob(doc)
+    const url = URL.createObjectURL(buffer)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${title || 'document'}.docx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <aside className="w-64 bg-white border-r p-4">
       <form onSubmit={handleCreate} className="mb-4 flex">
@@ -89,8 +114,11 @@ export default function DocumentSidebar({ onSelect, user }: { onSelect: (doc: an
                 >
                   {doc.title}
                 </button>
-                <button className="btn btn-circle btn-ghost btn-xs">
+                <button className="btn btn-circle btn-ghost btn-xs" onClick={() => setEditingId(doc.id)}>
                   <PencilIcon className="w-4 h-4" />
+                </button>
+                <button className="btn btn-circle btn-ghost btn-xs" onClick={() => handleExport(doc.id, doc.title)} title="Export">
+                  <ArrowDownTrayIcon className="w-4 h-4" />
                 </button>
                 <button className="ml-2 text-red-500" onClick={() => handleDelete(doc.id)}>🗑️</button>
               </>

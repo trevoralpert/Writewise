@@ -29,6 +29,9 @@ interface EditorState {
 
   currentDocument: Document | null
   setCurrentDocument: (doc: Document | null) => void
+
+  showStyleSuggestions: boolean
+  setShowStyleSuggestions: (val: boolean) => void
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -46,4 +49,7 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   currentDocument: null,
   setCurrentDocument: (doc) => set({ currentDocument: doc, content: doc?.content || '', suggestions: [] }),
+
+  showStyleSuggestions: true,
+  setShowStyleSuggestions: (val) => set({ showStyleSuggestions: val }),
 }))

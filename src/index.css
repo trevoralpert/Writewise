@@ -84,3 +84,10 @@ button:focus-visible {
   text-decoration-style: wavy;
   text-decoration-color: #dc2626; /* red-600 */
 }
+
+/* style suggestion underline */
+.suggestion-underline-style {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: #2563eb; /* blue-600 */
+}

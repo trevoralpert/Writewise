@@ -22,7 +22,10 @@ const Editor = () => {
         placeholder: 'Start writing here...',
       }),
       SuggestionHighlight.configure({
-        getSuggestions: () => useEditorStore.getState().suggestions,
+        getSuggestions: () => {
+          const state = useEditorStore.getState()
+          return state.showStyleSuggestions ? state.suggestions : state.suggestions.filter(s => s.type !== 'style')
+        },
       }),
     ],
     content: content || '',
@@ -128,6 +131,13 @@ const Editor = () => {
       tip.destroy()
     }
   }, [editor])
+
+  // Request suggestions once when a document is first loaded
+  useEffect(() => {
+    if (editor && currentDocument) {
+      requestSuggestions()
+    }
+  }, [currentDocument, editor, requestSuggestions])
 
   return (
     <div

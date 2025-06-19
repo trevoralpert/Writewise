@@ -3,7 +3,7 @@ import { Plugin, PluginKey } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
 
 export interface SuggestionHighlightOptions {
-  getSuggestions: () => { id: string; start: number; end: number; message: string; status: string }[]
+  getSuggestions: () => { id: string; start: number; end: number; message: string; status: string; type: string }[]
 }
 
 export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>({
@@ -57,9 +57,10 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
               const from = mapIndexToPos(s.start)
               const to = mapIndexToPos(s.end)
               if (from < to) {
+                const className = s.type === 'style' ? 'suggestion-underline-style' : 'suggestion-underline'
                 decos.push(
                   Decoration.inline(from, to, {
-                    class: 'suggestion-underline',
+                    class: className,
                     'data-suggestion-id': s.id,
                     title: s.message,
                   })
