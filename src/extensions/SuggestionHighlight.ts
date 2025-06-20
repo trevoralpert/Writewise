@@ -29,34 +29,38 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
             const decos: Decoration[] = []
             const { doc } = state
 
-            // helper to convert plain-text index to prosemirror pos
-            const mapIndexToPos = (idx: number) => {
-              let pos = 0 // current PM position (starts at 0 which is before first char)
-              let plainCount = 0
-              let result = 0
-
+            // Simple and direct approach: build a character-to-position map
+            const buildPositionMap = () => {
+              const positionMap: number[] = []
+              let textIndex = 0
+              
               doc.descendants((node, nodePos) => {
-                if (result) return false // already found
                 if (node.isText) {
                   const text = node.text || ''
-                  const nextPlain = plainCount + text.length
-                  if (idx >= plainCount && idx < nextPlain) {
-                    result = nodePos + (idx - plainCount)
-                    return false
+                  for (let i = 0; i < text.length; i++) {
+                    positionMap[textIndex] = nodePos + i
+                    textIndex++
                   }
-                  plainCount = nextPlain
                 }
                 return true
               })
-              // fallback to end of doc if not found (should not happen)
-              return result || doc.content.size
+              
+              // Add final position for end of text
+              positionMap[textIndex] = doc.content.size - 1
+              
+              return positionMap
             }
+
+            const positionMap = buildPositionMap()
 
             suggestions.forEach((s) => {
               if (s.status !== 'pending') return
-              const from = mapIndexToPos(s.start)
-              const to = mapIndexToPos(s.end)
-              if (from < to) {
+              
+              // Map plain text indices to ProseMirror positions
+              const from = positionMap[s.start] || 0
+              const to = positionMap[s.end - 1] ? positionMap[s.end - 1] + 1 : positionMap[s.start] + 1
+              
+              if (from < to && from >= 0 && to <= doc.content.size) {
                 let className = 'suggestion-underline'
                 if (s.type === 'style') {
                   className = 'suggestion-underline-style'

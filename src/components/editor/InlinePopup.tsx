@@ -9,9 +9,10 @@ type Props = {
 }
 
 const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
-  const { setContent, content, updateSuggestionStatus } = useEditorStore.getState()
+  const { setContent, content, updateSuggestionStatus } = useEditorStore()
   const [isVisible, setIsVisible] = useState(false)
   const [isReplacing, setIsReplacing] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
 
   // Animate in on mount
   useEffect(() => {
@@ -34,6 +35,16 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
   const ignore = () => {
     updateSuggestionStatus(suggestion.id, 'ignored')
     onClose()
+  }
+
+  // Handle mouse enter/leave for the popup
+  const handleMouseEnter = () => {
+    setIsHovered(true)
+  }
+
+  const handleMouseLeave = () => {
+    setIsHovered(false)
+    // Let the Editor component handle closing with its delay logic
   }
 
   // Calculate optimal popup position
@@ -207,7 +218,8 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
         left: position.left,
         maxWidth: 'calc(100vw - 32px)' // Ensure it doesn't go off screen
       }}
-      onMouseLeave={onClose}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Header */}
       <div className="flex items-start gap-2 mb-3">

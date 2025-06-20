@@ -45,6 +45,11 @@ interface EditorState {
   setHasUnsavedChanges: (val: boolean) => void
 }
 
+// Helper function to check if two text ranges overlap
+const doRangesOverlap = (range1: {start: number, end: number}, range2: {start: number, end: number}) => {
+  return range1.start < range2.end && range2.start < range1.end;
+}
+
 export const useEditorStore = create<EditorState>((set, get) => ({
   content: '',
   setContent: (content) => {
@@ -54,11 +59,39 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   suggestions: [],
   setSuggestions: (suggestions) => set({ suggestions }),
   updateSuggestionStatus: (id, status) =>
-    set((state) => ({
-      suggestions: state.suggestions.map((s) =>
-        s.id === id ? { ...s, status } : s
-      ),
-    })),
+    set((state) => {
+      const targetSuggestion = state.suggestions.find(s => s.id === id);
+      if (!targetSuggestion) return state;
+
+      // If the suggestion is being accepted, we need to handle overlapping suggestions
+      if (status === 'accepted') {
+        return {
+          suggestions: state.suggestions.map((s) => {
+            if (s.id === id) {
+              return { ...s, status };
+            }
+            
+            // Check if this suggestion overlaps with the accepted one
+            if (doRangesOverlap(
+              { start: s.start, end: s.end },
+              { start: targetSuggestion.start, end: targetSuggestion.end }
+            )) {
+              // Mark overlapping suggestions as resolved to prevent conflicts
+              return { ...s, status: 'ignored' };
+            }
+            
+            return s;
+          })
+        };
+      }
+
+      // For ignored suggestions, just update that one
+      return {
+        suggestions: state.suggestions.map((s) =>
+          s.id === id ? { ...s, status } : s
+        )
+      };
+    }),
 
   currentDocument: null,
   setCurrentDocument: (doc) => {

@@ -167,12 +167,19 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     }
   }, [currentDocument, editor, requestSuggestions])
 
-  // Hover listeners
+  // Hover listeners with delay mechanism
   useEffect(() => {
     if (!editor) return
     const dom = editor.view.dom
+    let hideTimeout: NodeJS.Timeout | null = null
 
     const handleMouseOver = (e: MouseEvent) => {
+      // Clear any pending hide timeout
+      if (hideTimeout) {
+        clearTimeout(hideTimeout)
+        hideTimeout = null
+      }
+
       const el = e.target as HTMLElement
       if (el && el.dataset && el.dataset.suggestionId) {
         const id = el.dataset.suggestionId
@@ -184,21 +191,65 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
         setPopup({ rect, suggestion: sugg })
       }
     }
+
     const handleMouseLeave = (e: MouseEvent) => {
       const el = e.target as HTMLElement
       if (el && el.dataset && el.dataset.suggestionId) {
         const related = e.relatedTarget as HTMLElement | null
+        
+        // If moving to the popup, don't hide
         if (related && related.closest('.inline-popup')) {
           return
         }
-        setPopup(null)
+        
+        // Add a small delay before hiding to allow user to move cursor to popup
+        hideTimeout = setTimeout(() => {
+          setPopup(null)
+        }, 100) // 100ms delay
       }
     }
+
+    // Global mouse over handler for popup area
+    const handleGlobalMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target && target.closest('.inline-popup')) {
+        // Clear hide timeout if hovering over popup
+        if (hideTimeout) {
+          clearTimeout(hideTimeout)
+          hideTimeout = null
+        }
+      }
+    }
+
+    // Global click handler to close popup when clicking outside
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      
+      // Don't close if clicking on the popup itself
+      if (target && target.closest('.inline-popup')) {
+        return
+      }
+      
+      // Don't close if clicking on a suggestion underline (let hover handle it)
+      if (target && target.dataset && target.dataset.suggestionId) {
+        return
+      }
+      
+      // Close popup for any other click
+      setPopup(null)
+    }
+
     dom.addEventListener('mouseover', handleMouseOver)
     dom.addEventListener('mouseout', handleMouseLeave)
+    document.addEventListener('mouseover', handleGlobalMouseOver)
+    document.addEventListener('click', handleGlobalClick)
+    
     return () => {
       dom.removeEventListener('mouseover', handleMouseOver)
       dom.removeEventListener('mouseout', handleMouseLeave)
+      document.removeEventListener('mouseover', handleGlobalMouseOver)
+      document.removeEventListener('click', handleGlobalClick)
+      if (hideTimeout) clearTimeout(hideTimeout)
     }
   }, [editor])
 
@@ -336,11 +387,14 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
             </div>
             
             {/* Suggestion count */}
-            {suggestions.length > 0 && (
-              <div className="text-sm text-blue-600">
-                {suggestions.length} suggestion{suggestions.length !== 1 ? 's' : ''}
-              </div>
-            )}
+            {(() => {
+              const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
+              return pendingSuggestions.length > 0 && (
+                <div className="text-sm text-blue-600">
+                  {pendingSuggestions.length} suggestion{pendingSuggestions.length !== 1 ? 's' : ''}
+                </div>
+              );
+            })()}
           </div>
         </div>
 

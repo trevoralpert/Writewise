@@ -28,6 +28,10 @@ export function useSuggestions() {
 
     const safeText = content;
     
+    // Debug logging
+    console.log('🔍 Sending text to server:', JSON.stringify(safeText))
+    console.log('🔍 Text length:', safeText.length)
+    
     // Use environment variable or fallback to localhost for development
     const apiUrl = import.meta.env.VITE_SUGGESTIONS_API_URL || 'http://localhost:3001';
     
@@ -44,6 +48,14 @@ export function useSuggestions() {
       })
       .then(data => {
         const suggestions = data.suggestions || []
+        
+        // Debug logging for suggestions
+        console.log('🔍 Received suggestions:')
+        suggestions.forEach((suggestion: any) => {
+          if (suggestion.type === 'demonetization') {
+            console.log(`  - ${suggestion.text} (${suggestion.start}-${suggestion.end}): "${safeText.substring(suggestion.start, suggestion.end)}"`)
+          }
+        })
         
         // Filter suggestions based on user preferences
         const filteredSuggestions = suggestions.filter((suggestion: any) => {
