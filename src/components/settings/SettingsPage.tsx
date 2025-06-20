@@ -11,7 +11,11 @@ const SettingsPage = () => {
     grammarEnabled,
     setGrammarEnabled,
     styleEnabled,
-    setStyleEnabled
+    setStyleEnabled,
+    contextAwareGrammarEnabled,
+    setContextAwareGrammarEnabled,
+    formalityLevel,
+    setFormalityLevel
   } = useEditorStore()
 
   return (
@@ -129,6 +133,96 @@ const SettingsPage = () => {
                   </label>
                 </div>
               </div>
+
+              {/* Context-Aware Grammar Checking */}
+              <div className="flex items-start justify-between border-t pt-6">
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Context-Aware Grammar Checking
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-3">
+                    Smart grammar checking that recognizes intentional slang and informal language choices. 
+                    Prevents unnecessary corrections when creators are deliberately using casual language for their target audience.
+                  </p>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span className="inline-block w-3 h-3 bg-green-400 rounded-full"></span>
+                    <span>Green dotted underlines show protected slang expressions</span>
+                  </div>
+                </div>
+                <div className="ml-6">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={contextAwareGrammarEnabled}
+                      onChange={(e) => setContextAwareGrammarEnabled(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Formality Level */}
+              {contextAwareGrammarEnabled && (
+                <div className="border-t pt-6">
+                  <div className="mb-4">
+                    <h4 className="text-md font-medium text-gray-900 mb-2">
+                      Formality Level for Your Content
+                    </h4>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Adjust how strict grammar checking should be based on your target audience. 
+                      This controls when slang and informal language is protected from corrections.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="formality"
+                        value="casual"
+                        checked={formalityLevel === 'casual'}
+                        onChange={(e) => setFormalityLevel(e.target.value as 'casual')}
+                        className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">Casual</span>
+                        <p className="text-xs text-gray-600">Perfect for social media, vlogs, and content targeting younger audiences. Most slang is protected.</p>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="formality"
+                        value="balanced"
+                        checked={formalityLevel === 'balanced'}
+                        onChange={(e) => setFormalityLevel(e.target.value as 'balanced')}
+                        className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">Balanced</span>
+                        <p className="text-xs text-gray-600">Good for blogs, articles, and mixed audiences. Only well-established slang is protected.</p>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="formality"
+                        value="formal"
+                        checked={formalityLevel === 'formal'}
+                        onChange={(e) => setFormalityLevel(e.target.value as 'formal')}
+                        className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">Formal</span>
+                        <p className="text-xs text-gray-600">Best for professional content, academic writing, and business communications. No slang protection.</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
 
             </div>
           </div>

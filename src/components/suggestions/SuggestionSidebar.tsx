@@ -40,6 +40,8 @@ export default function SuggestionSidebar() {
         return 'bg-blue-500 text-white'
       case 'demonetization':
         return 'bg-orange-500 text-white'
+      case 'slang-protected':
+        return 'bg-green-500 text-white'
       case 'grammar':
       case 'spelling':
         return 'bg-red-500 text-white'
@@ -52,6 +54,8 @@ export default function SuggestionSidebar() {
     switch (type) {
       case 'demonetization':
         return 'Demonetization Risk'
+      case 'slang-protected':
+        return 'Protected Slang'
       case 'style':
         return 'Style'
       case 'grammar':
@@ -109,6 +113,15 @@ export default function SuggestionSidebar() {
               <span className="font-medium">{getSuggestionCount('style')}</span>
             </div>
           )}
+          {getSuggestionCount('slang-protected') > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-green-400 rounded-full"></span>
+                Protected Slang
+              </span>
+              <span className="font-medium">{getSuggestionCount('slang-protected')}</span>
+            </div>
+          )}
           {filteredSuggestions.length === 0 && (
             <p className="text-gray-500 text-center py-2">All clear! 🎉</p>
           )}
@@ -134,6 +147,9 @@ export default function SuggestionSidebar() {
                 {s.type === 'demonetization' && (
                   <span className="text-xs">⚠️</span>
                 )}
+                {s.type === 'slang-protected' && (
+                  <span className="text-xs">✅</span>
+                )}
               </div>
               <h4 className="font-medium mb-1">{s.message}</h4>
               {s.alternatives?.length ? (
@@ -151,6 +167,13 @@ export default function SuggestionSidebar() {
                     onClick={() => updateSuggestionStatus(s.id, 'ignored')}
                   >
                     Dismiss
+                  </button>
+                ) : s.type === 'slang-protected' ? (
+                  <button 
+                    className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-xs font-medium transition-colors" 
+                    onClick={() => updateSuggestionStatus(s.id, 'accepted')}
+                  >
+                    Got it
                   </button>
                 ) : (
                   <>

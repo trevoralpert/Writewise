@@ -99,9 +99,17 @@ button:focus-visible {
   text-decoration-color: #ea580c; /* orange-600 */
 }
 
+/* slang-protected suggestion underline */
+.suggestion-underline-slang-protected {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: #10b981; /* green-500 */
+}
+
 .suggestion-underline,
 .suggestion-underline-style,
-.suggestion-underline-demonetization {
+.suggestion-underline-demonetization,
+.suggestion-underline-slang-protected {
   display: inline-block;      /* give it its own rect */
   position: relative;         /* stays inline, but Popper sees real coords */
 }
@@ -132,6 +140,13 @@ button:focus-visible {
   background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
 }
 
+.suggestion-underline-slang-protected {
+  border-bottom: 2px dotted rgb(16 185 129);
+  border-radius: 1px;
+  animation: slang-protected-pulse 2s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+}
+
 @keyframes suggestion-pulse {
   0%, 100% { 
     border-bottom-color: currentColor;
@@ -151,6 +166,17 @@ button:focus-visible {
   50% { 
     border-bottom-color: rgba(245, 158, 11, 0.6);
     background-color: rgba(245, 158, 11, 0.05);
+  }
+}
+
+@keyframes slang-protected-pulse {
+  0%, 100% { 
+    border-bottom-color: rgb(16 185 129);
+    background-color: rgba(16, 185, 129, 0.1);
+  }
+  50% { 
+    border-bottom-color: rgba(16, 185, 129, 0.6);
+    background-color: rgba(16, 185, 129, 0.05);
   }
 }
 

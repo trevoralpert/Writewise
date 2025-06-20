@@ -5,7 +5,7 @@ interface Suggestion {
   id: string
   text: string
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected'
   alternatives: string[]
   start: number
   end: number
@@ -20,7 +20,7 @@ export function useSuggestions() {
 
   // Debounced fetch
   const fetchSuggestions = useCallback(() => {
-    const { content } = useEditorStore.getState();
+    const { content, formalityLevel } = useEditorStore.getState();
     
     if (!content.trim()) {
       setAllSuggestionsAndFilter([])
@@ -32,6 +32,7 @@ export function useSuggestions() {
     // Debug logging
     console.log('🔍 Sending text to server:', JSON.stringify(safeText))
     console.log('🔍 Text length:', safeText.length)
+    console.log('🔍 Formality level:', formalityLevel)
     
     // Use environment variable or fallback to localhost for development
     const apiUrl = import.meta.env.VITE_SUGGESTIONS_API_URL || 'http://localhost:3001';
@@ -39,7 +40,10 @@ export function useSuggestions() {
     fetch(`${apiUrl}/api/suggestions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: safeText }),
+      body: JSON.stringify({ 
+        text: safeText,
+        formalityLevel: formalityLevel 
+      }),
     })
       .then(res => {
         if (!res.ok) {

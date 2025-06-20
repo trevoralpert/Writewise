@@ -7,7 +7,7 @@ interface Suggestion {
   start: number
   end: number
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected'
   alternatives?: string[]
   confidence?: number
   status: 'pending' | 'accepted' | 'ignored'
@@ -42,6 +42,12 @@ interface EditorState {
   setGrammarEnabled: (val: boolean) => void
   styleEnabled: boolean
   setStyleEnabled: (val: boolean) => void
+  contextAwareGrammarEnabled: boolean
+  setContextAwareGrammarEnabled: (val: boolean) => void
+
+  // Formality spectrum setting
+  formalityLevel: 'casual' | 'balanced' | 'formal'
+  setFormalityLevel: (level: 'casual' | 'balanced' | 'formal') => void
 
   // Save state
   isSaving: boolean
@@ -77,6 +83,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (suggestion.type === 'style' && !state.styleEnabled) {
         return false
       }
+      if (suggestion.type === 'slang-protected' && !state.contextAwareGrammarEnabled) {
+        return false
+      }
       return true
     })
     set({ allSuggestions, suggestions: filteredSuggestions })
@@ -92,6 +101,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         return false
       }
       if (suggestion.type === 'style' && !state.styleEnabled) {
+        return false
+      }
+      if (suggestion.type === 'slang-protected' && !state.contextAwareGrammarEnabled) {
         return false
       }
       return true
@@ -183,6 +195,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setGrammarEnabled: (val) => set({ grammarEnabled: val }),
   styleEnabled: true,
   setStyleEnabled: (val) => set({ styleEnabled: val }),
+  contextAwareGrammarEnabled: true,
+  setContextAwareGrammarEnabled: (val) => set({ contextAwareGrammarEnabled: val }),
+
+  // Formality spectrum setting
+  formalityLevel: 'casual',
+  setFormalityLevel: (level) => set({ formalityLevel: level }),
 
   // Save state
   isSaving: false,
