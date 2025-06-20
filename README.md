@@ -9,6 +9,7 @@
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)]()
 [![Features](https://img.shields.io/badge/Features-4%2F6%20Complete-blue)]()
 [![AI](https://img.shields.io/badge/AI-GPT--4%20Powered-purple)]()
+[![Demo](https://img.shields.io/website?url=https://writewise-8fke.vercel.app/&label=Live%20Demo)](https://writewise-8fke.vercel.app/)
 [![License](https://img.shields.io/badge/License-MIT-green)]()
 
 </div>
@@ -106,6 +107,12 @@ Writewise is a next-generation writing assistant designed specifically for **con
 5. **Open your browser**
    - Frontend: `http://localhost:5180`
    - Backend API: `http://localhost:3001`
+
+### **🌐 Live Demo**
+Want to try Writewise without setup? Check out our deployed version:
+- **Live App**: [https://writewise-8fke.vercel.app/](https://writewise-8fke.vercel.app/)
+
+> **Note**: The live demo showcases all implemented features. For development and customization, use the local setup above.
 
 ---
 
@@ -281,6 +288,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ for Content Creators**
 
-[Demo](http://localhost:5180) • [Documentation](GrammarlyClone_PRD.md) • [Features](WRITEWISE_FEATURE_SUMMARY.md)
+[🌐 Live Demo](https://writewise-8fke.vercel.app/) • [💻 Local Demo](http://localhost:5180) • [📚 Documentation](GrammarlyClone_PRD.md) • [✨ Features](WRITEWISE_FEATURE_SUMMARY.md)
 
 </div> 
