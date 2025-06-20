@@ -74,17 +74,49 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
       if (!editTitle.trim() || isLoading) return
       
       setIsLoading(true)
-      const { data, error } = await supabase
-        .from('documents')
-        .update({ title: editTitle })
-        .eq('id', id)
-        .select()
-        .single()
-      if (!error && data) {
-        setDocuments(docs => docs.map(doc => doc.id === id ? { ...doc, title: data.title } : doc))
-        setEditingId(null)
+      try {
+        const { data, error } = await supabase
+          .from('documents')
+          .update({ title: editTitle.trim() })
+          .eq('id', id)
+          .select()
+          .single()
+        
+        if (!error && data) {
+          setDocuments(docs => docs.map(doc => doc.id === id ? { ...doc, title: data.title } : doc))
+          
+          // Update current document title if it's the one being renamed
+          if (currentDocument?.id === id) {
+            setCurrentDocument({ ...currentDocument, title: data.title })
+          }
+          
+          setEditingId(null)
+          setEditTitle('')
+        } else {
+          console.error('Failed to rename document:', error)
+          alert('Failed to rename document. Please try again.')
+        }
+      } catch (error) {
+        console.error('Failed to rename document:', error)
+        alert('Failed to rename document. Please try again.')
       }
       setIsLoading(false)
+    }
+
+    const handleCancelEdit = () => {
+      setEditingId(null)
+      setEditTitle('')
+    }
+
+    const handleBlurEdit = async (id: string, originalTitle: string) => {
+      // If the title hasn't changed, just cancel
+      if (editTitle.trim() === originalTitle || !editTitle.trim()) {
+        handleCancelEdit()
+        return
+      }
+      
+      // Auto-save if the title has changed
+      await handleRename(id)
     }
 
     const handleExport = async (id: string, title: string) => {
@@ -181,27 +213,30 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
                     className="input flex-1"
                     value={editTitle}
                     onChange={e => setEditTitle(e.target.value)}
-                    onBlur={() => setEditingId(null)}
+                    onBlur={() => handleBlurEdit(doc.id, doc.title)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
+                        e.preventDefault()
                         handleRename(doc.id)
                       } else if (e.key === 'Escape') {
-                        setEditingId(null)
+                        e.preventDefault()
+                        handleCancelEdit()
                       }
                     }}
                     disabled={isLoading}
                     autoFocus
+                    placeholder="Enter document title"
                   />
                   <button 
                     className="btn ml-1" 
                     onClick={() => handleRename(doc.id)}
-                    disabled={isLoading}
+                    disabled={isLoading || !editTitle.trim()}
                   >
                     Save
                   </button>
                   <button 
                     className="btn ml-1" 
-                    onClick={() => setEditingId(null)}
+                    onClick={handleCancelEdit}
                     disabled={isLoading}
                   >
                     Cancel
