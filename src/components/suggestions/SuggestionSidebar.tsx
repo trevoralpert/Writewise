@@ -42,6 +42,8 @@ export default function SuggestionSidebar() {
         return 'bg-orange-500 text-white'
       case 'slang-protected':
         return 'bg-green-500 text-white'
+      case 'tone-rewrite':
+        return 'bg-purple-500 text-white'
       case 'grammar':
       case 'spelling':
         return 'bg-red-500 text-white'
@@ -56,6 +58,8 @@ export default function SuggestionSidebar() {
         return 'Demonetization Risk'
       case 'slang-protected':
         return 'Protected Slang'
+      case 'tone-rewrite':
+        return 'Tone-Preserving Fix'
       case 'style':
         return 'Style'
       case 'grammar':
@@ -122,6 +126,15 @@ export default function SuggestionSidebar() {
               <span className="font-medium">{getSuggestionCount('slang-protected')}</span>
             </div>
           )}
+          {getSuggestionCount('tone-rewrite') > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-purple-400 rounded-full"></span>
+                Tone-Preserving Fixes
+              </span>
+              <span className="font-medium">{getSuggestionCount('tone-rewrite')}</span>
+            </div>
+          )}
           {filteredSuggestions.length === 0 && (
             <p className="text-gray-500 text-center py-2">All clear! 🎉</p>
           )}
@@ -149,6 +162,9 @@ export default function SuggestionSidebar() {
                 )}
                 {s.type === 'slang-protected' && (
                   <span className="text-xs">✅</span>
+                )}
+                {s.type === 'tone-rewrite' && (
+                  <span className="text-xs">🎨</span>
                 )}
               </div>
               <h4 className="font-medium mb-1">{s.message}</h4>

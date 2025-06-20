@@ -7,10 +7,22 @@ interface Suggestion {
   start: number
   end: number
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite'
   alternatives?: string[]
   confidence?: number
   status: 'pending' | 'accepted' | 'ignored'
+  
+  // New properties for tone-preserving rewrites
+  priority?: number // 1-10 scale, higher = more important
+  conflictsWith?: string[] // IDs of conflicting suggestions
+  originalTone?: string // detected tone (casual, formal, creative, etc.)
+  toneRewrite?: {
+    originalText: string
+    rewrittenText: string
+    tonePreserved: boolean
+    confidenceScore: number
+    reasoning: string
+  }
 }
 
 interface Document {
@@ -44,6 +56,18 @@ interface EditorState {
   setStyleEnabled: (val: boolean) => void
   contextAwareGrammarEnabled: boolean
   setContextAwareGrammarEnabled: (val: boolean) => void
+  
+  // New: Tone-preserving rewrite settings
+  tonePreservingEnabled: boolean
+  setTonePreservingEnabled: (val: boolean) => void
+  
+  // Priority preferences for conflict resolution
+  conflictResolutionMode: 'grammar-first' | 'tone-first' | 'balanced' | 'user-choice'
+  setConflictResolutionMode: (mode: 'grammar-first' | 'tone-first' | 'balanced' | 'user-choice') => void
+  
+  // Tone detection sensitivity
+  toneDetectionSensitivity: 'low' | 'medium' | 'high'
+  setToneDetectionSensitivity: (level: 'low' | 'medium' | 'high') => void
 
   // Formality spectrum setting
   formalityLevel: 'casual' | 'balanced' | 'formal'
@@ -61,6 +85,46 @@ const doRangesOverlap = (range1: {start: number, end: number}, range2: {start: n
   return range1.start < range2.end && range2.start < range1.end;
 }
 
+// Helper function to calculate suggestion priority based on type and context
+const calculateSuggestionPriority = (suggestion: Suggestion, conflictResolutionMode: string): number => {
+  const basePriorities = {
+    'demonetization': 9, // High priority - affects monetization
+    'grammar': 6,        // Medium-high priority - affects correctness
+    'spelling': 7,       // High priority - clear errors
+    'tone-rewrite': 8,   // High priority - preserves voice while fixing
+    'style': 4,          // Medium priority - affects clarity
+    'slang-protected': 2 // Low priority - informational only
+  }
+  
+  let priority = basePriorities[suggestion.type] || 5
+  
+  // Adjust based on conflict resolution mode
+  switch (conflictResolutionMode) {
+    case 'grammar-first':
+      if (['grammar', 'spelling'].includes(suggestion.type)) priority += 2
+      if (suggestion.type === 'tone-rewrite') priority -= 1
+      break
+    case 'tone-first':
+      if (suggestion.type === 'tone-rewrite') priority += 2
+      if (['grammar', 'spelling'].includes(suggestion.type)) priority -= 1
+      break
+    case 'balanced':
+      // Keep base priorities
+      break
+    case 'user-choice':
+      // All suggestions get equal consideration
+      priority = 5
+      break
+  }
+  
+  // Factor in confidence score if available
+  if (suggestion.confidence) {
+    priority += (suggestion.confidence - 0.5) * 2 // -1 to +1 adjustment
+  }
+  
+  return Math.max(1, Math.min(10, priority))
+}
+
 export const useEditorStore = create<EditorState>((set, get) => ({
   content: '',
   setContent: (content) => {
@@ -72,7 +136,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setSuggestions: (suggestions) => set({ suggestions }),
   setAllSuggestionsAndFilter: (allSuggestions) => {
     const state = get()
-    const filteredSuggestions = allSuggestions.filter((suggestion) => {
+    
+    // Calculate priorities for all suggestions
+    const suggestionsWithPriority = allSuggestions.map(suggestion => ({
+      ...suggestion,
+      priority: calculateSuggestionPriority(suggestion, state.conflictResolutionMode)
+    }))
+    
+    const filteredSuggestions = suggestionsWithPriority.filter((suggestion) => {
       // Filter based on feature toggles
       if (suggestion.type === 'demonetization' && !state.demonetizationEnabled) {
         return false
@@ -86,13 +157,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (suggestion.type === 'slang-protected' && !state.contextAwareGrammarEnabled) {
         return false
       }
+      if (suggestion.type === 'tone-rewrite' && !state.tonePreservingEnabled) {
+        return false
+      }
       return true
     })
-    set({ allSuggestions, suggestions: filteredSuggestions })
+    
+    set({ allSuggestions: suggestionsWithPriority, suggestions: filteredSuggestions })
   },
   refilterSuggestions: () => {
     const state = get()
-    const filteredSuggestions = state.allSuggestions.filter((suggestion) => {
+    
+    // Recalculate priorities when settings change
+    const suggestionsWithPriority = state.allSuggestions.map(suggestion => ({
+      ...suggestion,
+      priority: calculateSuggestionPriority(suggestion, state.conflictResolutionMode)
+    }))
+    
+    const filteredSuggestions = suggestionsWithPriority.filter((suggestion) => {
       // Filter based on feature toggles
       if (suggestion.type === 'demonetization' && !state.demonetizationEnabled) {
         return false
@@ -106,9 +188,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (suggestion.type === 'slang-protected' && !state.contextAwareGrammarEnabled) {
         return false
       }
+      if (suggestion.type === 'tone-rewrite' && !state.tonePreservingEnabled) {
+        return false
+      }
       return true
     })
-    set({ suggestions: filteredSuggestions })
+    
+    set({ allSuggestions: suggestionsWithPriority, suggestions: filteredSuggestions })
   },
   updateSuggestionStatus: (id, status) =>
     set((state) => {
@@ -129,6 +215,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               { start: targetSuggestion.start, end: targetSuggestion.end }
             )) {
               // Mark overlapping suggestions as resolved to prevent conflicts
+              return { ...s, status: 'ignored' };
+            }
+            
+            // Check if this suggestion is marked as conflicting
+            if (targetSuggestion.conflictsWith?.includes(s.id) || s.conflictsWith?.includes(id)) {
               return { ...s, status: 'ignored' };
             }
             
@@ -190,13 +281,43 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   // Feature toggles for settings page
   demonetizationEnabled: true,
-  setDemonetizationEnabled: (val) => set({ demonetizationEnabled: val }),
+  setDemonetizationEnabled: (val) => {
+    set({ demonetizationEnabled: val })
+    get().refilterSuggestions() // Refilter when settings change
+  },
   grammarEnabled: true,
-  setGrammarEnabled: (val) => set({ grammarEnabled: val }),
+  setGrammarEnabled: (val) => {
+    set({ grammarEnabled: val })
+    get().refilterSuggestions()
+  },
   styleEnabled: true,
-  setStyleEnabled: (val) => set({ styleEnabled: val }),
+  setStyleEnabled: (val) => {
+    set({ styleEnabled: val })
+    get().refilterSuggestions()
+  },
   contextAwareGrammarEnabled: true,
-  setContextAwareGrammarEnabled: (val) => set({ contextAwareGrammarEnabled: val }),
+  setContextAwareGrammarEnabled: (val) => {
+    set({ contextAwareGrammarEnabled: val })
+    get().refilterSuggestions()
+  },
+  
+  // New: Tone-preserving rewrite settings
+  tonePreservingEnabled: true,
+  setTonePreservingEnabled: (val) => {
+    set({ tonePreservingEnabled: val })
+    get().refilterSuggestions()
+  },
+  
+  // Priority preferences for conflict resolution
+  conflictResolutionMode: 'balanced',
+  setConflictResolutionMode: (mode) => {
+    set({ conflictResolutionMode: mode })
+    get().refilterSuggestions() // Recalculate priorities when mode changes
+  },
+  
+  // Tone detection sensitivity
+  toneDetectionSensitivity: 'medium',
+  setToneDetectionSensitivity: (level) => set({ toneDetectionSensitivity: level }),
 
   // Formality spectrum setting
   formalityLevel: 'casual',

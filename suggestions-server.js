@@ -704,10 +704,460 @@ async function filterSuggestionsWithSlangProtection(suggestions, fullText, detec
   return filteredSuggestions;
 }
 
+// ========== PHASE 2: AI REWRITE ENGINE ==========
+
+// Phase 2A: Few-shot prompt templates for different writing styles
+const TONE_STYLE_TEMPLATES = {
+  casual: {
+    examples: [
+      {
+        original: "I am not going to attend the meeting because I have other commitments.",
+        rewrite: "I can't make the meeting - got other stuff going on.",
+        reasoning: "Maintains casual, conversational tone while fixing grammar"
+      },
+      {
+        original: "This product is not functioning correctly and requires immediate attention.",
+        rewrite: "This thing isn't working right and needs to be fixed ASAP.",
+        reasoning: "Preserves informal language while improving clarity"
+      },
+      {
+        original: "I ain't got no time for this nonsense right now.",
+        rewrite: "I don't have time for this nonsense right now.",
+        reasoning: "Fixes double negative while keeping casual attitude"
+      }
+    ],
+    characteristics: "conversational, relaxed, uses contractions, informal vocabulary, direct communication"
+  },
+  professional: {
+    examples: [
+      {
+        original: "We gotta fix this issue before the client sees it.",
+        rewrite: "We need to resolve this issue before the client review.",
+        reasoning: "Elevates casual language to professional standard"
+      },
+      {
+        original: "The data looks kinda weird and doesn't make sense.",
+        rewrite: "The data appears inconsistent and requires further analysis.",
+        reasoning: "Replaces vague language with precise professional terms"
+      },
+      {
+        original: "This is totally wrong and needs fixing.",
+        rewrite: "This contains errors that require correction.",
+        reasoning: "Maintains directness while using professional language"
+      }
+    ],
+    characteristics: "formal, precise, clear structure, appropriate business vocabulary, diplomatic"
+  },
+  creative: {
+    examples: [
+      {
+        original: "The sunset was very beautiful and made me feel happy.",
+        rewrite: "The sunset painted the sky in brilliant hues, lifting my spirits.",
+        reasoning: "Enhances basic description with vivid, creative language"
+      },
+      {
+        original: "This song is really good and I like it a lot.",
+        rewrite: "This song resonates deeply and captivates my soul.",
+        reasoning: "Transforms simple appreciation into expressive language"
+      },
+      {
+        original: "The food tasted bad and I didn't enjoy it.",
+        rewrite: "The dish fell flat, leaving my taste buds disappointed.",
+        reasoning: "Converts negative feedback into creative expression"
+      }
+    ],
+    characteristics: "expressive, vivid imagery, emotional language, metaphors, engaging descriptions"
+  },
+  academic: {
+    examples: [
+      {
+        original: "This study shows that people like social media because it's fun.",
+        rewrite: "This research demonstrates that individuals engage with social media platforms due to their entertainment value.",
+        reasoning: "Elevates casual observation to academic discourse"
+      },
+      {
+        original: "The results were pretty clear and obvious to everyone.",
+        rewrite: "The findings were statistically significant and clearly interpretable.",
+        reasoning: "Replaces subjective language with objective academic terms"
+      },
+      {
+        original: "We think this might work but we're not totally sure.",
+        rewrite: "The evidence suggests this approach may be effective, though further validation is required.",
+        reasoning: "Transforms uncertainty into measured academic language"
+      }
+    ],
+    characteristics: "objective, evidence-based, precise terminology, formal structure, scholarly tone"
+  }
+};
+
+// Phase 2B: AI-powered tone analysis to detect original writing style
+async function analyzeToneAndStyle(text, sensitivity = 'medium') {
+  try {
+    const prompt = `You are an expert linguist and writing coach. Analyze the tone, style, and voice of the given text to understand the writer's intended communication style.
+
+Text to analyze: "${text}"
+
+Your task:
+1. Identify the overall tone and writing style
+2. Detect the intended audience and context
+3. Note specific stylistic elements (vocabulary level, sentence structure, formality)
+4. Assess the emotional tone and personality
+5. Determine confidence level in your analysis
+
+Sensitivity level: ${sensitivity}
+- low: Only detect very obvious tone differences
+- medium: Standard tone detection with reasonable confidence
+- high: Detect subtle tone variations and mixed styles
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "primaryTone": "casual|professional|creative|academic|conversational|formal",
+  "secondaryTones": ["tone1", "tone2"],
+  "formalityLevel": "very-casual|casual|neutral|formal|very-formal",
+  "emotionalTone": "positive|negative|neutral|excited|serious|playful|etc",
+  "audience": "general|professional|academic|social|creative",
+  "vocabulary": "simple|moderate|advanced|technical|colloquial",
+  "confidence": 0.85,
+  "reasoning": "Brief explanation of tone detection",
+  "styleCharacteristics": ["conversational", "direct", "uses_contractions", "informal_vocab"]
+}
+
+Examples:
+- "Hey what's up! This is totally awesome and I'm so excited!" → casual, positive, conversational
+- "The quarterly results demonstrate significant growth." → professional, formal, business
+- "The crimson sunset whispered secrets to the twilight sky." → creative, poetic, expressive
+
+Text: "${text}"`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 300
+    });
+
+    let content = completion.choices[0].message.content || '{}';
+    content = content.replace(/```json|```/g, '').trim();
+    
+    const analysis = JSON.parse(content);
+    
+    // Validate and set defaults
+    return {
+      primaryTone: analysis.primaryTone || 'neutral',
+      secondaryTones: analysis.secondaryTones || [],
+      formalityLevel: analysis.formalityLevel || 'neutral',
+      emotionalTone: analysis.emotionalTone || 'neutral',
+      audience: analysis.audience || 'general',
+      vocabulary: analysis.vocabulary || 'moderate',
+      confidence: Math.max(0, Math.min(1, analysis.confidence || 0.7)),
+      reasoning: analysis.reasoning || 'AI tone analysis completed',
+      styleCharacteristics: analysis.styleCharacteristics || []
+    };
+    
+  } catch (error) {
+    console.error('Error in tone analysis:', error);
+    // Fallback analysis
+    return {
+      primaryTone: 'neutral',
+      secondaryTones: [],
+      formalityLevel: 'neutral',
+      emotionalTone: 'neutral',
+      audience: 'general',
+      vocabulary: 'moderate',
+      confidence: 0.5,
+      reasoning: 'Fallback analysis due to error',
+      styleCharacteristics: []
+    };
+  }
+}
+
+// Phase 2C: Tone-preserving rewrite generation using GPT-4o with style matching
+async function generateTonePreservingRewrite(originalText, problemText, issueType, toneAnalysis, context) {
+  try {
+    console.log(`🎨 Generating tone-preserving rewrite for "${problemText}" (${issueType})`);
+    
+    // Select appropriate style template
+    const styleTemplate = TONE_STYLE_TEMPLATES[toneAnalysis.primaryTone] || TONE_STYLE_TEMPLATES.casual;
+    
+    const prompt = `You are an expert writing coach specializing in tone-preserving edits. Your task is to fix ${issueType} issues while maintaining the writer's original voice and style.
+
+ORIGINAL CONTEXT: "${originalText}"
+PROBLEM TEXT: "${problemText}"
+ISSUE TYPE: ${issueType}
+
+DETECTED TONE PROFILE:
+- Primary tone: ${toneAnalysis.primaryTone}
+- Formality: ${toneAnalysis.formalityLevel}
+- Emotional tone: ${toneAnalysis.emotionalTone}
+- Audience: ${toneAnalysis.audience}
+- Style characteristics: ${toneAnalysis.styleCharacteristics.join(', ')}
+
+STYLE GUIDELINES FOR ${toneAnalysis.primaryTone.toUpperCase()} TONE:
+${styleTemplate.characteristics}
+
+EXAMPLES OF TONE-PRESERVING FIXES:
+${styleTemplate.examples.map(ex => `
+Original: "${ex.original}"
+Fixed: "${ex.rewrite}"
+Why: ${ex.reasoning}
+`).join('')}
+
+YOUR TASK:
+1. Fix the ${issueType} issue in "${problemText}"
+2. Maintain the writer's voice, energy, and personality
+3. Preserve the formality level (${toneAnalysis.formalityLevel})
+4. Keep the emotional tone (${toneAnalysis.emotionalTone})
+5. Match the vocabulary level and style characteristics
+
+CRITICAL RULES:
+- If the original uses slang/informal language intentionally, keep that energy
+- If it's casual and conversational, stay casual and conversational
+- If it's creative and expressive, maintain that creativity
+- Fix the grammar/spelling WITHOUT changing the vibe
+- The rewrite should sound like the same person, just corrected
+
+Respond with ONLY a JSON object:
+{
+  "rewrittenText": "the corrected text that preserves tone",
+  "tonePreserved": true/false,
+  "confidenceScore": 0.95,
+  "reasoning": "why this rewrite maintains the original voice",
+  "changesExplained": "what was fixed and how tone was preserved"
+}
+
+Focus on: "${problemText}"`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 250
+    });
+
+    let content = completion.choices[0].message.content || '{}';
+    content = content.replace(/```json|```/g, '').trim();
+    
+    const rewrite = JSON.parse(content);
+    
+    return {
+      rewrittenText: rewrite.rewrittenText || problemText,
+      tonePreserved: rewrite.tonePreserved !== false,
+      confidenceScore: Math.max(0, Math.min(1, rewrite.confidenceScore || 0.8)),
+      reasoning: rewrite.reasoning || 'Tone-preserving rewrite generated',
+      changesExplained: rewrite.changesExplained || 'Grammar/spelling corrected while maintaining style'
+    };
+    
+  } catch (error) {
+    console.error('Error generating tone-preserving rewrite:', error);
+    return {
+      rewrittenText: problemText,
+      tonePreserved: false,
+      confidenceScore: 0.3,
+      reasoning: 'Error in rewrite generation',
+      changesExplained: 'Fallback: no changes made due to error'
+    };
+  }
+}
+
+// Phase 2D: Conflict prioritization logic - decides what takes priority
+async function detectAndResolveConflicts(suggestions, fullText, conflictResolutionMode, toneAnalysis) {
+  console.log(`🔍 Analyzing ${suggestions.length} suggestions for conflicts (mode: ${conflictResolutionMode})`);
+  
+  const conflictGroups = [];
+  const processedSuggestions = [];
+  
+  // Group overlapping suggestions
+  for (let i = 0; i < suggestions.length; i++) {
+    const current = suggestions[i];
+    const conflicts = [];
+    
+    for (let j = i + 1; j < suggestions.length; j++) {
+      const other = suggestions[j];
+      
+      // Check for overlap or proximity (within 5 characters)
+      if (doRangesOverlap(
+        { start: current.start, end: current.end },
+        { start: other.start, end: other.end }
+      ) || Math.abs(current.start - other.end) <= 5 || Math.abs(other.start - current.end) <= 5) {
+        conflicts.push(other);
+      }
+    }
+    
+    if (conflicts.length > 0) {
+      conflictGroups.push({
+        primary: current,
+        conflicts: conflicts,
+        allSuggestions: [current, ...conflicts]
+      });
+      console.log(`⚡ Conflict detected: "${current.text}" conflicts with ${conflicts.length} other suggestions`);
+    }
+  }
+  
+  // Process conflict groups
+  for (const group of conflictGroups) {
+    const resolved = await resolveConflictGroup(group, fullText, conflictResolutionMode, toneAnalysis);
+    processedSuggestions.push(...resolved);
+  }
+  
+  // Add non-conflicting suggestions
+  const conflictedIds = new Set(conflictGroups.flatMap(g => g.allSuggestions.map(s => s.id)));
+  processedSuggestions.push(...suggestions.filter(s => !conflictedIds.has(s.id)));
+  
+  return processedSuggestions;
+}
+
+// Helper function to resolve a specific conflict group
+async function resolveConflictGroup(conflictGroup, fullText, conflictResolutionMode, toneAnalysis) {
+  const { primary, conflicts, allSuggestions } = conflictGroup;
+  
+  console.log(`🎯 Resolving conflict group with ${allSuggestions.length} suggestions`);
+  
+  // Calculate priorities for each suggestion
+  const prioritizedSuggestions = allSuggestions.map(s => ({
+    ...s,
+    calculatedPriority: calculateConflictPriority(s, conflictResolutionMode, toneAnalysis)
+  }));
+  
+  // Sort by priority (highest first)
+  prioritizedSuggestions.sort((a, b) => b.calculatedPriority - a.calculatedPriority);
+  
+  const winner = prioritizedSuggestions[0];
+  const losers = prioritizedSuggestions.slice(1);
+  
+  console.log(`🏆 Conflict winner: "${winner.text}" (${winner.type}, priority: ${winner.calculatedPriority})`);
+  
+  // Check if we should generate a tone-preserving rewrite
+  if (shouldGenerateToneRewrite(winner, losers, conflictResolutionMode, toneAnalysis)) {
+    console.log(`🎨 Generating tone-preserving rewrite for conflict resolution`);
+    
+    const context = getWordContext(fullText, winner.start, winner.end);
+    const rewrite = await generateTonePreservingRewrite(
+      fullText,
+      winner.text,
+      winner.type,
+      toneAnalysis,
+      context
+    );
+    
+    // Create tone-rewrite suggestion
+    const toneRewriteSuggestion = {
+      id: `tone-rewrite-${Math.random().toString(36).slice(2, 10)}`,
+      text: winner.text,
+      message: `Grammar fixed while preserving your ${toneAnalysis.primaryTone} tone and voice.`,
+      type: 'tone-rewrite',
+      alternatives: [rewrite.rewrittenText],
+      start: winner.start,
+      end: winner.end,
+      status: 'pending',
+      priority: winner.calculatedPriority + 1, // Higher than original
+      originalTone: toneAnalysis.primaryTone,
+      toneRewrite: {
+        originalText: winner.text,
+        rewrittenText: rewrite.rewrittenText,
+        tonePreserved: rewrite.tonePreserved,
+        confidenceScore: rewrite.confidenceScore,
+        reasoning: rewrite.reasoning
+      },
+      conflictsWith: losers.map(l => l.id)
+    };
+    
+    return [toneRewriteSuggestion];
+  }
+  
+  // Mark conflicts for tracking
+  winner.conflictsWith = losers.map(l => l.id);
+  return [winner];
+}
+
+// Helper function to calculate priority in conflict resolution
+function calculateConflictPriority(suggestion, conflictResolutionMode, toneAnalysis) {
+  const basePriorities = {
+    'demonetization': 9,
+    'tone-rewrite': 8,
+    'spelling': 7,
+    'grammar': 6,
+    'style': 4,
+    'slang-protected': 2
+  };
+  
+  let priority = basePriorities[suggestion.type] || 5;
+  
+  // Adjust based on conflict resolution mode
+  switch (conflictResolutionMode) {
+    case 'grammar-first':
+      if (['grammar', 'spelling'].includes(suggestion.type)) priority += 3;
+      if (suggestion.type === 'style') priority += 1;
+      break;
+    case 'tone-first':
+      if (suggestion.type === 'tone-rewrite') priority += 3;
+      if (suggestion.type === 'slang-protected') priority += 2;
+      break;
+    case 'balanced':
+      // Slight boost for tone-preserving approaches
+      if (suggestion.type === 'tone-rewrite') priority += 1;
+      break;
+    case 'user-choice':
+      priority = 5; // Equal priority, let user decide
+      break;
+  }
+  
+  // Factor in tone analysis confidence
+  if (toneAnalysis.confidence > 0.8) {
+    if (suggestion.type === 'tone-rewrite') priority += 1;
+  }
+  
+  return priority;
+}
+
+// Helper function to determine if we should generate a tone-rewrite
+function shouldGenerateToneRewrite(winner, losers, conflictResolutionMode, toneAnalysis) {
+  // Don't generate if winner is already a tone-rewrite
+  if (winner.type === 'tone-rewrite') return false;
+  
+  // Don't generate for demonetization (different handling)
+  if (winner.type === 'demonetization') return false;
+  
+  // Don't generate for slang-protected (informational only)
+  if (winner.type === 'slang-protected') return false;
+  
+  // Check if there's a tone/style conflict
+  const hasSlangConflict = losers.some(l => l.type === 'slang-protected');
+  const hasStyleConflict = losers.some(l => l.type === 'style');
+  
+  // Generate tone-rewrite if:
+  // 1. Grammar/spelling winner conflicts with slang/style
+  // 2. Tone analysis shows strong casual/creative style
+  // 3. Conflict resolution mode favors tone preservation
+  
+  if (['grammar', 'spelling'].includes(winner.type)) {
+    if (hasSlangConflict) return true;
+    if (conflictResolutionMode === 'tone-first') return true;
+    if (conflictResolutionMode === 'balanced' && toneAnalysis.confidence > 0.7) return true;
+    if (['casual', 'creative'].includes(toneAnalysis.primaryTone) && toneAnalysis.confidence > 0.8) return true;
+  }
+  
+  return false;
+}
+
+// Helper function to check if two ranges overlap
+function doRangesOverlap(range1, range2) {
+  return range1.start < range2.end && range2.start < range1.end;
+}
+
+// ========== END PHASE 2: AI REWRITE ENGINE ==========
+
 app.post('/api/suggestions', async (req, res) => {
-  const { text, formalityLevel = 'balanced' } = req.body
+  const { 
+    text, 
+    formalityLevel = 'balanced',
+    tonePreservingEnabled = true,
+    conflictResolutionMode = 'balanced',
+    toneDetectionSensitivity = 'medium'
+  } = req.body
 
   try {
+    console.log('🎯 Tone-preserving settings:', { tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity });
+    
     // Get AI suggestions for grammar, spelling, and style
     const prompt = `You are a writing-assistant that reviews a given passage for grammar, spelling, and stylistic issues.
 
@@ -719,8 +1169,10 @@ Your task:
     id: string           // unique, lowercase, no spaces (e.g. "sugg1")
     text: string         // the exact substring from the input that needs improvement
     message: string      // human-readable explanation of why it should change
-    type: "grammar" | "spelling" | "style"
+    type: "grammar" | "spelling" | "style" | "tone-rewrite"
     alternatives: string[] // at least one improved replacement
+    priority?: number    // 1-10 scale for conflict resolution
+    originalTone?: string // detected tone (casual, formal, creative, etc.)
   }
 
 3. Return ONLY a JSON array of Suggestion – **do NOT** add markdown, comments, or any other wrapper.
@@ -832,11 +1284,29 @@ Input:
     suggestions = await filterSuggestionsWithSlangProtection(suggestions, text, slangWords, formalityLevel);
     console.log('Suggestions after AI protection:', suggestions.length);
 
+    // ========== PHASE 2: TONE-PRESERVING INTEGRATION ==========
+    if (tonePreservingEnabled && suggestions.length > 0) {
+      console.log('🎨 Starting tone-preserving analysis...');
+      
+      // Phase 2B: Analyze tone and style of the full text
+      const toneAnalysis = await analyzeToneAndStyle(text, toneDetectionSensitivity);
+      console.log('🎯 Tone analysis result:', toneAnalysis);
+      
+      // Phase 2D: Detect and resolve conflicts with tone-preserving rewrites
+      suggestions = await detectAndResolveConflicts(suggestions, text, conflictResolutionMode, toneAnalysis);
+      console.log('🔄 Suggestions after conflict resolution:', suggestions.length);
+    }
+    // ========== END PHASE 2 INTEGRATION ==========
+
     console.log('Text:', text)
     console.log('Found demonetization words:', demonetizationWords.length)
+    console.log('Final suggestions count:', suggestions.length)
     suggestions.forEach(s => {
       console.log('Suggestion:', s)
       console.log('Extracted:', text.slice(s.start, s.end))
+      if (s.type === 'tone-rewrite') {
+        console.log('🎨 Tone rewrite:', s.toneRewrite)
+      }
     })
 
     res.json({ suggestions })

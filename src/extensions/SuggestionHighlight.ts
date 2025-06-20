@@ -68,6 +68,8 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                   className = 'suggestion-underline-demonetization'
                 } else if (s.type === 'slang-protected') {
                   className = 'suggestion-underline-slang-protected'
+                } else if (s.type === 'tone-rewrite') {
+                  className = 'suggestion-underline-tone-rewrite'
                 }
                 
                 decos.push(

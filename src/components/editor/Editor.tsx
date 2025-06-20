@@ -26,7 +26,11 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     setCurrentDocument,
     demonetizationEnabled,
     grammarEnabled,
-    styleEnabled
+    styleEnabled,
+    contextAwareGrammarEnabled,
+    tonePreservingEnabled,
+    conflictResolutionMode,
+    toneDetectionSensitivity
   } = useEditorStore()
   const { requestSuggestions, refilterSuggestions } = useSuggestions()
   const saveTimeout = React.useRef<NodeJS.Timeout | null>(null)
@@ -158,12 +162,39 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     }
   }, [currentDocument, editor, requestSuggestions])
 
-  // Re-filter suggestions when settings change
+  // Listen for settings changes and refilter suggestions
   useEffect(() => {
-    if (editor && content.trim()) {
-      refilterSuggestions()
-    }
-  }, [demonetizationEnabled, grammarEnabled, styleEnabled, editor, content, refilterSuggestions])
+    const { 
+      demonetizationEnabled, 
+      grammarEnabled, 
+      styleEnabled, 
+      contextAwareGrammarEnabled,
+      tonePreservingEnabled,
+      conflictResolutionMode,
+      toneDetectionSensitivity
+    } = useEditorStore.getState()
+    
+    console.log('🔧 Editor settings updated:', {
+      demonetizationEnabled,
+      grammarEnabled, 
+      styleEnabled,
+      contextAwareGrammarEnabled,
+      tonePreservingEnabled,
+      conflictResolutionMode,
+      toneDetectionSensitivity
+    })
+    
+    refilterSuggestions()
+  }, [
+    useEditorStore(s => s.demonetizationEnabled),
+    useEditorStore(s => s.grammarEnabled),
+    useEditorStore(s => s.styleEnabled),
+    useEditorStore(s => s.contextAwareGrammarEnabled),
+    useEditorStore(s => s.tonePreservingEnabled),
+    useEditorStore(s => s.conflictResolutionMode),
+    useEditorStore(s => s.toneDetectionSensitivity),
+    refilterSuggestions
+  ])
 
   // Hover listeners with delay mechanism
   useEffect(() => {

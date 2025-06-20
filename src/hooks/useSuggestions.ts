@@ -5,11 +5,23 @@ interface Suggestion {
   id: string
   text: string
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite'
   alternatives: string[]
   start: number
   end: number
   status: 'pending' | 'accepted' | 'ignored'
+  
+  // New properties for tone-preserving rewrites
+  priority?: number
+  conflictsWith?: string[]
+  originalTone?: string
+  toneRewrite?: {
+    originalText: string
+    rewrittenText: string
+    tonePreserved: boolean
+    confidenceScore: number
+    reasoning: string
+  }
 }
 
 export function useSuggestions() {
@@ -20,7 +32,13 @@ export function useSuggestions() {
 
   // Debounced fetch
   const fetchSuggestions = useCallback(() => {
-    const { content, formalityLevel } = useEditorStore.getState();
+    const { 
+      content, 
+      formalityLevel, 
+      tonePreservingEnabled,
+      conflictResolutionMode,
+      toneDetectionSensitivity 
+    } = useEditorStore.getState();
     
     if (!content.trim()) {
       setAllSuggestionsAndFilter([])
@@ -33,6 +51,8 @@ export function useSuggestions() {
     console.log('🔍 Sending text to server:', JSON.stringify(safeText))
     console.log('🔍 Text length:', safeText.length)
     console.log('🔍 Formality level:', formalityLevel)
+    console.log('🔍 Tone preserving enabled:', tonePreservingEnabled)
+    console.log('🔍 Conflict resolution mode:', conflictResolutionMode)
     
     // Use environment variable or fallback to localhost for development
     const apiUrl = import.meta.env.VITE_SUGGESTIONS_API_URL || 'http://localhost:3001';
@@ -42,7 +62,10 @@ export function useSuggestions() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         text: safeText,
-        formalityLevel: formalityLevel 
+        formalityLevel: formalityLevel,
+        tonePreservingEnabled: tonePreservingEnabled,
+        conflictResolutionMode: conflictResolutionMode,
+        toneDetectionSensitivity: toneDetectionSensitivity
       }),
     })
       .then(res => {
@@ -59,6 +82,9 @@ export function useSuggestions() {
         suggestions.forEach((suggestion: any) => {
           if (suggestion.type === 'demonetization') {
             console.log(`  - ${suggestion.text} (${suggestion.start}-${suggestion.end}): "${safeText.substring(suggestion.start, suggestion.end)}"`)
+          }
+          if (suggestion.type === 'tone-rewrite') {
+            console.log(`  - Tone rewrite: "${suggestion.text}" -> "${suggestion.toneRewrite?.rewrittenText}"`)
           }
         })
         
