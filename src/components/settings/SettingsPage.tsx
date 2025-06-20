@@ -310,8 +310,8 @@ const SettingsPage = () => {
                     Get suggestions for character limits, tone adjustments, engagement tactics, and platform-specific best practices.
                   </p>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="inline-block w-3 h-3 bg-green-400 rounded-full"></span>
-                    <span>Green solid underlines show platform optimization opportunities</span>
+                    <span className="inline-block w-3 h-3 bg-yellow-400 rounded-full"></span>
+                    <span>Yellow solid underlines show platform optimization opportunities</span>
                   </div>
                 </div>
                 <div className="ml-6">

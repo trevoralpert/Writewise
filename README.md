@@ -71,7 +71,7 @@ Writewise is a next-generation writing assistant designed specifically for **con
 - **Character limit optimization** for different social platforms
 - **Platform best practices** integration with content format suggestions
 - **Hashtag and keyword recommendations** tailored to each platform
-- **Green solid underlines** highlight platform-specific suggestions
+- **Yellow solid underlines** highlight platform-specific suggestions
 
 ---
 
@@ -178,7 +178,7 @@ Want to try Writewise without setup? Check out our deployed version:
 - 🟣 **Purple solid** - Tone-preserving rewrites
 - 🩷 **Pink double** - Engagement enhancements
 - 🔵 **Purple wavy** - SEO optimization suggestions
-- 🟢 **Green solid** - Platform-specific adaptations
+- 🟡 **Yellow solid** - Platform-specific adaptations
 
 ### **Interactive Elements**
 - 🎯 **Context-sensitive popups** with detailed explanations
