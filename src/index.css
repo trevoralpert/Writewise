@@ -113,11 +113,19 @@ button:focus-visible {
   text-decoration-color: #8b5cf6; /* purple-500 */
 }
 
+/* engagement suggestion underline */
+.suggestion-underline-engagement {
+  text-decoration-line: underline;
+  text-decoration-style: double;
+  text-decoration-color: #ec4899; /* pink-500 */
+}
+
 .suggestion-underline,
 .suggestion-underline-style,
 .suggestion-underline-demonetization,
 .suggestion-underline-slang-protected,
-.suggestion-underline-tone-rewrite {
+.suggestion-underline-tone-rewrite,
+.suggestion-underline-engagement {
   display: inline-block;      /* give it its own rect */
   position: relative;         /* stays inline, but Popper sees real coords */
 }
@@ -194,6 +202,34 @@ button:focus-visible {
   50% { 
     border-bottom-color: rgba(156, 163, 175, 0.5);
     opacity: 0.7;
+  }
+}
+
+.suggestion-underline-engagement {
+  border-bottom: 3px double rgb(236 72 153);
+  border-radius: 1px;
+  animation: engagement-pulse 2.5s ease-in-out infinite;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(219, 39, 119, 0.05) 100%);
+  padding: 1px 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.suggestion-underline-engagement:hover {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(219, 39, 119, 0.1) 100%);
+  border-bottom-color: rgb(219 39 119);
+  border-bottom-width: 4px;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+@keyframes engagement-pulse {
+  0%, 100% { 
+    border-bottom-color: rgb(236 72 153);
+    opacity: 1;
+  }
+  50% { 
+    border-bottom-color: rgba(236, 72, 153, 0.6);
+    opacity: 0.8;
   }
 }
 

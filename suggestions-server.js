@@ -2755,7 +2755,8 @@ app.post('/api/suggestions', async (req, res) => {
     formalityLevel = 'balanced',
     tonePreservingEnabled = true,
     conflictResolutionMode = 'balanced',
-    toneDetectionSensitivity = 'medium'
+    toneDetectionSensitivity = 'medium',
+    engagementEnabled = true
   } = req.body
 
   console.log('📝 Processing text:', text?.length, 'characters');
@@ -2768,7 +2769,7 @@ app.post('/api/suggestions', async (req, res) => {
     console.log(`📊 Writing session initialized: ${sessionId}`);
 
     // Phase 4B: Handle edge cases early
-    const settings = { formalityLevel, tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity };
+    const settings = { formalityLevel, tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity, engagementEnabled };
     const edgeCaseResult = await handleEdgeCases(text, [], settings);
     if (edgeCaseResult.edgeCaseHandled) {
       console.log(`🛡️ Edge case handled: ${edgeCaseResult.edgeCaseHandled}`);
@@ -2784,28 +2785,36 @@ app.post('/api/suggestions', async (req, res) => {
       });
     }
     
-    // Get AI suggestions for grammar, spelling, and style
-    const prompt = `You are a writing-assistant that reviews a given passage for grammar, spelling, and stylistic issues.
+    // Get AI suggestions for grammar, spelling, style, and engagement
+    const prompt = `You are a writing-assistant that reviews a given passage for grammar, spelling, stylistic, and engagement issues.
 
 Your task:
-1. Identify up to **10** issues in the provided *input*.
+1. Identify up to **12** issues in the provided *input*.
 2. For every issue create an object that matches this exact TypeScript shape (no extra keys):
 
   interface Suggestion {
     id: string           // unique, lowercase, no spaces (e.g. "sugg1")
     text: string         // the exact substring from the input that needs improvement
     message: string      // human-readable explanation of why it should change
-    type: "grammar" | "spelling" | "style" | "tone-rewrite"
+    type: "grammar" | "spelling" | "style" | "tone-rewrite" | "engagement"
     alternatives: string[] // at least one improved replacement
     priority?: number    // 1-10 scale for conflict resolution
     originalTone?: string // detected tone (casual, formal, creative, etc.)
   }
 
-3. Return ONLY a JSON array of Suggestion – **do NOT** add markdown, comments, or any other wrapper.
+3. For ENGAGEMENT suggestions, focus on:
+   - Weak opening hooks (suggest compelling starts)
+   - Missing calls-to-action (suggest reader engagement)
+   - Lack of direct reader address (suggest "you" language)
+   - Missing emotional language (suggest more compelling words)
+   - Poor transitions between ideas
+
+4. Return ONLY a JSON array of Suggestion – **do NOT** add markdown, comments, or any other wrapper.
 
 Example response:
 [
-  {"id":"sugg1","text":"teh","message":"Spelling mistake","type":"spelling","alternatives":["the"]}
+  {"id":"sugg1","text":"teh","message":"Spelling mistake","type":"spelling","alternatives":["the"]},
+  {"id":"sugg2","text":"This is about","message":"Weak opening - consider a more engaging hook","type":"engagement","alternatives":["What if I told you this is about","Here's something surprising about","Ever wondered about"]}
 ]
 
 Input:
@@ -2963,8 +2972,44 @@ Input:
       
       // Add consistency suggestions to the main suggestions array
       suggestions.push(...styleConsistency.suggestions);
+      
     }
     // ========== END PHASE 2 & 3 INTEGRATION ==========
+
+    // Phase 6: Engagement Enhancement Analysis (Independent)
+    console.log('🎯 Engagement check - enabled:', engagementEnabled, 'textLength:', text.length);
+    if (engagementEnabled && text.length > 50) { // Only analyze engagement for substantial content
+      console.log('🎯 Starting engagement enhancement analysis...');
+      
+      // Get tone analysis if available (may be null if tone preserving is disabled)
+      let toneAnalysis = null;
+      if (tonePreservingEnabled) {
+        const toneAnalysisKey = getCacheKey(text, 'tone-analysis', { sensitivity: toneDetectionSensitivity });
+        toneAnalysis = getFromCache(toneAnalysisCache, toneAnalysisKey);
+      }
+      
+      // Use cached engagement analysis if available
+      const engagementCacheKey = getCacheKey(text, 'engagement-analysis', { toneDetectionSensitivity });
+      let engagementAnalysis = getFromCache(engagementCache, engagementCacheKey);
+      
+      if (!engagementAnalysis) {
+        engagementAnalysis = await analyzeEngagementPotential(text, toneAnalysis);
+        setCache(engagementCache, engagementCacheKey, engagementAnalysis);
+        console.log('🎯 Fresh engagement analysis completed');
+        madeAiCall = true;
+      } else {
+        console.log('📋 Using cached engagement analysis');
+        usedCache = true;
+      }
+      
+      // Generate engagement suggestions
+      const engagementSuggestions = await generateEngagementSuggestions(engagementAnalysis, text, toneAnalysis);
+      
+      // Add engagement suggestions to the main suggestions array
+      suggestions.push(...engagementSuggestions);
+      
+      console.log('🎯 Added', engagementSuggestions.length, 'engagement suggestions to pipeline');
+    }
 
     // Phase 4B: Final edge case handling for suggestions
     const finalEdgeCaseResult = await handleEdgeCases(text, suggestions, settings);
@@ -3227,3 +3272,374 @@ app.listen(PORT, () => {
   // Log performance metrics every 5 minutes
   setInterval(logPerformanceMetrics, 300000);
 })
+
+// Phase 6: Engagement Enhancement Analysis
+async function analyzeEngagementPotential(text, toneAnalysis = null) {
+  console.log('🎯 Analyzing engagement potential for text...');
+  
+  const engagementAnalysis = {
+    overallScore: 0,
+    categories: {
+      openingHook: { score: 0, issues: [], suggestions: [] },
+      callToAction: { score: 0, issues: [], suggestions: [] },
+      emotionalLanguage: { score: 0, issues: [], suggestions: [] },
+      readerInteraction: { score: 0, issues: [], suggestions: [] },
+      transitions: { score: 0, issues: [], suggestions: [] },
+      urgencyScarcity: { score: 0, issues: [], suggestions: [] }
+    },
+    suggestions: []
+  };
+
+  // Analyze opening hook (first 100 characters)
+  const opening = text.substring(0, 100).trim();
+  engagementAnalysis.categories.openingHook = analyzeOpeningHook(opening, text);
+  
+  // Analyze call-to-action presence
+  engagementAnalysis.categories.callToAction = analyzeCallToAction(text);
+  
+  // Analyze emotional language
+  engagementAnalysis.categories.emotionalLanguage = analyzeEmotionalLanguage(text, toneAnalysis);
+  
+  // Analyze reader interaction (questions, direct address)
+  engagementAnalysis.categories.readerInteraction = analyzeReaderInteraction(text);
+  
+  // Analyze transitions between ideas
+  engagementAnalysis.categories.transitions = analyzeTransitions(text);
+  
+  // Analyze urgency and scarcity language
+  engagementAnalysis.categories.urgencyScarcity = analyzeUrgencyScarcity(text);
+
+  // Calculate overall engagement score
+  const categoryScores = Object.values(engagementAnalysis.categories).map(cat => cat.score);
+  engagementAnalysis.overallScore = Math.round(categoryScores.reduce((sum, score) => sum + score, 0) / categoryScores.length);
+
+  console.log('🎯 Engagement analysis complete. Overall score:', engagementAnalysis.overallScore);
+  
+  return engagementAnalysis;
+}
+
+function analyzeOpeningHook(opening, fullText) {
+  const analysis = { score: 5, issues: [], suggestions: [] };
+  
+  // Check for weak openings
+  const weakOpenings = [
+    /^(this|that|it|there) (is|are|was|were)/i,
+    /^(in|on|at|during) (this|that|the)/i,
+    /^(many|some|most) (people|users|creators)/i,
+    /^(today|now|currently)/i
+  ];
+  
+  const hasWeakOpening = weakOpenings.some(pattern => pattern.test(opening));
+  
+  if (hasWeakOpening) {
+    analysis.score = 3;
+    analysis.issues.push('Weak opening that may not hook readers');
+    analysis.suggestions.push({
+      type: 'opening_hook',
+      message: 'Consider starting with a question, bold statement, or compelling fact',
+      position: 0
+    });
+  }
+  
+  // Check for question openings (good)
+  if (/^(what|how|why|when|where|who|have you|did you|are you|do you)/i.test(opening)) {
+    analysis.score = Math.min(analysis.score + 2, 10);
+  }
+  
+  // Check for emotional/compelling words
+  const compellingWords = ['discover', 'secret', 'proven', 'amazing', 'shocking', 'revealed', 'ultimate'];
+  const hasCompellingWords = compellingWords.some(word => 
+    new RegExp(`\\b${word}\\b`, 'i').test(opening)
+  );
+  
+  if (hasCompellingWords) {
+    analysis.score = Math.min(analysis.score + 1, 10);
+  }
+  
+  return analysis;
+}
+
+function analyzeCallToAction(text) {
+  const analysis = { score: 5, issues: [], suggestions: [] };
+  
+  // CTA patterns
+  const ctaPatterns = [
+    /\b(subscribe|like|share|comment|follow|click|visit|check out|learn more|sign up|join|download)\b/gi,
+    /\b(what do you think|let me know|tell us|your thoughts|in the comments)\b/gi,
+    /\b(don't forget to|make sure to|be sure to)\b/gi
+  ];
+  
+  const ctaMatches = ctaPatterns.reduce((count, pattern) => {
+    const matches = text.match(pattern);
+    return count + (matches ? matches.length : 0);
+  }, 0);
+  
+  if (ctaMatches === 0) {
+    analysis.score = 2;
+    analysis.issues.push('No clear call-to-action found');
+    analysis.suggestions.push({
+      type: 'call_to_action',
+      message: 'Add a call-to-action to encourage reader engagement',
+      position: text.length - 50 // Suggest near the end
+    });
+  } else if (ctaMatches >= 2) {
+    analysis.score = 8;
+  }
+  
+  return analysis;
+}
+
+function analyzeEmotionalLanguage(text, toneAnalysis) {
+  const analysis = { score: 5, issues: [], suggestions: [] };
+  
+  // Emotional words (positive and negative)
+  const emotionalWords = [
+    'amazing', 'incredible', 'fantastic', 'awesome', 'brilliant', 'stunning',
+    'shocking', 'devastating', 'heartbreaking', 'infuriating', 'terrifying',
+    'exciting', 'thrilling', 'inspiring', 'motivating', 'empowering',
+    'love', 'hate', 'fear', 'hope', 'dream', 'passion', 'desire'
+  ];
+  
+  const emotionalWordCount = emotionalWords.reduce((count, word) => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    const matches = text.match(regex);
+    return count + (matches ? matches.length : 0);
+  }, 0);
+  
+  const wordsPerEmotionalWord = text.split(/\s+/).length / Math.max(emotionalWordCount, 1);
+  
+  if (wordsPerEmotionalWord > 50) {
+    analysis.score = 3;
+    analysis.issues.push('Limited emotional language may reduce reader engagement');
+    analysis.suggestions.push({
+      type: 'emotional_language',
+      message: 'Consider adding more emotionally resonant words to connect with readers',
+      position: Math.floor(text.length / 2)
+    });
+  } else if (wordsPerEmotionalWord < 20) {
+    analysis.score = 8;
+  }
+  
+  return analysis;
+}
+
+function analyzeReaderInteraction(text) {
+  const analysis = { score: 5, issues: [], suggestions: [] };
+  
+  // Direct address patterns
+  const directAddressPatterns = [
+    /\byou\b/gi,
+    /\byour\b/gi,
+    /\byou're\b/gi,
+    /\byou'll\b/gi,
+    /\byou've\b/gi
+  ];
+  
+  const directAddressCount = directAddressPatterns.reduce((count, pattern) => {
+    const matches = text.match(pattern);
+    return count + (matches ? matches.length : 0);
+  }, 0);
+  
+  // Question patterns
+  const questionCount = (text.match(/\?/g) || []).length;
+  
+  const totalWords = text.split(/\s+/).length;
+  const interactionRatio = (directAddressCount + questionCount) / totalWords;
+  
+  if (interactionRatio < 0.02) {
+    analysis.score = 3;
+    analysis.issues.push('Limited direct reader engagement');
+    analysis.suggestions.push({
+      type: 'reader_interaction',
+      message: 'Try addressing readers directly with "you" or asking questions',
+      position: Math.floor(text.length * 0.3)
+    });
+  } else if (interactionRatio > 0.05) {
+    analysis.score = 8;
+  }
+  
+  return analysis;
+}
+
+function analyzeTransitions(text) {
+  const analysis = { score: 5, issues: [], suggestions: [] };
+  
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  
+  if (sentences.length < 2) {
+    return analysis; // Can't analyze transitions with fewer than 2 sentences
+  }
+  
+  const transitionWords = [
+    'however', 'therefore', 'furthermore', 'moreover', 'additionally',
+    'meanwhile', 'consequently', 'nevertheless', 'nonetheless',
+    'first', 'second', 'finally', 'next', 'then', 'also',
+    'but', 'and', 'so', 'yet', 'because', 'since'
+  ];
+  
+  const transitionCount = transitionWords.reduce((count, word) => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    const matches = text.match(regex);
+    return count + (matches ? matches.length : 0);
+  }, 0);
+  
+  const transitionRatio = transitionCount / sentences.length;
+  
+  if (transitionRatio < 0.1) {
+    analysis.score = 3;
+    analysis.issues.push('Few transition words may make text feel choppy');
+    analysis.suggestions.push({
+      type: 'transitions',
+      message: 'Add transition words to improve flow between ideas',
+      position: Math.floor(text.length * 0.5)
+    });
+  } else if (transitionRatio > 0.3) {
+    analysis.score = 8;
+  }
+  
+  return analysis;
+}
+
+function analyzeUrgencyScarcity(text) {
+  const analysis = { score: 5, issues: [], suggestions: [] };
+  
+  const urgencyWords = [
+    'now', 'today', 'immediately', 'urgent', 'quickly', 'fast',
+    'limited time', 'deadline', 'expires', 'hurry', 'rush',
+    'only', 'exclusive', 'rare', 'limited', 'few left',
+    'don\'t miss', 'last chance', 'final', 'ending soon'
+  ];
+  
+  const urgencyCount = urgencyWords.reduce((count, phrase) => {
+    const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    const matches = text.match(regex);
+    return count + (matches ? matches.length : 0);
+  }, 0);
+  
+  if (urgencyCount === 0) {
+    analysis.score = 4;
+    analysis.issues.push('No urgency or scarcity language detected');
+    analysis.suggestions.push({
+      type: 'urgency_scarcity',
+      message: 'Consider adding urgency to motivate immediate action',
+      position: text.length - 100
+    });
+  } else if (urgencyCount >= 2) {
+    analysis.score = 7;
+  }
+  
+  return analysis;
+}
+
+async function generateEngagementSuggestions(engagementAnalysis, text, toneAnalysis) {
+  console.log('🎯 Generating engagement suggestions...');
+  
+  const suggestions = [];
+  
+  // Process each category's suggestions
+  Object.entries(engagementAnalysis.categories).forEach(([category, analysis]) => {
+    analysis.suggestions.forEach(suggestion => {
+      // Generate AI-enhanced alternatives for each suggestion
+      suggestions.push({
+        id: `engagement-${Math.random().toString(36).slice(2, 10)}`,
+        text: getTextAtPosition(text, suggestion.position, 20),
+        message: suggestion.message,
+        type: 'engagement',
+        alternatives: generateEngagementAlternatives(suggestion.type, text, suggestion.position, toneAnalysis),
+        start: Math.max(0, suggestion.position - 10),
+        end: Math.min(text.length, suggestion.position + 10),
+        status: 'pending',
+        engagementCategory: category,
+        engagementType: suggestion.type,
+        priority: calculateEngagementPriority(suggestion.type, engagementAnalysis.overallScore)
+      });
+    });
+  });
+  
+  console.log('🎯 Generated', suggestions.length, 'engagement suggestions');
+  return suggestions;
+}
+
+function getTextAtPosition(text, position, length = 20) {
+  const start = Math.max(0, position - length / 2);
+  const end = Math.min(text.length, position + length / 2);
+  return text.substring(start, end).trim();
+}
+
+function generateEngagementAlternatives(engagementType, text, position, toneAnalysis) {
+  const alternatives = [];
+  
+  switch (engagementType) {
+    case 'opening_hook':
+      alternatives.push(
+        "What if I told you...",
+        "Here's something that might surprise you:",
+        "Ever wondered why..."
+      );
+      break;
+    case 'call_to_action':
+      alternatives.push(
+        "What do you think about this?",
+        "Let me know in the comments!",
+        "Share your experience below"
+      );
+      break;
+    case 'emotional_language':
+      alternatives.push(
+        "This is absolutely incredible",
+        "You'll be amazed by this",
+        "This changes everything"
+      );
+      break;
+    case 'reader_interaction':
+      alternatives.push(
+        "Have you ever experienced this?",
+        "You might be wondering...",
+        "Here's what you need to know:"
+      );
+      break;
+    case 'transitions':
+      alternatives.push(
+        "But here's the thing:",
+        "Now, here's where it gets interesting:",
+        "However, there's more to it:"
+      );
+      break;
+    case 'urgency_scarcity':
+      alternatives.push(
+        "Don't wait - this is important",
+        "Time is running out for this opportunity",
+        "Only a few people know this secret"
+      );
+      break;
+    default:
+      alternatives.push("Consider revising for better engagement");
+  }
+  
+  return alternatives;
+}
+
+function calculateEngagementPriority(engagementType, overallScore) {
+  const basePriorities = {
+    'opening_hook': 8, // High priority - first impression matters
+    'call_to_action': 7, // High priority - drives action
+    'reader_interaction': 6, // Medium-high priority - builds connection
+    'emotional_language': 5, // Medium priority - enhances connection
+    'transitions': 4, // Medium priority - improves flow
+    'urgency_scarcity': 3 // Lower priority - can be overused
+  };
+  
+  let priority = basePriorities[engagementType] || 5;
+  
+  // Adjust based on overall engagement score
+  if (overallScore < 4) {
+    priority += 1; // Boost priority for low-engagement content
+  } else if (overallScore > 7) {
+    priority -= 1; // Lower priority if already engaging
+  }
+  
+  return Math.max(1, Math.min(10, priority));
+}
+
+// Cache for engagement analysis
+const engagementCache = new Map();

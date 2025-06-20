@@ -5,7 +5,7 @@ interface Suggestion {
   id: string
   text: string
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement'
   alternatives: string[]
   start: number
   end: number
@@ -22,6 +22,10 @@ interface Suggestion {
     confidenceScore: number
     reasoning: string
   }
+  
+  // New properties for engagement suggestions
+  engagementCategory?: string
+  engagementType?: string
 }
 
 export function useSuggestions() {
@@ -37,7 +41,8 @@ export function useSuggestions() {
       formalityLevel, 
       tonePreservingEnabled,
       conflictResolutionMode,
-      toneDetectionSensitivity 
+      toneDetectionSensitivity,
+      engagementEnabled
     } = useEditorStore.getState();
     
     if (!content.trim()) {
@@ -66,6 +71,7 @@ export function useSuggestions() {
         tonePreservingEnabled: tonePreservingEnabled,
         conflictResolutionMode: conflictResolutionMode,
         toneDetectionSensitivity: toneDetectionSensitivity,
+        engagementEnabled: engagementEnabled,
         userId: 'user-' + Date.now() // Simple user ID for analytics
       }),
     })
@@ -102,6 +108,9 @@ export function useSuggestions() {
           }
           if (suggestion.type === 'tone-rewrite') {
             console.log(`  - Tone rewrite: "${suggestion.text}" -> "${suggestion.toneRewrite?.rewrittenText}"`)
+          }
+          if (suggestion.type === 'engagement') {
+            console.log(`  - Engagement (${suggestion.engagementCategory}): "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
           }
           if (suggestion.userTip) {
             console.log(`    💡 Tip: ${suggestion.userTip}`)

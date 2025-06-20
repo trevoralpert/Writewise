@@ -62,6 +62,9 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
     } else if (suggestion.type === 'slang-protected') {
       popupWidth = suggestion.aiAnalysis ? 380 : 300 // Larger for AI analysis
       popupHeight = suggestion.aiAnalysis ? 450 : 250
+    } else if (suggestion.type === 'engagement') {
+      popupWidth = 350
+      popupHeight = 300
     }
     
     let left = rect.left
@@ -519,6 +522,78 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
     </div>
   )
 
+  const renderEngagementButtons = () => (
+    <div className="space-y-4">
+      {/* Header Section */}
+      <div className="popup-header">
+        <div className="popup-title flex items-center gap-2">
+          <span className="text-pink-600 text-lg">🎯</span>
+          <span className="text-pink-800">Engagement Boost</span>
+        </div>
+        <div className="text-xs bg-pink-50 text-pink-700 px-2 py-1 rounded-full border border-pink-200 font-medium">
+          {suggestion.engagementCategory || 'General'}
+        </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className="text-sm text-gray-700 leading-relaxed">
+        "<span className="font-mono bg-pink-100 px-2 py-1 rounded-md font-semibold text-pink-800 border border-pink-200">{suggestion.text}</span>" could be more engaging.
+      </div>
+
+      {/* Engagement Type Badge */}
+      {suggestion.engagementType && (
+        <div className="text-xs bg-gradient-to-r from-pink-50 to-purple-50 text-pink-700 px-3 py-2 rounded-lg border border-pink-200 font-medium flex items-center gap-2">
+          <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
+          <span className="capitalize">{suggestion.engagementType}</span>
+        </div>
+      )}
+
+      {/* AI Reasoning Section */}
+      {suggestion.reasoning && (
+        <div className="popup-ai-reasoning">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-pink-600">💡 Why this helps:</span>
+          </div>
+          <div className="text-xs leading-relaxed">
+            {suggestion.reasoning}
+          </div>
+        </div>
+      )}
+
+      {/* Alternatives */}
+      {suggestion.alternatives && suggestion.alternatives.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs font-medium text-gray-700 mb-2">Choose an engaging alternative:</div>
+          {suggestion.alternatives.map((alternative: string, index: number) => (
+            <button
+              key={index}
+              className="btn btn-sm w-full text-left justify-start bg-pink-50 hover:bg-pink-100 text-pink-800 border-pink-200 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
+              onClick={() => acceptAlternative(alternative)}
+              disabled={isReplacing}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-400/10 to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+              <div className="relative z-10 flex items-center gap-2">
+                <span className="text-pink-500">✨</span>
+                <span className="flex-1 text-sm font-medium">{alternative}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {/* Action Buttons */}
+      <div className="flex gap-2 justify-end pt-2 border-t border-gray-100">
+        <button
+          className="btn btn-sm btn-ghost text-gray-600 hover:text-gray-800"
+          onClick={ignore}
+          disabled={isReplacing}
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  )
+
   const position = getPopupPosition()
 
   return createPortal(
@@ -538,6 +613,7 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
         width: suggestion.type === 'slang-protected' && suggestion.aiAnalysis ? '380px' : 
                suggestion.type === 'demonetization' ? '320px' : 
                suggestion.type === 'slang-protected' ? '300px' :
+               suggestion.type === 'engagement' ? '350px' :
                suggestion.toneRewrite ? '400px' : 'auto',
         backdropFilter: 'blur(8px)',
         background: 'rgba(255, 255, 255, 0.95)'
@@ -545,8 +621,8 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Enhanced Header - Only for non-slang-protected and non-tone-rewrite types */}
-      {suggestion.type !== 'slang-protected' && !suggestion.toneRewrite && (
+      {/* Enhanced Header - Only for non-slang-protected, non-tone-rewrite, and non-engagement types */}
+      {suggestion.type !== 'slang-protected' && !suggestion.toneRewrite && suggestion.type !== 'engagement' && (
         <div className="flex items-start gap-3 mb-4">
           {suggestion.type === 'demonetization' && (
             <span className="text-orange-500 text-xl mt-0.5 drop-shadow-sm">⚠️</span>
@@ -578,6 +654,8 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
             ? renderDemonetizationButtons() 
             : suggestion.type === 'slang-protected'
             ? renderSlangProtectedButtons()
+            : suggestion.type === 'engagement'
+            ? renderEngagementButtons()
             : suggestion.toneRewrite ? renderToneRewriteButtons() : renderRegularButtons()
           }
         </>

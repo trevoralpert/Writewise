@@ -70,6 +70,8 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                   className = 'suggestion-underline-slang-protected'
                 } else if (s.type === 'tone-rewrite') {
                   className = 'suggestion-underline-tone-rewrite'
+                } else if (s.type === 'engagement') {
+                  className = 'suggestion-underline-engagement'
                 } else if (s.type === 'style-consistency') {
                   className = 'suggestion-underline-style-consistency'
                 }

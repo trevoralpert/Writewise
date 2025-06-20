@@ -15,6 +15,8 @@ const SettingsPage = () => {
     setStyleEnabled,
     contextAwareGrammarEnabled,
     setContextAwareGrammarEnabled,
+    engagementEnabled,
+    setEngagementEnabled,
     formalityLevel,
     setFormalityLevel,
     saveCurrentDocument,
@@ -187,6 +189,34 @@ const SettingsPage = () => {
                       type="checkbox"
                       checked={contextAwareGrammarEnabled}
                       onChange={(e) => setContextAwareGrammarEnabled(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Engagement Enhancement */}
+              <div className="flex items-start justify-between border-t pt-6">
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Engagement Enhancement
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-3">
+                    Get AI-powered suggestions to make your content more engaging and compelling for readers. 
+                    Includes improvements for opening hooks, calls-to-action, emotional language, and reader interaction.
+                  </p>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span className="inline-block w-3 h-3 bg-pink-400 rounded-full"></span>
+                    <span>Pink double underlines show engagement opportunities</span>
+                  </div>
+                </div>
+                <div className="ml-6">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={engagementEnabled}
+                      onChange={(e) => setEngagementEnabled(e.target.checked)}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>

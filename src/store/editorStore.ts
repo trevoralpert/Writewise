@@ -7,7 +7,7 @@ interface Suggestion {
   start: number
   end: number
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement'
   alternatives?: string[]
   confidence?: number
   status: 'pending' | 'accepted' | 'ignored'
@@ -23,6 +23,10 @@ interface Suggestion {
     confidenceScore: number
     reasoning: string
   }
+  
+  // New properties for engagement suggestions
+  engagementCategory?: string // openingHook, callToAction, etc.
+  engagementType?: string // specific type within category
 }
 
 interface Document {
@@ -79,6 +83,10 @@ interface EditorState {
   tonePreservingEnabled: boolean
   setTonePreservingEnabled: (val: boolean) => void
   
+  // New: Engagement enhancement settings
+  engagementEnabled: boolean
+  setEngagementEnabled: (val: boolean) => void
+  
   // Priority preferences for conflict resolution
   conflictResolutionMode: 'grammar-first' | 'tone-first' | 'balanced' | 'user-choice'
   setConflictResolutionMode: (mode: 'grammar-first' | 'tone-first' | 'balanced' | 'user-choice') => void
@@ -110,6 +118,7 @@ const calculateSuggestionPriority = (suggestion: Suggestion, conflictResolutionM
     'grammar': 6,        // Medium-high priority - affects correctness
     'spelling': 7,       // High priority - clear errors
     'tone-rewrite': 8,   // High priority - preserves voice while fixing
+    'engagement': 5,     // Medium priority - enhances reader connection
     'style': 4,          // Medium priority - affects clarity
     'slang-protected': 2 // Low priority - informational only
   }
@@ -178,6 +187,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (suggestion.type === 'tone-rewrite' && !state.tonePreservingEnabled) {
         return false
       }
+      if (suggestion.type === 'engagement' && !state.engagementEnabled) {
+        return false
+      }
       return true
     })
     
@@ -207,6 +219,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         return false
       }
       if (suggestion.type === 'tone-rewrite' && !state.tonePreservingEnabled) {
+        return false
+      }
+      if (suggestion.type === 'engagement' && !state.engagementEnabled) {
         return false
       }
       return true
@@ -333,6 +348,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   tonePreservingEnabled: true,
   setTonePreservingEnabled: (val) => {
     set({ tonePreservingEnabled: val })
+    get().refilterSuggestions()
+  },
+  
+  // New: Engagement enhancement settings
+  engagementEnabled: true,
+  setEngagementEnabled: (val) => {
+    set({ engagementEnabled: val })
     get().refilterSuggestions()
   },
   
