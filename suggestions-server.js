@@ -289,7 +289,16 @@ const SLANG_DATABASE = [
   
   // Reaction slang
   'oop', 'tea', 'spill', 'drag', 'roast', 'ratio', 'L', 'W', 'rip', 'ded',
-  'i\'m deceased', 'i can\'t', 'not me', 'why am i', 'pls', 'omg', 'smh'
+  'i\'m deceased', 'i can\'t', 'not me', 'why am i', 'pls', 'omg', 'smh',
+  
+  // Emphasis and agreement slang
+  'on god', 'for real', 'real talk', 'straight up', 'facts', 'no lie', 'i swear',
+  'on my mama', 'on everything', 'word', 'truth', 'honestly', 'literally',
+  
+  // Multi-word expressions
+  'my bad', 'all good', 'no worries', 'you good', 'we good', 'it\'s all good',
+  'what\'s good', 'what\'s up', 'what\'s poppin', 'what\'s the move', 'let\'s go',
+  'that\'s facts', 'that\'s cap', 'big facts', 'no cap fr', 'periodt queen'
 ];
 
 // Context indicators that suggest intentional slang usage
@@ -300,117 +309,197 @@ const SLANG_CONTEXT_INDICATORS = [
   'trend', 'trendy', 'fashionable', 'stylish', 'teen', 'teenager', 'young'
 ];
 
+// AI-First Slang Detection - completely dynamic approach
 async function detectSlangWords(text, formalityLevel = 'balanced') {
-  const detectedSlang = [];
-  const lowerText = text.toLowerCase();
+  console.log(`🤖 AI-First slang detection for: "${text}"`);
   
-  // First pass: collect all potential slang matches
-  const potentialSlang = [];
-  
-  console.log(`🔍 Scanning text for slang: "${text}"`);
-  
-  SLANG_DATABASE.forEach(slangWord => {
-    const regex = new RegExp(`\\b${slangWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-    let match;
+  try {
+    // Phase 1: AI identifies all potential slang expressions
+    const detectedSlang = await aiDetectSlangExpressions(text, formalityLevel);
     
-    while ((match = regex.exec(text)) !== null) {
-      console.log(`📝 Found potential slang: "${match[0]}" at position ${match.index}-${match.index + match[0].length}`);
-      const context = getWordContext(text, match.index, match.index + match[0].length);
-      const ruleBasedConfidence = calculateSlangConfidence(slangWord, context, text);
+    console.log(`🎯 AI detected ${detectedSlang.length} slang expressions`);
+    
+    // Phase 2: Context analysis for protection decisions
+    const analyzedSlang = [];
+    
+    for (const slang of detectedSlang) {
+      console.log(`🧠 Analyzing context for "${slang.word}"`);
       
-      console.log(`📊 Rule-based confidence for "${match[0]}": ${ruleBasedConfidence}`);
-      
-      if (ruleBasedConfidence > 0.4) { // Lower threshold for AI analysis
-        potentialSlang.push({
-          word: match[0],
-          start: match.index,
-          end: match.index + match[0].length,
-          context: context,
-          ruleBasedConfidence: ruleBasedConfidence
-        });
-        console.log(`✅ Added "${match[0]}" to potential slang list`);
-      } else {
-        console.log(`❌ Skipped "${match[0]}" - confidence too low`);
+      try {
+        // Enhanced context analysis
+        const contextAnalysis = await analyzeSlangContext(text, slang.word, slang.context, formalityLevel);
+        console.log(`🤖 Context analysis for "${slang.word}":`, contextAnalysis);
+        
+        // Decision logic based on AI analysis and formality level
+        let shouldProtect = false;
+        
+        if (contextAnalysis.isIntentional && contextAnalysis.confidence > 0.7) {
+          switch (formalityLevel) {
+            case 'casual':
+              shouldProtect = true; // Protect all intentional slang in casual mode
+              break;
+            case 'balanced':
+              shouldProtect = contextAnalysis.shouldProtect && contextAnalysis.audienceMatch;
+              break;
+            case 'formal':
+              shouldProtect = false; // Never protect in formal mode
+              break;
+            default:
+              shouldProtect = contextAnalysis.shouldProtect;
+          }
+        }
+        
+        if (shouldProtect) {
+          console.log(`✅ Protecting "${slang.word}" - intentional slang (confidence: ${contextAnalysis.confidence})`);
+          analyzedSlang.push({
+            word: slang.word,
+            start: slang.start,
+            end: slang.end,
+            confidence: contextAnalysis.confidence,
+            aiAnalysis: contextAnalysis,
+            ruleBasedConfidence: null // Pure AI approach
+          });
+        } else {
+          console.log(`❌ Not protecting "${slang.word}" - ${!contextAnalysis.isIntentional ? 'not intentional' : 'inappropriate for formality level'}`);
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error analyzing context for "${slang.word}":`, error);
+        // Conservative fallback: don't protect if we can't analyze
       }
     }
-  });
+    
+    return analyzedSlang.sort((a, b) => a.start - b.start);
+    
+  } catch (error) {
+    console.error('❌ Error in AI-first slang detection:', error);
+    
+    // Fallback to database approach only if AI completely fails
+    console.log('🔄 Falling back to database-based detection');
+    return await detectSlangWordsFallback(text, formalityLevel);
+  }
+}
+
+// AI function to detect slang expressions in text
+async function aiDetectSlangExpressions(text, formalityLevel) {
+  const prompt = `You are an expert linguist specializing in modern slang, informal language, and internet culture. Your task is to identify ALL slang expressions, informal phrases, and casual language in the given text.
+
+Instructions:
+1. Find EVERY instance of slang, informal language, or casual expressions
+2. Include single words (like "fire", "lit", "bussin") AND multi-word phrases (like "on god", "for real", "sending me")
+3. Consider internet slang, Gen Z expressions, AAVE, regional slang, and emerging language
+4. Don't limit yourself to any predefined list - use your full knowledge
+5. Include the exact text position (start and end character indices)
+
+Text to analyze: "${text}"
+Target formality: ${formalityLevel}
+
+For each slang expression found, provide:
+- exact_text: the exact slang as it appears in the text
+- start_pos: character position where it starts (0-indexed)
+- end_pos: character position where it ends (exclusive)
+- slang_type: category (e.g., "emphasis", "fashion", "reaction", "agreement", etc.)
+- confidence: how confident you are this is slang (0.0-1.0)
+
+Respond with ONLY a JSON array in this format:
+[
+  {
+    "exact_text": "bussin",
+    "start_pos": 12,
+    "end_pos": 18,
+    "slang_type": "positive_reaction",
+    "confidence": 0.95
+  }
+]
+
+If no slang is found, return an empty array: []
+
+Text: "${text}"`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 1000
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content.trim();
+    
+    console.log('🤖 AI slang detection response:', aiResponse);
+    
+    // Parse the JSON response
+    const detectedExpressions = JSON.parse(aiResponse);
+    
+    // Convert to our internal format
+    return detectedExpressions.map(expr => ({
+      word: expr.exact_text,
+      start: expr.start_pos,
+      end: expr.end_pos,
+      context: getWordContext(text, expr.start_pos, expr.end_pos),
+      slangType: expr.slang_type,
+      aiConfidence: expr.confidence
+    }));
+    
+  } catch (error) {
+    console.error('❌ Error in AI slang detection:', error);
+    throw error;
+  }
+}
+
+// Fallback function using database approach
+async function detectSlangWordsFallback(text, formalityLevel) {
+  console.log('🔄 Using fallback database detection');
   
-  console.log(`🎯 Found ${potentialSlang.length} potential slang words for AI analysis`);
+  const detectedSlang = [];
+  const sortedSlang = [...SLANG_DATABASE].sort((a, b) => b.length - a.length);
   
-  // Second pass: AI analysis for each potential slang
-  for (const slang of potentialSlang) {
-    console.log(`🤖 Starting AI analysis for "${slang.word}"`);
-    try {
-      const aiAnalysis = await analyzeSlangContext(text, slang.word, slang.context, formalityLevel);
-      console.log(`🤖 AI analysis result for "${slang.word}":`, aiAnalysis);
+  for (const slangWord of sortedSlang.slice(0, 20)) { // Limit to prevent timeout
+    const lowerText = text.toLowerCase();
+    const lowerSlang = slangWord.toLowerCase();
+    const index = lowerText.indexOf(lowerSlang);
+    
+    if (index !== -1) {
+      // Simple word boundary check
+      const beforeChar = index > 0 ? text[index - 1] : ' ';
+      const afterChar = index + slangWord.length < text.length ? text[index + slangWord.length] : ' ';
       
-      // Combine rule-based and AI confidence
-      const combinedConfidence = (slang.ruleBasedConfidence * 0.4) + (aiAnalysis.confidence * 0.6);
-      console.log(`📊 Combined confidence for "${slang.word}": ${combinedConfidence} (rule: ${slang.ruleBasedConfidence}, AI: ${aiAnalysis.confidence})`);
-      
-      // Enhanced decision logic based on formality level and AI analysis
-      let shouldInclude = false;
-      
-      if (aiAnalysis.isIntentional && aiAnalysis.confidence > 0.8) {
-        // High-confidence intentional slang - include based on formality level
-        switch (formalityLevel) {
-          case 'casual':
-            shouldInclude = true; // Protect all high-confidence slang in casual mode
-            break;
-          case 'balanced':
-            shouldInclude = aiAnalysis.shouldProtect || combinedConfidence > 0.8;
-            break;
-          case 'formal':
-            shouldInclude = false; // Never protect in formal mode
-            break;
-          default:
-            shouldInclude = aiAnalysis.shouldProtect;
+      if (/\s/.test(beforeChar) && /\s/.test(afterChar)) {
+        const actualMatch = text.substring(index, index + slangWord.length);
+        
+        try {
+          const aiAnalysis = await analyzeSlangContext(text, actualMatch, getWordContext(text, index, index + slangWord.length), formalityLevel);
+          
+          if (aiAnalysis.isIntentional && aiAnalysis.shouldProtect) {
+            detectedSlang.push({
+              word: actualMatch,
+              start: index,
+              end: index + slangWord.length,
+              confidence: aiAnalysis.confidence,
+              aiAnalysis: aiAnalysis,
+              ruleBasedConfidence: 0.8
+            });
+          }
+        } catch (error) {
+          console.error('Error in fallback analysis:', error);
         }
-      } else if (slang.ruleBasedConfidence > 0.9) {
-        // Very high rule-based confidence as fallback
-        shouldInclude = true;
-      }
-      
-      if (shouldInclude) {
-        console.log(`✅ Including "${slang.word}" in detected slang (intentional: ${aiAnalysis.isIntentional}, aiConfidence: ${aiAnalysis.confidence}, formality: ${formalityLevel})`);
-        detectedSlang.push({
-          word: slang.word,
-          start: slang.start,
-          end: slang.end,
-          confidence: combinedConfidence,
-          aiAnalysis: aiAnalysis,
-          ruleBasedConfidence: slang.ruleBasedConfidence
-        });
-      } else {
-        console.log(`❌ Excluding "${slang.word}" from detected slang (intentional: ${aiAnalysis.isIntentional}, aiConfidence: ${aiAnalysis.confidence}, formality: ${formalityLevel})`);
-      }
-    } catch (error) {
-      console.error('❌ Error in AI analysis for slang:', slang.word, error);
-      // Fallback to rule-based only
-      if (slang.ruleBasedConfidence > 0.7) {
-        console.log(`🔄 Fallback: Including "${slang.word}" based on rule confidence ${slang.ruleBasedConfidence}`);
-        detectedSlang.push({
-          word: slang.word,
-          start: slang.start,
-          end: slang.end,
-          confidence: slang.ruleBasedConfidence,
-          aiAnalysis: null,
-          ruleBasedConfidence: slang.ruleBasedConfidence
-        });
-      } else {
-        console.log(`🔄 Fallback: Excluding "${slang.word}" - rule confidence too low (${slang.ruleBasedConfidence})`);
       }
     }
   }
   
-  // Sort by position and remove overlapping matches
-  return detectedSlang
-    .sort((a, b) => a.start - b.start)
-    .filter((slang, index, arr) => {
-      if (index === 0) return true;
-      const prev = arr[index - 1];
-      return slang.start >= prev.end;
-    });
+  return detectedSlang;
 }
 
 function calculateSlangConfidence(slangWord, context, fullText) {

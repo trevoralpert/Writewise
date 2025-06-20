@@ -23,6 +23,15 @@ export const SLANG_DATABASE = [
   'oop', 'tea', 'spill', 'drag', 'roast', 'ratio', 'L', 'W', 'rip', 'ded',
   'i\'m deceased', 'i can\'t', 'not me', 'why am i', 'pls', 'omg', 'smh',
   
+  // Emphasis and agreement slang
+  'on god', 'for real', 'real talk', 'straight up', 'facts', 'no lie', 'i swear',
+  'on my mama', 'on everything', 'word', 'truth', 'honestly', 'literally',
+  
+  // Multi-word expressions
+  'my bad', 'all good', 'no worries', 'you good', 'we good', 'it\'s all good',
+  'what\'s good', 'what\'s up', 'what\'s poppin', 'what\'s the move', 'let\'s go',
+  'that\'s facts', 'that\'s cap', 'big facts', 'no cap fr', 'periodt queen',
+  
   // Relationship slang
   'ghosted', 'breadcrumbing', 'sliding into dms', 'catch feelings', 'simp',
   'simping', 'thirsty', 'pressed', 'salty', 'bitter', 'toxic', 'red flag',
