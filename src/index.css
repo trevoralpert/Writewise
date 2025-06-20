@@ -125,7 +125,8 @@ button:focus-visible {
 .suggestion-underline-demonetization,
 .suggestion-underline-slang-protected,
 .suggestion-underline-tone-rewrite,
-.suggestion-underline-engagement {
+.suggestion-underline-engagement,
+.suggestion-underline-platform-adaptation {
   display: inline-block;      /* give it its own rect */
   position: relative;         /* stays inline, but Popper sees real coords */
 }
@@ -229,6 +230,55 @@ button:focus-visible {
   }
   50% { 
     border-bottom-color: rgba(236, 72, 153, 0.6);
+    opacity: 0.8;
+  }
+}
+
+/* Platform adaptation suggestion underline */
+.suggestion-underline-platform-adaptation {
+  border-bottom: 3px solid rgb(34 197 94);
+  border-radius: 1px;
+  animation: platform-pulse 2.5s ease-in-out infinite;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%);
+  padding: 1px 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.suggestion-underline-platform-adaptation:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.1) 100%);
+  border-bottom-color: rgb(22 163 74);
+  border-bottom-width: 4px;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.suggestion-underline-platform-adaptation::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, transparent, rgba(34, 197, 94, 0.1), transparent);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.suggestion-underline-platform-adaptation:hover::before {
+  opacity: 1;
+}
+
+@keyframes platform-pulse {
+  0%, 100% { 
+    border-bottom-color: rgb(34 197 94);
+    opacity: 1;
+  }
+  50% { 
+    border-bottom-color: rgba(34, 197, 94, 0.6);
     opacity: 0.8;
   }
 }
@@ -866,3 +916,105 @@ button:focus-visible {
 }
 
 /* ========== END STYLE-CONSISTENCY ANIMATIONS ========== */
+
+/* ========== SEO OPTIMIZATION SUGGESTION ANIMATIONS ========== */
+
+/* SEO suggestions - purple wavy underline */
+.suggestion-underline-seo {
+  border-bottom: 2px solid transparent;
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 2'%3E%3Cpath d='M0 1c1 0 1-1 2-1s1 1 2 1 1-1 2-1 1 1 2 1' stroke='%238B5CF6' stroke-width='0.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: bottom;
+  border-radius: 0;
+  animation: seo-pulse 3s ease-in-out infinite;
+}
+
+@keyframes seo-pulse {
+  0%, 100% {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 2'%3E%3Cpath d='M0 1c1 0 1-1 2-1s1 1 2 1 1-1 2-1 1 1 2 1' stroke='%238B5CF6' stroke-width='0.5' fill='none'/%3E%3C/svg%3E");
+  }
+  50% {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 2'%3E%3Cpath d='M0 1c1 0 1-1 2-1s1 1 2 1 1-1 2-1 1 1 2 1' stroke='%23A855F7' stroke-width='0.6' fill='none'/%3E%3C/svg%3E");
+  }
+}
+
+/* SEO suggestion background highlight */
+.seo-highlight {
+  background: linear-gradient(45deg, rgba(139, 92, 246, 0.1), rgba(168, 85, 247, 0.1));
+  border-radius: 3px;
+  padding: 1px 2px;
+  animation: seo-highlight-pulse 4s ease-in-out infinite;
+}
+
+@keyframes seo-highlight-pulse {
+  0%, 100% { 
+    background: linear-gradient(45deg, rgba(139, 92, 246, 0.1), rgba(168, 85, 247, 0.1));
+  }
+  50% { 
+    background: linear-gradient(45deg, rgba(139, 92, 246, 0.15), rgba(168, 85, 247, 0.15));
+  }
+}
+
+/* SEO popup specific styles */
+.seo-popup {
+  border-left: 4px solid #8B5CF6;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(168, 85, 247, 0.05));
+}
+
+.seo-popup .popup-header {
+  color: #7C3AED;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.seo-popup .suggestion-text {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7C3AED;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.seo-popup .alternative-text {
+  background: rgba(168, 85, 247, 0.1);
+  color: #9333EA;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+/* Enhanced button styles for SEO */
+.btn-seo {
+  background: linear-gradient(135deg, #8B5CF6, #A855F7);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-seo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-seo:hover::before {
+  left: 100%;
+}
+
+.btn-seo:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(139, 92, 246, 0.4);
+  background: linear-gradient(135deg, #7C3AED, #8B5CF6);
+}
+
+.btn-seo:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+}
+
+/* ========== END SEO OPTIMIZATION ANIMATIONS ========== */

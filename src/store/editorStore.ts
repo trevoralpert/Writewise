@@ -7,7 +7,7 @@ interface Suggestion {
   start: number
   end: number
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement' | 'platform-adaptation' | 'seo'
   alternatives?: string[]
   confidence?: number
   status: 'pending' | 'accepted' | 'ignored'
@@ -27,6 +27,13 @@ interface Suggestion {
   // New properties for engagement suggestions
   engagementCategory?: string // openingHook, callToAction, etc.
   engagementType?: string // specific type within category
+  
+  // New properties for platform adaptation suggestions
+  platformId?: string
+  platformName?: string
+  platformCategory?: string
+  platformScore?: number
+  userTip?: string
 }
 
 interface Document {
@@ -87,6 +94,12 @@ interface EditorState {
   engagementEnabled: boolean
   setEngagementEnabled: (val: boolean) => void
   
+  // New: Platform adaptation settings
+  platformAdaptationEnabled: boolean
+  setPlatformAdaptationEnabled: (val: boolean) => void
+  selectedPlatform: string | null
+  setSelectedPlatform: (platform: string | null) => void
+  
   // Priority preferences for conflict resolution
   conflictResolutionMode: 'grammar-first' | 'tone-first' | 'balanced' | 'user-choice'
   setConflictResolutionMode: (mode: 'grammar-first' | 'tone-first' | 'balanced' | 'user-choice') => void
@@ -98,6 +111,18 @@ interface EditorState {
   // Formality spectrum setting
   formalityLevel: 'casual' | 'balanced' | 'formal'
   setFormalityLevel: (level: 'casual' | 'balanced' | 'formal') => void
+
+  // New: SEO Content Optimization settings
+  seoOptimizationEnabled: boolean
+  setSeoOptimizationEnabled: (val: boolean) => void
+  seoContentType: 'blogPost' | 'article' | 'socialMedia' | 'email' | 'landingPage' | 'productDescription'
+  setSeoContentType: (type: 'blogPost' | 'article' | 'socialMedia' | 'email' | 'landingPage' | 'productDescription') => void
+  seoPrimaryKeyword: string
+  setSeoPrimaryKeyword: (keyword: string) => void
+  seoSecondaryKeywords: string[]
+  setSeoSecondaryKeywords: (keywords: string[]) => void
+  seoTargetAudience: string
+  setSeoTargetAudience: (audience: string) => void
 
   // Save state
   isSaving: boolean
@@ -114,13 +139,15 @@ const doRangesOverlap = (range1: {start: number, end: number}, range2: {start: n
 // Helper function to calculate suggestion priority based on type and context
 const calculateSuggestionPriority = (suggestion: Suggestion, conflictResolutionMode: string): number => {
   const basePriorities = {
-    'demonetization': 9, // High priority - affects monetization
-    'grammar': 6,        // Medium-high priority - affects correctness
-    'spelling': 7,       // High priority - clear errors
-    'tone-rewrite': 8,   // High priority - preserves voice while fixing
-    'engagement': 5,     // Medium priority - enhances reader connection
-    'style': 4,          // Medium priority - affects clarity
-    'slang-protected': 2 // Low priority - informational only
+    'demonetization': 9,      // High priority - affects monetization
+    'grammar': 6,             // Medium-high priority - affects correctness
+    'spelling': 7,            // High priority - clear errors
+    'tone-rewrite': 8,        // High priority - preserves voice while fixing
+    'engagement': 5,          // Medium priority - enhances reader connection
+    'platform-adaptation': 6, // Medium-high priority - platform optimization
+    'seo': 7,                // High priority - affects search visibility
+    'style': 4,              // Medium priority - affects clarity
+    'slang-protected': 2     // Low priority - informational only
   }
   
   let priority = basePriorities[suggestion.type] || 5
@@ -190,6 +217,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (suggestion.type === 'engagement' && !state.engagementEnabled) {
         return false
       }
+      if (suggestion.type === 'platform-adaptation' && !state.platformAdaptationEnabled) {
+        return false
+      }
+      if (suggestion.type === 'seo' && !state.seoOptimizationEnabled) {
+        return false
+      }
       return true
     })
     
@@ -222,6 +255,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         return false
       }
       if (suggestion.type === 'engagement' && !state.engagementEnabled) {
+        return false
+      }
+      if (suggestion.type === 'platform-adaptation' && !state.platformAdaptationEnabled) {
+        return false
+      }
+      if (suggestion.type === 'seo' && !state.seoOptimizationEnabled) {
         return false
       }
       return true
@@ -358,6 +397,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     get().refilterSuggestions()
   },
   
+  // New: Platform adaptation settings
+  platformAdaptationEnabled: true,
+  setPlatformAdaptationEnabled: (val) => {
+    set({ platformAdaptationEnabled: val })
+    get().refilterSuggestions()
+  },
+  selectedPlatform: null,
+  setSelectedPlatform: (platform) => set({ selectedPlatform: platform }),
+  
   // Priority preferences for conflict resolution
   conflictResolutionMode: 'balanced',
   setConflictResolutionMode: (mode) => {
@@ -372,6 +420,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Formality spectrum setting
   formalityLevel: 'casual',
   setFormalityLevel: (level) => set({ formalityLevel: level }),
+
+  // SEO Content Optimization settings
+  seoOptimizationEnabled: false,
+  setSeoOptimizationEnabled: (val) => {
+    set({ seoOptimizationEnabled: val })
+    get().refilterSuggestions()
+  },
+  seoContentType: 'blogPost',
+  setSeoContentType: (type) => set({ seoContentType: type }),
+  seoPrimaryKeyword: '',
+  setSeoPrimaryKeyword: (keyword) => set({ seoPrimaryKeyword: keyword }),
+  seoSecondaryKeywords: [],
+  setSeoSecondaryKeywords: (keywords) => set({ seoSecondaryKeywords: keywords }),
+  seoTargetAudience: '',
+  setSeoTargetAudience: (audience) => set({ seoTargetAudience: audience }),
 
   // Save state
   isSaving: false,

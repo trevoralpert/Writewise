@@ -14,6 +14,25 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 // Simple in-memory cache for demonetization alternatives
 const alternativesCache = new Map()
 
+// SEO analysis cache
+const seoCache = new Map()
+
+// SEO Definitions and Rules (inline for Node.js compatibility)
+const SEO_RULES = {
+  keywordDensity: {
+    primary: { optimal: 0.015, min: 0.005, max: 0.03, warning: 0.025, critical: 0.035 }
+  },
+  contentLength: {
+    blogPost: { min: 1500, optimal: 2500, max: 4000 },
+    article: { min: 800, optimal: 1200, max: 2000 },
+    general: { min: 300, optimal: 800, max: 2000 }
+  },
+  readability: {
+    fleschKincaid: { optimal: 70, min: 60, max: 80, warning: 50, critical: 40 },
+    avgSentenceLength: { optimal: 15, min: 10, max: 20, warning: 25, critical: 30 }
+  }
+};
+
 // Demonetization words detection (inline for Node.js compatibility)
 const DEMONETIZATION_WORDS = [
   // Death-related terms
@@ -2756,7 +2775,12 @@ app.post('/api/suggestions', async (req, res) => {
     tonePreservingEnabled = true,
     conflictResolutionMode = 'balanced',
     toneDetectionSensitivity = 'medium',
-    engagementEnabled = true
+    engagementEnabled = true,
+    platformAdaptationEnabled = true,
+    selectedPlatform = null,
+    seoOptimizationEnabled = true,
+    contentType = 'general',
+    primaryKeyword = null
   } = req.body
 
   console.log('📝 Processing text:', text?.length, 'characters');
@@ -2769,7 +2793,7 @@ app.post('/api/suggestions', async (req, res) => {
     console.log(`📊 Writing session initialized: ${sessionId}`);
 
     // Phase 4B: Handle edge cases early
-    const settings = { formalityLevel, tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity, engagementEnabled };
+    const settings = { formalityLevel, tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity, engagementEnabled, platformAdaptationEnabled, selectedPlatform, seoOptimizationEnabled, contentType, primaryKeyword };
     const edgeCaseResult = await handleEdgeCases(text, [], settings);
     if (edgeCaseResult.edgeCaseHandled) {
       console.log(`🛡️ Edge case handled: ${edgeCaseResult.edgeCaseHandled}`);
@@ -3011,6 +3035,63 @@ Input:
       console.log('🎯 Added', engagementSuggestions.length, 'engagement suggestions to pipeline');
     }
 
+    // Phase 7: Platform Adaptation Analysis (Independent)
+    console.log('🎯 Platform adaptation check - enabled:', platformAdaptationEnabled, 'platform:', selectedPlatform);
+    if (platformAdaptationEnabled && selectedPlatform && text.length > 30) { // Only analyze for substantial content
+      console.log('🎯 Starting platform adaptation analysis...');
+      
+      // Get tone analysis if available (may be null if tone preserving is disabled)
+      let toneAnalysis = null;
+      if (tonePreservingEnabled) {
+        const toneAnalysisKey = getCacheKey(text, 'tone-analysis', { sensitivity: toneDetectionSensitivity });
+        toneAnalysis = getFromCache(toneAnalysisCache, toneAnalysisKey);
+      }
+      
+      // Use cached platform analysis if available
+      const platformCacheKey = getCacheKey(text, 'platform-analysis', { platform: selectedPlatform, toneDetectionSensitivity });
+      let platformSuggestions = getFromCache(platformCache, platformCacheKey);
+      
+      if (!platformSuggestions) {
+        platformSuggestions = await generatePlatformAdaptationSuggestions(text, selectedPlatform, toneAnalysis);
+        setCache(platformCache, platformCacheKey, platformSuggestions);
+        console.log('🎯 Fresh platform adaptation analysis completed');
+        madeAiCall = true;
+      } else {
+        console.log('📋 Using cached platform adaptation analysis');
+        usedCache = true;
+      }
+      
+      // Add platform adaptation suggestions to the main suggestions array
+      suggestions.push(...platformSuggestions);
+      
+      console.log('🎯 Added', platformSuggestions.length, 'platform adaptation suggestions to pipeline');
+    }
+
+    // Phase 8: SEO Content Optimization Analysis (Independent)
+    console.log('🎯 SEO optimization check - enabled:', seoOptimizationEnabled, 'contentType:', contentType);
+    if (seoOptimizationEnabled && text.length > 100) { // Only analyze for substantial content
+      console.log('🎯 Starting SEO optimization analysis...');
+      
+      // Use cached SEO analysis if available
+      const seoCacheKey = getCacheKey(text, 'seo-analysis', { contentType, primaryKeyword });
+      let seoSuggestions = getFromCache(seoCache, seoCacheKey);
+      
+      if (!seoSuggestions) {
+        seoSuggestions = await generateSEOSuggestions(text, contentType, primaryKeyword);
+        setCache(seoCache, seoCacheKey, seoSuggestions);
+        console.log('🎯 Fresh SEO optimization analysis completed');
+        madeAiCall = true;
+      } else {
+        console.log('📋 Using cached SEO optimization analysis');
+        usedCache = true;
+      }
+      
+      // Add SEO optimization suggestions to the main suggestions array
+      suggestions.push(...seoSuggestions);
+      
+      console.log('🎯 Added', seoSuggestions.length, 'SEO optimization suggestions to pipeline');
+    }
+
     // Phase 4B: Final edge case handling for suggestions
     const finalEdgeCaseResult = await handleEdgeCases(text, suggestions, settings);
     if (finalEdgeCaseResult.edgeCaseHandled) {
@@ -3126,7 +3207,10 @@ app.get('/api/metrics', (req, res) => {
     cache: {
       suggestionCache: suggestionCache.size,
       toneAnalysisCache: toneAnalysisCache.size,
-      rewriteCache: rewriteCache.size
+      rewriteCache: rewriteCache.size,
+      engagementCache: engagementCache.size,
+      platformCache: platformCache.size,
+      seoCache: seoCache.size
     },
     uptime: process.uptime(),
     memory: process.memoryUsage()
@@ -3643,3 +3727,1274 @@ function calculateEngagementPriority(engagementType, overallScore) {
 
 // Cache for engagement analysis
 const engagementCache = new Map();
+
+// ========== PLATFORM ADAPTATION ANALYSIS ==========
+
+// Platform Definitions (inline for Node.js compatibility)
+const PLATFORM_DEFINITIONS = {
+  linkedin: {
+    id: 'linkedin',
+    name: 'LinkedIn',
+    displayName: 'LinkedIn',
+    category: 'professional',
+    characterLimits: { post: 3000, title: 100, description: 2000 },
+    primaryAudience: ['professionals', 'business owners', 'executives', 'job seekers', 'industry experts'],
+    preferredTone: ['professional', 'authoritative', 'educational', 'inspirational'],
+    formalityLevel: 'professional',
+    contentStyle: {
+      preferredLength: 'medium',
+      visualImportance: 'medium',
+      hashtagUsage: 'moderate',
+      emojiUsage: 'minimal',
+    },
+    engagementTactics: {
+      callToAction: [
+        'What\'s your experience with this?',
+        'Share your thoughts in the comments',
+        'Connect with me to discuss further',
+        'What would you add to this list?',
+        'How has this worked in your industry?'
+      ],
+      questionPrompts: [
+        'What challenges have you faced?',
+        'How do you approach this in your role?',
+        'What trends are you seeing?',
+        'What advice would you give?'
+      ],
+      urgencyWords: ['opportunity', 'trending', 'essential', 'critical', 'breakthrough'],
+      communityBuilding: ['fellow professionals', 'industry peers', 'network', 'community', 'colleagues']
+    },
+    bestPractices: {
+      openingHooks: [
+        'In my X years of experience...',
+        'Here\'s what I learned from...',
+        'The biggest mistake I see professionals make...',
+        'After working with 100+ clients...',
+        'Industry data shows...'
+      ],
+      closingTactics: [
+        'What\'s been your experience?',
+        'I\'d love to hear your perspective',
+        'Feel free to connect if you want to discuss',
+        'What would you add to this?'
+      ],
+      avoidWords: ['viral', 'hack', 'secret', 'weird trick', 'you won\'t believe']
+    }
+  },
+  twitter: {
+    id: 'twitter',
+    name: 'Twitter',
+    displayName: 'Twitter/X',
+    category: 'social',
+    characterLimits: { post: 280, bio: 160 },
+    primaryAudience: ['general public', 'news followers', 'tech enthusiasts', 'thought leaders'],
+    preferredTone: ['conversational', 'witty', 'direct', 'opinionated'],
+    formalityLevel: 'casual',
+    contentStyle: {
+      preferredLength: 'short',
+      visualImportance: 'medium',
+      hashtagUsage: 'moderate',
+      emojiUsage: 'moderate',
+    },
+    engagementTactics: {
+      callToAction: [
+        'Retweet if you agree',
+        'What do you think?',
+        'Drop your thoughts below',
+        'Tag someone who needs to see this',
+        'Quote tweet with your take'
+      ],
+      questionPrompts: [
+        'Hot take:',
+        'Unpopular opinion:',
+        'Am I the only one who...',
+        'Quick question:',
+        'Thoughts?'
+      ],
+      urgencyWords: ['breaking', 'urgent', 'now', 'live', 'happening'],
+      communityBuilding: ['Twitter fam', 'community', 'everyone', 'folks', 'people']
+    },
+    bestPractices: {
+      openingHooks: [
+        'Hot take:',
+        'Unpopular opinion:',
+        'PSA:',
+        'Fun fact:',
+        'Plot twist:'
+      ],
+      closingTactics: [
+        'Thoughts?',
+        'Agree or disagree?',
+        'What\'s your take?',
+        'RT if you relate'
+      ],
+      avoidWords: ['please retweet', 'follow me', 'check out my', 'buy now']
+    }
+  },
+  instagram: {
+    id: 'instagram',
+    name: 'Instagram',
+    displayName: 'Instagram',
+    category: 'social',
+    characterLimits: { caption: 2200, bio: 150, title: 100 },
+    primaryAudience: ['millennials', 'gen z', 'lifestyle enthusiasts', 'visual learners'],
+    preferredTone: ['inspiring', 'authentic', 'lifestyle', 'aspirational'],
+    formalityLevel: 'casual',
+    contentStyle: {
+      preferredLength: 'medium',
+      visualImportance: 'critical',
+      hashtagUsage: 'heavy',
+      emojiUsage: 'heavy',
+    },
+    engagementTactics: {
+      callToAction: [
+        'Double tap if you agree ❤️',
+        'Save this post for later 📌',
+        'Share with someone who needs this',
+        'Tell me in the comments 👇',
+        'Tag a friend who...'
+      ],
+      questionPrompts: [
+        'What\'s your favorite...?',
+        'Can you relate?',
+        'What would you add?',
+        'Share your story below',
+        'Who else feels this way?'
+      ],
+      urgencyWords: ['limited time', 'exclusive', 'don\'t miss', 'last chance', 'trending'],
+      communityBuilding: ['beautiful souls', 'amazing community', 'Instagram family', 'lovely humans']
+    },
+    bestPractices: {
+      openingHooks: [
+        'POV: You\'re...',
+        'That moment when...',
+        'Can we talk about...',
+        'Real talk:',
+        'Here\'s your reminder that...'
+      ],
+      closingTactics: [
+        'What resonates with you?',
+        'Share your thoughts below 👇',
+        'Save for later if this helps! 📌',
+        'Tag someone who needs this'
+      ],
+      avoidWords: ['follow for follow', 'like for like', 'spam', 'cheap']
+    }
+  },
+  youtube: {
+    id: 'youtube',
+    name: 'YouTube',
+    displayName: 'YouTube',
+    category: 'video',
+    characterLimits: { title: 100, description: 5000 },
+    primaryAudience: ['video learners', 'entertainment seekers', 'tutorial followers', 'all demographics'],
+    preferredTone: ['educational', 'entertaining', 'engaging', 'authoritative'],
+    formalityLevel: 'balanced',
+    contentStyle: {
+      preferredLength: 'long',
+      visualImportance: 'critical',
+      hashtagUsage: 'moderate',
+      emojiUsage: 'moderate',
+    },
+    engagementTactics: {
+      callToAction: [
+        'Like this video if it helped',
+        'Subscribe for more content like this',
+        'Comment your thoughts below',
+        'Share with someone who needs this',
+        'Hit the notification bell'
+      ],
+      questionPrompts: [
+        'What would you like to see next?',
+        'Have you tried this before?',
+        'What\'s your experience with...?',
+        'Let me know in the comments',
+        'What questions do you have?'
+      ],
+      urgencyWords: ['don\'t miss', 'limited time', 'exclusive', 'breaking', 'urgent'],
+      communityBuilding: ['amazing viewers', 'YouTube family', 'community', 'subscribers', 'everyone watching']
+    },
+    bestPractices: {
+      openingHooks: [
+        'In this video, you\'ll learn...',
+        'By the end of this video...',
+        'Have you ever wondered...',
+        'Today I\'m going to show you...',
+        'What if I told you...'
+      ],
+      closingTactics: [
+        'Thanks for watching!',
+        'See you in the next video',
+        'Don\'t forget to subscribe',
+        'Check out this related video'
+      ],
+      avoidWords: ['clickbait', 'fake', 'scam', 'you won\'t believe']
+    }
+  },
+  tiktok: {
+    id: 'tiktok',
+    name: 'TikTok',
+    displayName: 'TikTok',
+    category: 'video',
+    characterLimits: { caption: 2200, bio: 80 },
+    primaryAudience: ['gen z', 'millennials', 'trend followers', 'entertainment seekers'],
+    preferredTone: ['trendy', 'authentic', 'fun', 'relatable'],
+    formalityLevel: 'casual',
+    contentStyle: {
+      preferredLength: 'short',
+      visualImportance: 'critical',
+      hashtagUsage: 'heavy',
+      emojiUsage: 'heavy',
+    },
+    engagementTactics: {
+      callToAction: [
+        'Like if you can relate',
+        'Follow for more tips',
+        'Comment your thoughts',
+        'Share this with your bestie',
+        'Duet this if you agree'
+      ],
+      questionPrompts: [
+        'Who else does this?',
+        'Is it just me or...?',
+        'Can you relate?',
+        'What\'s your take?',
+        'Am I right?'
+      ],
+      urgencyWords: ['viral', 'trending', 'everyone\'s doing', 'don\'t miss', 'right now'],
+      communityBuilding: ['besties', 'TikTok fam', 'everyone', 'y\'all', 'friends']
+    },
+    bestPractices: {
+      openingHooks: [
+        'POV:',
+        'Tell me why...',
+        'Nobody talks about...',
+        'This is your sign to...',
+        'Me when...'
+      ],
+      closingTactics: [
+        'Follow for more',
+        'Like if you agree',
+        'Comment below',
+        'Share with friends'
+      ],
+      avoidWords: ['old', 'outdated', 'boring', 'traditional', 'formal']
+    }
+  }
+};
+
+// Platform analysis functions
+function analyzePlatformOptimization(text, platformId, currentTone = []) {
+  const platform = PLATFORM_DEFINITIONS[platformId];
+  if (!platform) {
+    throw new Error(`Platform ${platformId} not found`);
+  }
+
+  const analysis = {
+    platformId,
+    platformName: platform.displayName,
+    overallScore: 0,
+    characterAnalysis: analyzeCharacterUsage(text, platform),
+    toneAnalysis: analyzeToneMatch(currentTone, platform),
+    engagementAnalysis: analyzeEngagementElements(text, platform),
+    bestPracticesAnalysis: analyzeBestPractices(text, platform),
+    recommendations: []
+  };
+
+  // Calculate overall score
+  analysis.overallScore = calculateOverallScore(analysis);
+  
+  // Generate recommendations
+  analysis.recommendations = generatePlatformRecommendations(text, platform, analysis);
+
+  return analysis;
+}
+
+function analyzeCharacterUsage(text, platform) {
+  const currentLength = text.length;
+  const optimalLength = platform.characterLimits.post || platform.characterLimits.caption;
+  
+  const isOptimal = optimalLength ? currentLength <= optimalLength : true;
+  
+  let lengthRecommendation = '';
+  if (optimalLength) {
+    if (currentLength > optimalLength) {
+      const excess = currentLength - optimalLength;
+      lengthRecommendation = `Content is ${excess} characters too long for ${platform.displayName}. Consider shortening.`;
+    } else if (currentLength < optimalLength * 0.3) {
+      lengthRecommendation = `Content might be too short for ${platform.displayName}. Consider expanding.`;
+    } else {
+      lengthRecommendation = `Character length is optimal for ${platform.displayName}.`;
+    }
+  } else {
+    lengthRecommendation = `No specific character limit for ${platform.displayName}.`;
+  }
+
+  return {
+    currentLength,
+    optimalLength,
+    isOptimal,
+    lengthRecommendation
+  };
+}
+
+function analyzeToneMatch(currentTone, platform) {
+  const preferredTone = platform.preferredTone;
+  
+  // Calculate tone match score
+  const matches = currentTone.filter(tone => 
+    preferredTone.some(preferred => 
+      preferred.toLowerCase().includes(tone.toLowerCase()) ||
+      tone.toLowerCase().includes(preferred.toLowerCase())
+    )
+  );
+  
+  const toneMatch = currentTone.length > 0 ? matches.length / currentTone.length : 0.5;
+  
+  let toneRecommendation = '';
+  if (toneMatch >= 0.7) {
+    toneRecommendation = `Tone matches ${platform.displayName} preferences well.`;
+  } else if (toneMatch >= 0.4) {
+    toneRecommendation = `Tone partially matches ${platform.displayName}. Consider adjusting to be more ${preferredTone.slice(0, 2).join(' and ')}.`;
+  } else {
+    toneRecommendation = `Tone doesn't match ${platform.displayName} preferences. Consider being more ${preferredTone.slice(0, 2).join(' and ')}.`;
+  }
+
+  return {
+    currentTone,
+    preferredTone,
+    toneMatch,
+    toneRecommendation
+  };
+}
+
+function analyzeEngagementElements(text, platform) {
+  const tactics = platform.engagementTactics;
+  
+  const hasCallToAction = tactics.callToAction.some(cta => 
+    text.toLowerCase().includes(cta.toLowerCase().substring(0, 10))
+  );
+  
+  const hasQuestionPrompt = tactics.questionPrompts.some(prompt => 
+    text.toLowerCase().includes(prompt.toLowerCase().substring(0, 8))
+  ) || text.includes('?');
+  
+  const hasUrgencyWords = tactics.urgencyWords.some(word => 
+    text.toLowerCase().includes(word.toLowerCase())
+  );
+  
+  const hasCommunityBuilding = tactics.communityBuilding.some(term => 
+    text.toLowerCase().includes(term.toLowerCase())
+  );
+
+  const engagementScore = [hasCallToAction, hasQuestionPrompt, hasUrgencyWords, hasCommunityBuilding]
+    .filter(Boolean).length / 4;
+
+  return {
+    hasCallToAction,
+    hasQuestionPrompt,
+    hasUrgencyWords,
+    hasCommunityBuilding,
+    engagementScore
+  };
+}
+
+function analyzeBestPractices(text, platform) {
+  const practices = platform.bestPractices;
+  
+  const hasGoodOpening = practices.openingHooks.some(hook => 
+    text.toLowerCase().startsWith(hook.toLowerCase().substring(0, 8))
+  );
+  
+  const hasGoodClosing = practices.closingTactics.some(tactic => 
+    text.toLowerCase().includes(tactic.toLowerCase().substring(0, 8))
+  );
+  
+  const avoidsProblematicWords = !practices.avoidWords.some(word => 
+    text.toLowerCase().includes(word.toLowerCase())
+  );
+  
+  // Structure analysis (simplified)
+  const followsStructure = text.length > 50 && text.includes(' ') && 
+    (text.includes('?') || text.includes('!') || text.includes('.'));
+
+  const bestPracticesScore = [hasGoodOpening, followsStructure, hasGoodClosing, avoidsProblematicWords]
+    .filter(Boolean).length / 4;
+
+  return {
+    hasGoodOpening,
+    followsStructure,
+    hasGoodClosing,
+    avoidsProblematicWords,
+    bestPracticesScore
+  };
+}
+
+function calculateOverallScore(analysis) {
+  const characterScore = analysis.characterAnalysis.isOptimal ? 1 : 0.5;
+  const toneScore = analysis.toneAnalysis.toneMatch;
+  const engagementScore = analysis.engagementAnalysis.engagementScore;
+  const bestPracticesScore = analysis.bestPracticesAnalysis.bestPracticesScore;
+  
+  const overallScore = (characterScore + toneScore + engagementScore + bestPracticesScore) / 4;
+  return Math.round(overallScore * 10);
+}
+
+function generatePlatformRecommendations(text, platform, analysis) {
+  const recommendations = [];
+  
+  // Character length recommendations
+  if (!analysis.characterAnalysis.isOptimal) {
+    recommendations.push({
+      type: 'length',
+      priority: 'high',
+      title: 'Optimize Content Length',
+      description: analysis.characterAnalysis.lengthRecommendation,
+      suggestion: analysis.characterAnalysis.currentLength > (analysis.characterAnalysis.optimalLength || 0) 
+        ? 'Shorten your content to fit platform limits'
+        : 'Expand your content for better engagement',
+      examples: []
+    });
+  }
+  
+  // Tone recommendations
+  if (analysis.toneAnalysis.toneMatch < 0.5) {
+    recommendations.push({
+      type: 'tone',
+      priority: 'medium',
+      title: 'Adjust Tone for Platform',
+      description: analysis.toneAnalysis.toneRecommendation,
+      suggestion: `Try being more ${platform.preferredTone.slice(0, 2).join(' and ')}`,
+      examples: platform.bestPractices.openingHooks.slice(0, 2)
+    });
+  }
+  
+  // Engagement recommendations
+  if (analysis.engagementAnalysis.engagementScore < 0.5) {
+    if (!analysis.engagementAnalysis.hasCallToAction) {
+      recommendations.push({
+        type: 'engagement',
+        priority: 'high',
+        title: 'Add Call-to-Action',
+        description: 'Your content lacks engagement prompts',
+        suggestion: 'Add a call-to-action to encourage interaction',
+        examples: platform.engagementTactics.callToAction.slice(0, 3)
+      });
+    }
+    
+    if (!analysis.engagementAnalysis.hasQuestionPrompt) {
+      recommendations.push({
+        type: 'engagement',
+        priority: 'medium',
+        title: 'Include Question Prompts',
+        description: 'Questions increase engagement',
+        suggestion: 'Add questions to encourage responses',
+        examples: platform.engagementTactics.questionPrompts.slice(0, 3)
+      });
+    }
+  }
+  
+  // Best practices recommendations
+  if (analysis.bestPracticesAnalysis.bestPracticesScore < 0.6) {
+    if (!analysis.bestPracticesAnalysis.hasGoodOpening) {
+      recommendations.push({
+        type: 'structure',
+        priority: 'medium',
+        title: 'Improve Opening Hook',
+        description: 'Your opening could be more engaging',
+        suggestion: 'Start with a compelling hook',
+        examples: platform.bestPractices.openingHooks.slice(0, 3)
+      });
+    }
+    
+    if (!analysis.bestPracticesAnalysis.avoidsProblematicWords) {
+      recommendations.push({
+        type: 'warning',
+        priority: 'critical',
+        title: 'Avoid Problematic Words',
+        description: 'Content contains words that may hurt performance',
+        suggestion: 'Remove or replace flagged words',
+        examples: [`Avoid: ${platform.bestPractices.avoidWords.join(', ')}`]
+      });
+    }
+  }
+  
+  return recommendations.sort((a, b) => {
+    const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+    return priorityOrder[b.priority] - priorityOrder[a.priority];
+  });
+}
+
+async function generatePlatformAdaptationSuggestions(text, platformId, toneAnalysis = null) {
+  console.log('🎯 Starting platform adaptation analysis for:', platformId);
+  
+  try {
+    // Extract tone information if available
+    const currentTone = toneAnalysis ? [toneAnalysis.primaryTone, ...toneAnalysis.secondaryTones] : [];
+    
+    // Analyze platform optimization
+    const platformAnalysis = analyzePlatformOptimization(text, platformId, currentTone);
+    
+    const suggestions = [];
+    
+    // Generate suggestions based on recommendations
+    platformAnalysis.recommendations.forEach((rec, index) => {
+      if (rec.priority === 'critical' || rec.priority === 'high') {
+        // Find appropriate position in text for the suggestion
+        let position = 0;
+        let suggestionText = text.substring(0, Math.min(50, text.length));
+        
+        if (rec.type === 'length') {
+          position = text.length - 20;
+          suggestionText = text.substring(Math.max(0, text.length - 50));
+        } else if (rec.type === 'structure' && rec.title.includes('Opening')) {
+          position = 0;
+          suggestionText = text.substring(0, Math.min(50, text.length));
+        } else if (rec.type === 'engagement') {
+          position = Math.floor(text.length * 0.8); // Near end for CTAs
+          suggestionText = text.substring(Math.max(0, position - 25), position + 25);
+        }
+        
+        suggestions.push({
+          id: `platform-${platformId}-${Math.random().toString(36).slice(2, 10)}`,
+          text: suggestionText.trim(),
+          message: `${rec.title} for ${platformAnalysis.platformName}`,
+          type: 'platform-adaptation',
+          alternatives: rec.examples.slice(0, 3),
+          start: Math.max(0, position - 10),
+          end: Math.min(text.length, position + 10),
+          status: 'pending',
+          platformId: platformId,
+          platformName: platformAnalysis.platformName,
+          platformCategory: rec.type,
+          priority: rec.priority === 'critical' ? 9 : rec.priority === 'high' ? 7 : 5,
+          platformScore: platformAnalysis.overallScore,
+          recommendation: rec,
+          userTip: rec.description
+        });
+      }
+    });
+    
+    console.log(`🎯 Generated ${suggestions.length} platform adaptation suggestions for ${platformAnalysis.platformName}`);
+    return suggestions;
+  } catch (error) {
+    console.error('🚨 Error in platform adaptation analysis:', error);
+    return [];
+  }
+}
+
+// Cache for platform analysis
+const platformCache = new Map();
+
+// =============================================
+// SEO CONTENT OPTIMIZATION FUNCTIONS
+// =============================================
+
+/**
+ * Analyzes content for SEO optimization opportunities
+ */
+async function analyzeSEOOptimization(text, contentType = 'general', primaryKeyword = null) {
+  console.log(`🎯 Starting SEO optimization analysis for: ${contentType}`);
+  
+  try {
+    // Check cache first
+    const cacheKey = `seo_${text.substring(0, 100)}_${contentType}_${primaryKeyword || 'auto'}`;
+    const cached = getFromCache(seoCache, cacheKey, 300000); // 5 minutes
+    if (cached) {
+      console.log('🎯 Using cached SEO analysis');
+      return cached;
+    }
+
+    // Initialize analysis components
+    const keywordAnalysis = analyzeKeywords(text, primaryKeyword);
+    const contentStructure = analyzeContentStructure(text, contentType);
+    const readabilityAnalysis = analyzeSEOReadability(text);
+
+    // Calculate overall score
+    const overallScore = calculateOverallSEOScore({
+      keywordAnalysis,
+      contentStructure,
+      readabilityAnalysis
+    });
+
+    // Generate recommendations and identify issues
+    const recommendations = generateSEORecommendations({
+      keywordAnalysis,
+      contentStructure,
+      readabilityAnalysis,
+      contentType,
+      primaryKeyword
+    });
+
+    const issues = identifySEOIssues({
+      keywordAnalysis,
+      contentStructure,
+      readabilityAnalysis
+    });
+
+    const result = {
+      overallScore,
+      keywordAnalysis,
+      contentStructure,
+      readabilityAnalysis,
+      recommendations,
+      issues
+    };
+
+    // Cache the result
+    setCache(seoCache, cacheKey, result);
+    console.log(`🎯 SEO analysis complete. Overall score: ${overallScore}`);
+    
+    return result;
+  } catch (error) {
+    console.error('🚨 SEO analysis error:', error);
+    return {
+      overallScore: 50,
+      keywordAnalysis: { score: 50, keywordDensity: 0, keywordPlacement: {} },
+      contentStructure: { score: 50, wordCount: text.split(/\s+/).length },
+      readabilityAnalysis: { score: 50, fleschKincaidScore: 60 },
+      recommendations: [],
+      issues: []
+    };
+  }
+}
+
+/**
+ * Keyword Analysis Functions
+ */
+function analyzeKeywords(text, primaryKeyword) {
+  const words = text.toLowerCase().split(/\s+/);
+  const totalWords = words.length;
+  
+  // Auto-detect primary keyword if not provided
+  const detectedPrimary = primaryKeyword || detectPrimaryKeyword(text);
+  
+  // Calculate keyword density
+  const primaryCount = detectedPrimary ? countKeywordOccurrences(text, detectedPrimary) : 0;
+  const keywordDensity = primaryCount / totalWords;
+  
+  // Analyze keyword placement
+  const keywordPlacement = analyzeKeywordPlacement(text, detectedPrimary);
+  
+  // Calculate keyword score
+  const score = calculateKeywordScore(keywordDensity, keywordPlacement);
+
+  return {
+    primaryKeyword: detectedPrimary,
+    keywordDensity,
+    keywordPlacement,
+    score
+  };
+}
+
+function detectPrimaryKeyword(text) {
+  const words = text.toLowerCase().split(/\s+/);
+  const phrases = {};
+  
+  for (let i = 0; i < words.length - 1; i++) {
+    const phrase = words.slice(i, i + 2).join(' ');
+    if (phrase.length > 4) {
+      phrases[phrase] = (phrases[phrase] || 0) + 1;
+    }
+  }
+  
+  const sortedPhrases = Object.entries(phrases)
+    .sort(([,a], [,b]) => b - a)
+    .filter(([phrase, count]) => count > 1);
+  
+  return sortedPhrases[0]?.[0] || '';
+}
+
+function countKeywordOccurrences(text, keyword) {
+  if (!keyword) return 0;
+  const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  return (text.match(regex) || []).length;
+}
+
+function analyzeKeywordPlacement(text, primaryKeyword) {
+  if (!primaryKeyword) {
+    return {
+      inTitle: false,
+      inFirstParagraph: false,
+      inHeadings: 0,
+      inConclusion: false
+    };
+  }
+  
+  const paragraphs = text.split('\n\n').filter(p => p.trim().length > 0);
+  const firstParagraph = paragraphs[0] || '';
+  const lastParagraph = paragraphs[paragraphs.length - 1] || '';
+  
+  return {
+    inTitle: text.toLowerCase().includes(primaryKeyword.toLowerCase()),
+    inFirstParagraph: firstParagraph.toLowerCase().includes(primaryKeyword.toLowerCase()),
+    inHeadings: (text.match(new RegExp(`#+.*${primaryKeyword}`, 'gi')) || []).length,
+    inConclusion: lastParagraph.toLowerCase().includes(primaryKeyword.toLowerCase())
+  };
+}
+
+/**
+ * Content Structure Analysis Functions
+ */
+function analyzeContentStructure(text, contentType) {
+  const words = text.split(/\s+/);
+  const wordCount = words.length;
+  
+  // Analyze heading structure
+  const headingStructure = analyzeHeadingStructure(text);
+  
+  // Analyze paragraph structure
+  const paragraphStructure = analyzeParagraphStructure(text);
+  
+  // Calculate content structure score
+  const score = calculateContentStructureScore({
+    wordCount,
+    contentType,
+    headingStructure,
+    paragraphStructure
+  });
+
+  return {
+    wordCount,
+    contentType,
+    headingStructure,
+    paragraphStructure,
+    score
+  };
+}
+
+function analyzeHeadingStructure(text) {
+  const headingMatches = text.match(/^#+\s+.+$/gm) || [];
+  const structure = {
+    h1Count: 0,
+    h2Count: 0,
+    h3Count: 0,
+    totalHeadings: headingMatches.length,
+    keywordInHeadings: 0
+  };
+  
+  headingMatches.forEach(heading => {
+    const level = heading.match(/^#+/)?.[0].length || 0;
+    
+    switch (level) {
+      case 1: structure.h1Count++; break;
+      case 2: structure.h2Count++; break;
+      case 3: structure.h3Count++; break;
+    }
+  });
+  
+  return structure;
+}
+
+function analyzeParagraphStructure(text) {
+  const paragraphs = text.split('\n\n').filter(p => p.trim().length > 0);
+  const wordCounts = paragraphs.map(p => p.split(/\s+/).length);
+  
+  return {
+    totalParagraphs: paragraphs.length,
+    avgWordsPerParagraph: wordCounts.reduce((sum, count) => sum + count, 0) / paragraphs.length,
+    shortParagraphs: wordCounts.filter(count => count < 50).length,
+    longParagraphs: wordCounts.filter(count => count > 150).length
+  };
+}
+
+/**
+ * Readability Analysis Functions (SEO-specific)
+ */
+function analyzeSEOReadability(text) {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  const syllables = countTotalSyllables(text);
+  
+  const avgSentenceLength = words.length / sentences.length;
+  const avgSyllablesPerWord = syllables / words.length;
+  
+  // Calculate Flesch-Kincaid score
+  const fleschKincaidScore = calculateFleschKincaidScore(avgSentenceLength, avgSyllablesPerWord);
+  const readabilityLevel = getReadabilityLevel(fleschKincaidScore);
+  const complexWords = countComplexWords(words);
+  
+  // Calculate readability score
+  const score = calculateSEOReadabilityScore(fleschKincaidScore, avgSentenceLength, complexWords);
+
+  return {
+    fleschKincaidScore,
+    readabilityLevel,
+    avgSentenceLength,
+    avgSyllablesPerWord,
+    complexWords,
+    score
+  };
+}
+
+function countTotalSyllables(text) {
+  const words = text.split(/\s+/);
+  return words.reduce((total, word) => total + countSyllables(word), 0);
+}
+
+function calculateFleschKincaidScore(avgSentenceLength, avgSyllablesPerWord) {
+  return 206.835 - (1.015 * avgSentenceLength) - (84.6 * avgSyllablesPerWord);
+}
+
+function countComplexWords(words) {
+  return words.filter(word => countSyllables(word) >= 3).length;
+}
+
+/**
+ * SEO Scoring Functions
+ */
+function calculateKeywordScore(density, placement) {
+  let score = 0;
+  const densityRule = SEO_RULES.keywordDensity.primary;
+  
+  // Density score (0-40 points)
+  if (density >= densityRule.min && density <= densityRule.max) {
+    score += 40;
+  } else if (density < densityRule.min) {
+    score += (density / densityRule.min) * 40;
+  } else {
+    score += Math.max(0, 40 - (density - densityRule.max) * 1000);
+  }
+  
+  // Placement score (0-60 points)
+  if (placement.inTitle) score += 15;
+  if (placement.inFirstParagraph) score += 15;
+  if (placement.inHeadings > 0) score += 15;
+  if (placement.inConclusion) score += 15;
+  
+  return Math.min(100, score);
+}
+
+function calculateContentStructureScore(data) {
+  let score = 0;
+  
+  // Word count score (0-40 points)
+  const lengthRule = SEO_RULES.contentLength[data.contentType] || SEO_RULES.contentLength.general;
+  if (data.wordCount >= lengthRule.min && data.wordCount <= (lengthRule.max || Infinity)) {
+    score += 40;
+  } else if (data.wordCount < lengthRule.min) {
+    score += (data.wordCount / lengthRule.min) * 40;
+  }
+  
+  // Heading structure score (0-30 points)
+  if (data.headingStructure.h1Count === 1) score += 15;
+  if (data.headingStructure.h2Count >= 2) score += 15;
+  
+  // Paragraph structure score (0-30 points)
+  if (data.paragraphStructure.avgWordsPerParagraph >= 50 && data.paragraphStructure.avgWordsPerParagraph <= 150) {
+    score += 20;
+  }
+  if (data.paragraphStructure.shortParagraphs / data.paragraphStructure.totalParagraphs < 0.3) {
+    score += 10;
+  }
+  
+  return Math.min(100, score);
+}
+
+function calculateSEOReadabilityScore(fleschKincaid, avgSentenceLength, complexWords) {
+  let score = 0;
+  
+  // Flesch-Kincaid score (0-50 points)
+  const readabilityRule = SEO_RULES.readability.fleschKincaid;
+  if (fleschKincaid >= readabilityRule.min && fleschKincaid <= readabilityRule.max) {
+    score += 50;
+  } else {
+    score += Math.max(0, 50 - Math.abs(fleschKincaid - readabilityRule.optimal));
+  }
+  
+  // Sentence length score (0-30 points)
+  const sentenceRule = SEO_RULES.readability.avgSentenceLength;
+  if (avgSentenceLength >= sentenceRule.min && avgSentenceLength <= sentenceRule.max) {
+    score += 30;
+  } else {
+    score += Math.max(0, 30 - Math.abs(avgSentenceLength - sentenceRule.optimal) * 2);
+  }
+  
+  // Complex words score (0-20 points)
+  const complexWordRatio = complexWords / 100;
+  if (complexWordRatio <= 0.1) score += 20;
+  else score += Math.max(0, 20 - complexWordRatio * 100);
+  
+  return Math.min(100, score);
+}
+
+function calculateOverallSEOScore(data) {
+  const keywordWeight = 0.4;
+  const contentWeight = 0.35;
+  const readabilityWeight = 0.25;
+  
+  const weightedScore = 
+    (data.keywordAnalysis.score * keywordWeight) +
+    (data.contentStructure.score * contentWeight) +
+    (data.readabilityAnalysis.score * readabilityWeight);
+  
+  return Math.round(weightedScore);
+}
+
+/**
+ * SEO Recommendations and Issues
+ */
+function generateSEORecommendations(data) {
+  const recommendations = [];
+  
+  // Keyword recommendations
+  if (data.keywordAnalysis.score < 70) {
+    recommendations.push({
+      type: 'keyword',
+      priority: 'high',
+      title: 'Improve Keyword Optimization',
+      description: 'Your keyword usage needs optimization for better SEO performance',
+      suggestion: 'Optimize keyword density and placement throughout your content',
+      examples: [
+        'Include primary keyword in title and first paragraph',
+        'Use keyword in 2-3 headings naturally',
+        'Maintain 1-2% keyword density'
+      ],
+      impact: 'High - Better keyword optimization can significantly improve search rankings'
+    });
+  }
+  
+  // Content structure recommendations
+  if (data.contentStructure.score < 70) {
+    recommendations.push({
+      type: 'structure',
+      priority: 'high',
+      title: 'Improve Content Structure',
+      description: 'Your content structure needs improvement for better SEO',
+      suggestion: 'Optimize heading hierarchy and content organization',
+      examples: [
+        'Add more H2 and H3 headings to break up content',
+        'Ensure proper heading hierarchy (H1 → H2 → H3)',
+        'Use descriptive headings that include keywords'
+      ],
+      impact: 'High - Better structure improves user experience and search rankings'
+    });
+  }
+  
+  // Readability recommendations
+  if (data.readabilityAnalysis.score < 70) {
+    recommendations.push({
+      type: 'readability',
+      priority: 'medium',
+      title: 'Improve Content Readability',
+      description: 'Your content readability can be improved for better user engagement',
+      suggestion: 'Simplify sentences and improve paragraph structure',
+      examples: [
+        'Break up long sentences (aim for 15-20 words)',
+        'Use shorter paragraphs (50-150 words)',
+        'Replace complex words with simpler alternatives'
+      ],
+      impact: 'Medium - Better readability improves user engagement and time on page'
+    });
+  }
+  
+  return recommendations;
+}
+
+function identifySEOIssues(data) {
+  const issues = [];
+  
+  // Keyword stuffing check
+  if (data.keywordAnalysis.keywordDensity > 0.03) {
+    issues.push({
+      type: 'keywordStuffing',
+      severity: 'critical',
+      description: 'Keyword density is too high, which may hurt SEO performance',
+      solution: 'Reduce keyword usage and focus on natural language',
+      location: 'Throughout content'
+    });
+  }
+  
+  // Thin content check
+  if (data.contentStructure.wordCount < 300) {
+    issues.push({
+      type: 'thinContent',
+      severity: 'high',
+      description: 'Content is too short to provide comprehensive value',
+      solution: 'Expand content with more detailed, valuable information',
+      location: 'Overall content length'
+    });
+  }
+  
+  // Missing H1 check
+  if (data.contentStructure.headingStructure.h1Count === 0) {
+    issues.push({
+      type: 'missingH1',
+      severity: 'high',
+      description: 'No H1 heading found in content',
+      solution: 'Add a descriptive H1 heading with your primary keyword',
+      location: 'Content structure'
+    });
+  }
+  
+  // Poor readability check
+  if (data.readabilityAnalysis.fleschKincaidScore < 40) {
+    issues.push({
+      type: 'poorReadability',
+      severity: 'medium',
+      description: 'Content is difficult to read and understand',
+      solution: 'Simplify language and sentence structure',
+      location: 'Throughout content'
+    });
+  }
+  
+  return issues;
+}
+
+/**
+ * Generate SEO-specific suggestions for content optimization
+ */
+async function generateSEOSuggestions(text, contentType = 'general', primaryKeyword = null) {
+  console.log(`🎯 Generating SEO suggestions for ${contentType} content`);
+  
+  try {
+    const seoAnalysis = await analyzeSEOOptimization(text, contentType, primaryKeyword);
+    const suggestions = [];
+    
+    // Generate keyword optimization suggestions
+    if (seoAnalysis.keywordAnalysis.score < 70) {
+      const keywordIssues = await identifyKeywordIssues(text, seoAnalysis.keywordAnalysis);
+      suggestions.push(...keywordIssues);
+    }
+    
+    // Generate content structure suggestions
+    if (seoAnalysis.contentStructure.score < 70) {
+      const structureIssues = await identifyStructureIssues(text, seoAnalysis.contentStructure);
+      suggestions.push(...structureIssues);
+    }
+    
+    // Generate readability suggestions
+    if (seoAnalysis.readabilityAnalysis.score < 70) {
+      const readabilityIssues = await identifyReadabilityIssues(text, seoAnalysis.readabilityAnalysis);
+      suggestions.push(...readabilityIssues);
+    }
+    
+    console.log(`🎯 Generated ${suggestions.length} SEO suggestions`);
+    return suggestions;
+    
+  } catch (error) {
+    console.error('🚨 SEO suggestion generation error:', error);
+    return [];
+  }
+}
+
+async function identifyKeywordIssues(text, keywordAnalysis) {
+  const suggestions = [];
+  
+  // Keyword density issues
+  if (keywordAnalysis.keywordDensity < 0.005) {
+    suggestions.push({
+      id: `seo-keyword-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: text.substring(0, 50) + '...',
+      message: 'Increase keyword usage for better SEO',
+      type: 'seo',
+      alternatives: [
+        `Include "${keywordAnalysis.primaryKeyword}" more naturally`,
+        `Add keyword variations throughout content`,
+        `Use keyword in headings and subheadings`
+      ],
+      start: 0,
+      end: 50,
+      status: 'pending',
+      seoCategory: 'keyword-optimization',
+      seoType: 'keyword_density',
+      priority: 7,
+      seoScore: keywordAnalysis.score,
+      recommendation: {
+        type: 'optimization',
+        priority: 'high',
+        title: 'Increase Keyword Density',
+        description: 'Your content needs more keyword usage for better SEO',
+        suggestion: 'Include your primary keyword more naturally throughout the content',
+        examples: [
+          `Use "${keywordAnalysis.primaryKeyword}" in your introduction`,
+          `Include keyword variations in headings`,
+          `Add keyword naturally in conclusion`
+        ]
+      }
+    });
+  }
+  
+  if (keywordAnalysis.keywordDensity > 0.03) {
+    suggestions.push({
+      id: `seo-keyword-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: text.substring(0, 50) + '...',
+      message: 'Reduce keyword density to avoid over-optimization',
+      type: 'seo',
+      alternatives: [
+        'Use more natural language',
+        'Replace some keywords with synonyms',
+        'Focus on semantic keywords instead'
+      ],
+      start: 0,
+      end: 50,
+      status: 'pending',
+      seoCategory: 'keyword-optimization',
+      seoType: 'keyword_stuffing',
+      priority: 9,
+      seoScore: keywordAnalysis.score,
+      recommendation: {
+        type: 'warning',
+        priority: 'critical',
+        title: 'Reduce Keyword Stuffing',
+        description: 'Too many keywords may hurt your SEO performance',
+        suggestion: 'Use more natural language and keyword variations',
+        examples: [
+          'Replace repeated keywords with synonyms',
+          'Focus on natural sentence flow',
+          'Use semantic keywords and related terms'
+        ]
+      }
+    });
+  }
+  
+  return suggestions;
+}
+
+async function identifyStructureIssues(text, contentStructure) {
+  const suggestions = [];
+  
+  // Missing H1 heading
+  if (contentStructure.headingStructure.h1Count === 0) {
+    suggestions.push({
+      id: `seo-structure-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: text.substring(0, 30),
+      message: 'Add H1 heading for better SEO structure',
+      type: 'seo',
+      alternatives: [
+        'Add a descriptive H1 heading',
+        'Include primary keyword in H1',
+        'Use clear, compelling headline'
+      ],
+      start: 0,
+      end: 30,
+      status: 'pending',
+      seoCategory: 'content-structure',
+      seoType: 'heading_structure',
+      priority: 8,
+      seoScore: contentStructure.score,
+      recommendation: {
+        type: 'structure',
+        priority: 'high',
+        title: 'Add H1 Heading',
+        description: 'Your content is missing a primary H1 heading',
+        suggestion: 'Add a descriptive H1 heading with your primary keyword',
+        examples: [
+          'Create a compelling main headline',
+          'Include your target keyword naturally',
+          'Make it descriptive and engaging'
+        ]
+      }
+    });
+  }
+  
+  // Too few H2 headings
+  if (contentStructure.headingStructure.h2Count < 2 && contentStructure.wordCount > 500) {
+    suggestions.push({
+      id: `seo-structure-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: text.substring(Math.floor(text.length / 2), Math.floor(text.length / 2) + 30),
+      message: 'Add more H2 headings to improve content structure',
+      type: 'seo',
+      alternatives: [
+        'Break content into sections with H2 headings',
+        'Use descriptive subheadings',
+        'Include keywords in some headings'
+      ],
+      start: Math.floor(text.length / 2),
+      end: Math.floor(text.length / 2) + 30,
+      status: 'pending',
+      seoCategory: 'content-structure',
+      seoType: 'heading_hierarchy',
+      priority: 6,
+      seoScore: contentStructure.score,
+      recommendation: {
+        type: 'structure',
+        priority: 'medium',
+        title: 'Add More Subheadings',
+        description: 'Your content needs more H2 headings for better organization',
+        suggestion: 'Break your content into logical sections with H2 headings',
+        examples: [
+          'Add section headings every 200-300 words',
+          'Use descriptive, keyword-rich headings',
+          'Create a logical content hierarchy'
+        ]
+      }
+    });
+  }
+  
+  return suggestions;
+}
+
+async function identifyReadabilityIssues(text, readabilityAnalysis) {
+  const suggestions = [];
+  
+  // Poor readability score
+  if (readabilityAnalysis.fleschKincaidScore < 50) {
+    suggestions.push({
+      id: `seo-readability-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: text.substring(0, 40) + '...',
+      message: 'Improve readability for better user engagement',
+      type: 'seo',
+      alternatives: [
+        'Use shorter sentences',
+        'Simplify complex words',
+        'Break up long paragraphs'
+      ],
+      start: 0,
+      end: 40,
+      status: 'pending',
+      seoCategory: 'readability',
+      seoType: 'reading_level',
+      priority: 5,
+      seoScore: readabilityAnalysis.score,
+      recommendation: {
+        type: 'readability',
+        priority: 'medium',
+        title: 'Improve Content Readability',
+        description: 'Your content is difficult to read and understand',
+        suggestion: 'Simplify language and sentence structure for better engagement',
+        examples: [
+          'Use shorter sentences (15-20 words)',
+          'Replace complex words with simpler alternatives',
+          'Break up long paragraphs into smaller chunks'
+        ]
+      }
+    });
+  }
+  
+  // Sentences too long
+  if (readabilityAnalysis.avgSentenceLength > 25) {
+    suggestions.push({
+      id: `seo-readability-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: text.substring(0, 40) + '...',
+      message: 'Shorten sentences for better readability',
+      type: 'seo',
+      alternatives: [
+        'Break long sentences into shorter ones',
+        'Use simple sentence structures',
+        'Remove unnecessary words'
+      ],
+      start: 0,
+      end: 40,
+      status: 'pending',
+      seoCategory: 'readability',
+      seoType: 'sentence_length',
+      priority: 4,
+      seoScore: readabilityAnalysis.score,
+      recommendation: {
+        type: 'readability',
+        priority: 'medium',
+        title: 'Shorten Long Sentences',
+        description: 'Your sentences are too long, making content hard to read',
+        suggestion: 'Break long sentences into shorter, clearer statements',
+        examples: [
+          'Aim for 15-20 words per sentence',
+          'Use periods instead of commas when possible',
+          'Split complex ideas into multiple sentences'
+        ]
+      }
+    });
+  }
+  
+  return suggestions;
+}

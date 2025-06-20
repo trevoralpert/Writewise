@@ -17,8 +17,22 @@ const SettingsPage = () => {
     setContextAwareGrammarEnabled,
     engagementEnabled,
     setEngagementEnabled,
+    platformAdaptationEnabled,
+    setPlatformAdaptationEnabled,
+    selectedPlatform,
+    setSelectedPlatform,
     formalityLevel,
     setFormalityLevel,
+    seoOptimizationEnabled,
+    setSeoOptimizationEnabled,
+    seoContentType,
+    setSeoContentType,
+    seoPrimaryKeyword,
+    setSeoPrimaryKeyword,
+    seoSecondaryKeywords,
+    setSeoSecondaryKeywords,
+    seoTargetAudience,
+    setSeoTargetAudience,
     saveCurrentDocument,
     hasUnsavedChanges
   } = useEditorStore()
@@ -224,6 +238,95 @@ const SettingsPage = () => {
                 </div>
               </div>
 
+              {/* Platform Adaptation */}
+              <div className="flex items-start justify-between border-t pt-6">
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Platform Adaptation
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-3">
+                    Optimize your content for specific social media platforms and audiences. 
+                    Get suggestions for character limits, tone adjustments, engagement tactics, and platform-specific best practices.
+                  </p>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span className="inline-block w-3 h-3 bg-green-400 rounded-full"></span>
+                    <span>Green solid underlines show platform optimization opportunities</span>
+                  </div>
+                </div>
+                <div className="ml-6">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={platformAdaptationEnabled}
+                      onChange={(e) => setPlatformAdaptationEnabled(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Platform Selection */}
+              {platformAdaptationEnabled && (
+                <div className="border-t pt-6">
+                  <div className="mb-4">
+                    <h4 className="text-md font-medium text-gray-900 mb-2">
+                      Target Platform
+                    </h4>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Choose the platform you're creating content for to get tailored optimization suggestions.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      { id: 'linkedin', name: 'LinkedIn', icon: '💼', description: 'Professional networking' },
+                      { id: 'twitter', name: 'Twitter/X', icon: '🐦', description: 'Short-form social' },
+                      { id: 'instagram', name: 'Instagram', icon: '📸', description: 'Visual storytelling' },
+                      { id: 'youtube', name: 'YouTube', icon: '📺', description: 'Video content' },
+                      { id: 'tiktok', name: 'TikTok', icon: '🎵', description: 'Short video content' }
+                    ].map((platform) => (
+                      <label key={platform.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input
+                          type="radio"
+                          name="platform"
+                          value={platform.id}
+                          checked={selectedPlatform === platform.id}
+                          onChange={(e) => setSelectedPlatform(e.target.value)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                        />
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-lg">{platform.icon}</span>
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">{platform.name}</span>
+                            <p className="text-xs text-gray-600">{platform.description}</p>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                    
+                    {/* None option */}
+                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="platform"
+                        value=""
+                        checked={selectedPlatform === null || selectedPlatform === ''}
+                        onChange={(e) => setSelectedPlatform(null)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-lg">🌐</span>
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">General Content</span>
+                          <p className="text-xs text-gray-600">No specific platform</p>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {/* Formality Level */}
               {contextAwareGrammarEnabled && (
                 <div className="border-t pt-6">
@@ -289,23 +392,132 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          {/* Future Features Section */}
+          {/* Advanced Features Section */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Coming Soon</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Advanced Features</h2>
             <div className="space-y-4">
               
-              {/* Placeholder for future features */}
-              <div className="flex items-center justify-between opacity-50">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">SEO Optimization</h3>
-                  <p className="text-gray-600 text-sm">Optimize content for search engines with keyword suggestions and readability analysis.</p>
-                </div>
-                <div className="ml-6">
-                  <div className="w-11 h-6 bg-gray-200 rounded-full relative">
-                    <div className="absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5"></div>
+              {/* SEO Content Optimization */}
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    SEO Content Optimization
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-3">
+                    Optimize your content for search engines with keyword analysis, readability scoring, and SEO best practices. 
+                    Get suggestions for better keyword placement, content structure, and meta optimization.
+                  </p>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span className="inline-block w-3 h-3 bg-purple-400 rounded-full"></span>
+                    <span>Purple wavy underlines indicate SEO optimization opportunities</span>
                   </div>
                 </div>
+                <div className="ml-6">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={seoOptimizationEnabled}
+                      onChange={(e) => setSeoOptimizationEnabled(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
               </div>
+
+              {/* SEO Configuration */}
+              {seoOptimizationEnabled && (
+                <div className="border-t pt-6 space-y-6">
+                  {/* Content Type */}
+                  <div>
+                    <h4 className="text-md font-medium text-gray-900 mb-2">
+                      Content Type
+                    </h4>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Select the type of content you're creating for tailored SEO recommendations.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[
+                        { id: 'blogPost', name: 'Blog Post', icon: '📝', description: 'Long-form articles' },
+                        { id: 'article', name: 'Article', icon: '📰', description: 'News or informational content' },
+                        { id: 'socialMedia', name: 'Social Media', icon: '📱', description: 'Social platform posts' },
+                        { id: 'email', name: 'Email', icon: '📧', description: 'Email newsletters' },
+                        { id: 'landingPage', name: 'Landing Page', icon: '🎯', description: 'Marketing pages' },
+                        { id: 'productDescription', name: 'Product Description', icon: '🛍️', description: 'E-commerce content' }
+                      ].map((type) => (
+                        <label key={type.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
+                          <input
+                            type="radio"
+                            name="contentType"
+                            value={type.id}
+                            checked={seoContentType === type.id}
+                            onChange={(e) => setSeoContentType(e.target.value as any)}
+                            className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500"
+                          />
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className="text-lg">{type.icon}</span>
+                            <div>
+                              <span className="text-sm font-medium text-gray-900">{type.name}</span>
+                              <p className="text-xs text-gray-600">{type.description}</p>
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Primary Keyword */}
+                  <div>
+                    <h4 className="text-md font-medium text-gray-900 mb-2">
+                      Primary Keyword
+                    </h4>
+                    <p className="text-gray-600 text-sm mb-3">
+                      Enter the main keyword you want to optimize for. This will be used for keyword density analysis.
+                    </p>
+                    <input
+                      type="text"
+                      value={seoPrimaryKeyword}
+                      onChange={(e) => setSeoPrimaryKeyword(e.target.value)}
+                      placeholder="e.g., content marketing, SEO optimization"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Secondary Keywords */}
+                  <div>
+                    <h4 className="text-md font-medium text-gray-900 mb-2">
+                      Secondary Keywords
+                    </h4>
+                    <p className="text-gray-600 text-sm mb-3">
+                      Add related keywords separated by commas. These help with semantic SEO analysis.
+                    </p>
+                    <input
+                      type="text"
+                      value={seoSecondaryKeywords.join(', ')}
+                      onChange={(e) => setSeoSecondaryKeywords(e.target.value.split(',').map(k => k.trim()).filter(k => k))}
+                      placeholder="e.g., digital marketing, search optimization, content strategy"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Target Audience */}
+                  <div>
+                    <h4 className="text-md font-medium text-gray-900 mb-2">
+                      Target Audience
+                    </h4>
+                    <p className="text-gray-600 text-sm mb-3">
+                      Describe your target audience to get more relevant SEO suggestions.
+                    </p>
+                    <input
+                      type="text"
+                      value={seoTargetAudience}
+                      onChange={(e) => setSeoTargetAudience(e.target.value)}
+                      placeholder="e.g., small business owners, digital marketers, beginners"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-between opacity-50 border-t pt-4">
                 <div>

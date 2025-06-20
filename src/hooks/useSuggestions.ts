@@ -5,7 +5,7 @@ interface Suggestion {
   id: string
   text: string
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement' | 'platform-adaptation' | 'seo'
   alternatives: string[]
   start: number
   end: number
@@ -26,6 +26,13 @@ interface Suggestion {
   // New properties for engagement suggestions
   engagementCategory?: string
   engagementType?: string
+  
+  // New properties for platform adaptation suggestions
+  platformId?: string
+  platformName?: string
+  platformCategory?: string
+  platformScore?: number
+  userTip?: string
 }
 
 export function useSuggestions() {
@@ -42,7 +49,14 @@ export function useSuggestions() {
       tonePreservingEnabled,
       conflictResolutionMode,
       toneDetectionSensitivity,
-      engagementEnabled
+      engagementEnabled,
+      platformAdaptationEnabled,
+      selectedPlatform,
+      seoOptimizationEnabled,
+      seoContentType,
+      seoPrimaryKeyword,
+      seoSecondaryKeywords,
+      seoTargetAudience
     } = useEditorStore.getState();
     
     if (!content.trim()) {
@@ -72,6 +86,13 @@ export function useSuggestions() {
         conflictResolutionMode: conflictResolutionMode,
         toneDetectionSensitivity: toneDetectionSensitivity,
         engagementEnabled: engagementEnabled,
+        platformAdaptationEnabled: platformAdaptationEnabled,
+        selectedPlatform: selectedPlatform,
+        seoOptimizationEnabled: seoOptimizationEnabled,
+        contentType: seoContentType,
+        primaryKeyword: seoPrimaryKeyword,
+        secondaryKeywords: seoSecondaryKeywords,
+        targetAudience: seoTargetAudience,
         userId: 'user-' + Date.now() // Simple user ID for analytics
       }),
     })
@@ -111,6 +132,12 @@ export function useSuggestions() {
           }
           if (suggestion.type === 'engagement') {
             console.log(`  - Engagement (${suggestion.engagementCategory}): "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
+          }
+          if (suggestion.type === 'platform-adaptation') {
+            console.log(`  - Platform (${suggestion.platformName}): "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
+          }
+          if (suggestion.type === 'seo') {
+            console.log(`  - SEO: "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
           }
           if (suggestion.userTip) {
             console.log(`    💡 Tip: ${suggestion.userTip}`)

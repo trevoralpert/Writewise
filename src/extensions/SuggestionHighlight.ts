@@ -72,8 +72,12 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                   className = 'suggestion-underline-tone-rewrite'
                 } else if (s.type === 'engagement') {
                   className = 'suggestion-underline-engagement'
+                } else if (s.type === 'platform-adaptation') {
+                  className = 'suggestion-underline-platform-adaptation'
                 } else if (s.type === 'style-consistency') {
                   className = 'suggestion-underline-style-consistency'
+                } else if (s.type === 'seo') {
+                  className = 'suggestion-underline-seo'
                 }
                 
                 decos.push(

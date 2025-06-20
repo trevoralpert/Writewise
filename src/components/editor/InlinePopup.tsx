@@ -65,6 +65,12 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
     } else if (suggestion.type === 'engagement') {
       popupWidth = 350
       popupHeight = 300
+    } else if (suggestion.type === 'platform-adaptation') {
+      popupWidth = 380
+      popupHeight = 350
+    } else if (suggestion.type === 'seo') {
+      popupWidth = 400
+      popupHeight = 380
     }
     
     let left = rect.left
@@ -522,6 +528,192 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
     </div>
   )
 
+  const renderPlatformAdaptationButtons = () => (
+    <div className="space-y-4">
+      {/* Header Section */}
+      <div className="popup-header">
+        <div className="popup-title flex items-center gap-2">
+          <span className="text-green-600 text-lg">📱</span>
+          <span className="text-green-800">Platform Optimization</span>
+        </div>
+        <div className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-200 font-medium">
+          {suggestion.platformName || 'Multi-Platform'}
+        </div>
+      </div>
+      
+      {/* Platform Score */}
+      {suggestion.platformScore !== undefined && (
+        <div className="flex items-center gap-3 bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
+          <div className="flex items-center gap-2">
+            <span className="text-green-600 font-medium">Platform Score:</span>
+            <div className="flex items-center gap-1">
+              <span className={`text-2xl font-bold ${
+                suggestion.platformScore >= 7 ? 'text-green-700' : 
+                suggestion.platformScore >= 4 ? 'text-yellow-600' : 'text-red-600'
+              }`}>{suggestion.platformScore}</span>
+              <span className="text-sm text-green-600">/10</span>
+            </div>
+          </div>
+          <div className="flex-1 bg-green-200 h-2 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all duration-500 ${
+                suggestion.platformScore >= 7 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                suggestion.platformScore >= 4 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                'bg-gradient-to-r from-red-500 to-red-600'
+              }`}
+              style={{ width: `${(suggestion.platformScore || 0) * 10}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
+      
+      {/* Main Content */}
+      <div className="text-sm text-gray-700 leading-relaxed">
+        "<span className="font-mono bg-green-100 px-2 py-1 rounded-md font-semibold text-green-800 border border-green-200">{suggestion.text}</span>" can be optimized for {suggestion.platformName || 'this platform'}.
+      </div>
+
+      {/* Platform Category Badge */}
+      {suggestion.platformCategory && (
+        <div className="text-xs bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 px-3 py-2 rounded-lg border border-green-200 font-medium flex items-center gap-2">
+          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+          <span className="capitalize">{suggestion.platformCategory}</span>
+        </div>
+      )}
+
+      {/* Recommendation Details */}
+      {suggestion.recommendation && (
+        <div className="popup-ai-reasoning">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-green-600">💡 Platform Insight:</span>
+          </div>
+          <div className="text-xs leading-relaxed">
+            {suggestion.recommendation.description}
+          </div>
+        </div>
+      )}
+
+      {/* Alternatives */}
+      {suggestion.alternatives && suggestion.alternatives.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs font-medium text-gray-700 mb-2">Platform-optimized alternatives:</div>
+          {suggestion.alternatives.map((alternative: string, index: number) => (
+            <button
+              key={index}
+              className="btn btn-sm w-full text-left justify-start bg-green-50 hover:bg-green-100 text-green-800 border-green-200 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
+              onClick={() => acceptAlternative(alternative)}
+              disabled={isReplacing}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 to-emerald-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+              <div className="relative z-10 flex items-center gap-2">
+                <span className="text-green-500">📱</span>
+                <span className="flex-1 text-sm font-medium">{alternative}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {/* Action Buttons */}
+      <div className="flex gap-2 justify-end pt-2 border-t border-gray-100">
+        <button
+          className="btn btn-sm btn-ghost text-gray-600 hover:text-gray-800"
+          onClick={ignore}
+          disabled={isReplacing}
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderSeoButtons = () => (
+    <div className="space-y-4">
+      {/* Header Section */}
+      <div className="popup-header">
+        <div className="popup-title flex items-center gap-2">
+          <span className="text-purple-600 text-lg">🔍</span>
+          <span className="text-purple-800">SEO Optimization</span>
+        </div>
+        <div className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full border border-purple-200 font-medium">
+          {suggestion.seoCategory || 'General'}
+        </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className="text-sm text-gray-700 leading-relaxed">
+        "<span className="font-mono bg-purple-100 px-2 py-1 rounded-md font-semibold text-purple-800 border border-purple-200">{suggestion.text}</span>" can be optimized for better search visibility.
+      </div>
+
+      {/* SEO Type Badge */}
+      {suggestion.seoType && (
+        <div className="text-xs bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200 font-medium flex items-center gap-2">
+          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+          <span className="capitalize">{suggestion.seoType}</span>
+        </div>
+      )}
+
+      {/* SEO Score */}
+      {suggestion.seoScore && (
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-3 rounded-lg border border-purple-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-purple-700">SEO Impact Score</span>
+            <span className="text-xs font-bold text-purple-800">{suggestion.seoScore}/10</span>
+          </div>
+          <div className="w-full bg-purple-200 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-purple-500 to-indigo-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(suggestion.seoScore / 10) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Reasoning Section */}
+      {suggestion.reasoning && (
+        <div className="popup-ai-reasoning">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-purple-600">💡 SEO Insight:</span>
+          </div>
+          <div className="text-xs leading-relaxed">
+            {suggestion.reasoning}
+          </div>
+        </div>
+      )}
+
+      {/* Alternatives */}
+      {suggestion.alternatives && suggestion.alternatives.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs font-medium text-gray-700 mb-2">SEO-optimized alternatives:</div>
+          {suggestion.alternatives.map((alternative: string, index: number) => (
+            <button
+              key={index}
+              className="btn btn-sm w-full text-left justify-start bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-200 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group"
+              onClick={() => acceptAlternative(alternative)}
+              disabled={isReplacing}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400/10 to-indigo-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+              <div className="relative z-10 flex items-center gap-2">
+                <span className="text-purple-500">🔍</span>
+                <span className="flex-1 text-sm font-medium">{alternative}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {/* Action Buttons */}
+      <div className="flex gap-2 justify-end pt-2 border-t border-gray-100">
+        <button
+          className="btn btn-sm btn-ghost text-gray-600 hover:text-gray-800"
+          onClick={ignore}
+          disabled={isReplacing}
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  )
+
   const renderEngagementButtons = () => (
     <div className="space-y-4">
       {/* Header Section */}
@@ -614,6 +806,8 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
                suggestion.type === 'demonetization' ? '320px' : 
                suggestion.type === 'slang-protected' ? '300px' :
                suggestion.type === 'engagement' ? '350px' :
+               suggestion.type === 'platform-adaptation' ? '380px' :
+               suggestion.type === 'seo' ? '400px' :
                suggestion.toneRewrite ? '400px' : 'auto',
         backdropFilter: 'blur(8px)',
         background: 'rgba(255, 255, 255, 0.95)'
@@ -621,8 +815,8 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Enhanced Header - Only for non-slang-protected, non-tone-rewrite, and non-engagement types */}
-      {suggestion.type !== 'slang-protected' && !suggestion.toneRewrite && suggestion.type !== 'engagement' && (
+      {/* Enhanced Header - Only for non-slang-protected, non-tone-rewrite, non-engagement, non-platform-adaptation, and non-seo types */}
+      {suggestion.type !== 'slang-protected' && !suggestion.toneRewrite && suggestion.type !== 'engagement' && suggestion.type !== 'platform-adaptation' && suggestion.type !== 'seo' && (
         <div className="flex items-start gap-3 mb-4">
           {suggestion.type === 'demonetization' && (
             <span className="text-orange-500 text-xl mt-0.5 drop-shadow-sm">⚠️</span>
@@ -656,6 +850,10 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
             ? renderSlangProtectedButtons()
             : suggestion.type === 'engagement'
             ? renderEngagementButtons()
+            : suggestion.type === 'platform-adaptation'
+            ? renderPlatformAdaptationButtons()
+            : suggestion.type === 'seo'
+            ? renderSeoButtons()
             : suggestion.toneRewrite ? renderToneRewriteButtons() : renderRegularButtons()
           }
         </>
