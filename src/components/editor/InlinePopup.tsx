@@ -273,6 +273,130 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
     </div>
   )
 
+  const renderToneRewriteButtons = () => (
+    <div className="space-y-4">
+      {/* Header Section */}
+      <div className="popup-header">
+        <div className="popup-title flex items-center gap-2">
+          <span className="text-purple-600 text-lg">🎨</span>
+          <span className="text-purple-800">Tone-Preserving Fix</span>
+        </div>
+        <div className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium border border-purple-200">
+          AI Enhanced
+        </div>
+      </div>
+      
+      {/* Original vs Rewrite Comparison */}
+      <div className="space-y-3">
+        <div className="text-sm text-gray-700">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-gray-600">ORIGINAL:</span>
+          </div>
+          <div className="font-mono tone-comparison-original px-3 py-2 rounded-md text-sm">
+            "{suggestion.toneRewrite?.originalText || suggestion.text}"
+          </div>
+        </div>
+        
+        <div className="text-sm text-gray-700">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-gray-600">TONE-PRESERVING FIX:</span>
+          </div>
+          <div className="font-mono tone-comparison-rewrite px-3 py-2 rounded-md text-sm font-medium">
+            "{suggestion.toneRewrite?.rewrittenText || suggestion.alternatives?.[0]}"
+          </div>
+        </div>
+      </div>
+
+      {/* Tone Analysis Info */}
+      {suggestion.originalTone && (
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-3 rounded-lg border border-purple-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-purple-700">🎯 DETECTED TONE:</span>
+            <span className="tone-detection-badge">
+              {suggestion.originalTone}
+            </span>
+          </div>
+          {suggestion.toneRewrite?.reasoning && (
+            <div className="text-xs text-gray-700 leading-relaxed">
+              {suggestion.toneRewrite.reasoning}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Confidence and Metadata */}
+      <div className="flex items-center justify-between">
+        {suggestion.toneRewrite?.confidenceScore && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600 font-medium">Tone Preserved:</span>
+            <div className="confidence-bar w-16">
+              <div 
+                className="bg-purple-500 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${suggestion.toneRewrite.confidenceScore * 100}%` }}
+              />
+            </div>
+            <span className="text-xs font-bold text-purple-600">
+              {Math.round(suggestion.toneRewrite.confidenceScore * 100)}%
+            </span>
+          </div>
+        )}
+        
+        {suggestion.toneRewrite?.tonePreserved && (
+          <div className="flex items-center gap-1">
+            <span className="text-green-500 text-sm">✓</span>
+            <span className="text-xs text-green-700 font-medium">Voice Maintained</span>
+          </div>
+        )}
+      </div>
+
+      {/* Enhanced Metadata */}
+      {suggestion.enhancedMetadata && (
+        <div className="text-xs space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-200">
+              Strategy: {suggestion.enhancedMetadata.resolutionStrategy?.replace(/-/g, ' ') || 'AI Resolution'}
+            </div>
+            {suggestion.enhancedMetadata.originalIssueType && (
+              <div className="bg-orange-50 text-orange-700 px-2 py-1 rounded-full border border-orange-200">
+                Fixed: {suggestion.enhancedMetadata.originalIssueType}
+              </div>
+            )}
+            {suggestion.enhancedMetadata.toneConfidence && (
+              <div className="bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-200">
+                Tone Confidence: {Math.round(suggestion.enhancedMetadata.toneConfidence * 100)}%
+              </div>
+            )}
+          </div>
+          
+          {suggestion.enhancedMetadata.slangProtected && (
+            <div className="text-gray-600 bg-gray-50 p-2 rounded border">
+              <span className="font-medium">Protected slang:</span> "{suggestion.enhancedMetadata.slangProtected}"
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Action Buttons */}
+      <div className="flex gap-3 justify-end pt-2 border-t border-gray-200">
+        <button 
+          className="btn-enhanced px-4 py-2 text-sm bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105 active:scale-95 flex items-center gap-2 font-medium"
+          onClick={() => acceptAlternative(suggestion.toneRewrite?.rewrittenText || suggestion.alternatives?.[0] || '')}
+          disabled={isReplacing}
+        >
+          <span>Accept Fix</span>
+          <span className="text-purple-200 text-lg">🎨</span>
+        </button>
+        <button 
+          className="btn btn-xs btn-ghost hover:bg-gray-100 transition-colors" 
+          onClick={ignore}
+          disabled={isReplacing}
+        >
+          Keep Original
+        </button>
+      </div>
+    </div>
+  )
+
   const renderSlangProtectedButtons = () => (
     <div className="space-y-4">
       {/* Header Section */}
@@ -413,15 +537,16 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
         overflowY: position.constrainedHeight ? 'auto' : 'visible',
         width: suggestion.type === 'slang-protected' && suggestion.aiAnalysis ? '380px' : 
                suggestion.type === 'demonetization' ? '320px' : 
-               suggestion.type === 'slang-protected' ? '300px' : 'auto',
+               suggestion.type === 'slang-protected' ? '300px' :
+               suggestion.toneRewrite ? '400px' : 'auto',
         backdropFilter: 'blur(8px)',
         background: 'rgba(255, 255, 255, 0.95)'
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Enhanced Header - Only for non-slang-protected types */}
-      {suggestion.type !== 'slang-protected' && (
+      {/* Enhanced Header - Only for non-slang-protected and non-tone-rewrite types */}
+      {suggestion.type !== 'slang-protected' && !suggestion.toneRewrite && (
         <div className="flex items-start gap-3 mb-4">
           {suggestion.type === 'demonetization' && (
             <span className="text-orange-500 text-xl mt-0.5 drop-shadow-sm">⚠️</span>
@@ -453,7 +578,7 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
             ? renderDemonetizationButtons() 
             : suggestion.type === 'slang-protected'
             ? renderSlangProtectedButtons()
-            : renderRegularButtons()
+            : suggestion.toneRewrite ? renderToneRewriteButtons() : renderRegularButtons()
           }
         </>
       )}

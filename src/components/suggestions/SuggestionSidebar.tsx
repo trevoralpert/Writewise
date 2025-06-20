@@ -17,7 +17,12 @@ export default function SuggestionSidebar() {
 
   const acceptSuggestion = (s: any) => {
     if (!content) return
-    const replacement = s.alternatives?.[0] || ''
+    
+    // For tone-rewrite suggestions, use the rewritten text
+    const replacement = s.type === 'tone-rewrite' && s.toneRewrite?.rewrittenText 
+      ? s.toneRewrite.rewrittenText 
+      : s.alternatives?.[0] || ''
+      
     const newContent = replaceAt(content, s.start, s.end, replacement)
     setContent(newContent)
     updateSuggestionStatus(s.id, 'accepted')
@@ -168,11 +173,13 @@ export default function SuggestionSidebar() {
                 )}
               </div>
               <h4 className="font-medium mb-1">{s.message}</h4>
-              {s.alternatives?.length ? (
+              {(s.alternatives?.length || s.toneRewrite?.rewrittenText) ? (
                 <p className="text-xs opacity-90 mb-3">
                   {s.type === 'demonetization' 
-                    ? "Hover over the highlighted word for AI-generated alternatives" 
-                    : `Suggested: "${s.alternatives[0]}"`
+                    ? "Hover over the highlighted word for AI-generated alternatives"
+                    : s.type === 'tone-rewrite'
+                    ? `Tone-preserving fix: "${s.toneRewrite?.rewrittenText}"`
+                    : `Suggested: "${s.alternatives?.[0]}"`
                   }
                 </p>
               ) : null}

@@ -77,6 +77,22 @@ export function useSuggestions() {
       .then(data => {
         const suggestions = data.suggestions || []
         
+        // Phase 4C: Handle enhanced response with insights
+        if (data.insights && data.insights.length > 0) {
+          console.log('✨ Writing Insights:')
+          data.insights.forEach((insight: any) => {
+            console.log(`  ${insight.icon} ${insight.message}`)
+          })
+        }
+        
+        if (data.processingMetadata) {
+          console.log('📊 Processing Metadata:', data.processingMetadata)
+        }
+        
+        if (data.edgeCase) {
+          console.log(`🛡️ Edge Case Handled: ${data.edgeCase.type} - ${data.edgeCase.message}`)
+        }
+        
         // Debug logging for suggestions
         console.log('🔍 Received suggestions:')
         suggestions.forEach((suggestion: any) => {
@@ -86,10 +102,19 @@ export function useSuggestions() {
           if (suggestion.type === 'tone-rewrite') {
             console.log(`  - Tone rewrite: "${suggestion.text}" -> "${suggestion.toneRewrite?.rewrittenText}"`)
           }
+          if (suggestion.userTip) {
+            console.log(`    💡 Tip: ${suggestion.userTip}`)
+          }
         })
         
         // Store all suggestions and filter based on current settings
         setAllSuggestionsAndFilter(suggestions)
+        
+        // Store insights in the editor store for potential UI display
+        const { setWritingInsights } = useEditorStore.getState()
+        if (setWritingInsights && data.insights) {
+          setWritingInsights(data.insights)
+        }
       })
       .catch(error => {
         console.error('Error fetching suggestions:', error)

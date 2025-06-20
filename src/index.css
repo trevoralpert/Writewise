@@ -530,3 +530,194 @@ button:focus-visible {
   animation: tone-rewrite-pulse 2s ease-in-out infinite;
   background: linear-gradient(90deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
 }
+
+/* ========== TONE-REWRITE SUGGESTION ANIMATIONS ========== */
+
+/* Purple wavy underline for tone-rewrite suggestions */
+.tone-rewrite-underline {
+  background-image: linear-gradient(45deg, transparent 65%, #9333ea 65%, #9333ea 85%, transparent 85%),
+                    linear-gradient(-45deg, transparent 65%, #9333ea 65%, #9333ea 85%, transparent 85%);
+  background-size: 8px 4px;
+  background-position: 0 100%;
+  background-repeat: repeat-x;
+  animation: tone-rewrite-glow 2s ease-in-out infinite;
+}
+
+@keyframes tone-rewrite-glow {
+  0%, 100% { 
+    background-image: linear-gradient(45deg, transparent 65%, #9333ea 65%, #9333ea 85%, transparent 85%),
+                      linear-gradient(-45deg, transparent 65%, #9333ea 65%, #9333ea 85%, transparent 85%);
+    filter: drop-shadow(0 0 2px rgba(147, 51, 234, 0.3));
+  }
+  50% { 
+    background-image: linear-gradient(45deg, transparent 65%, #a855f7 65%, #a855f7 85%, transparent 85%),
+                      linear-gradient(-45deg, transparent 65%, #a855f7 65%, #a855f7 85%, transparent 85%);
+    filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.5));
+  }
+}
+
+/* Tone-rewrite suggestion background highlight */
+.tone-rewrite-highlight {
+  background: linear-gradient(90deg, 
+    rgba(147, 51, 234, 0.08) 0%, 
+    rgba(168, 85, 247, 0.12) 50%, 
+    rgba(147, 51, 234, 0.08) 100%);
+  border-radius: 3px;
+  animation: tone-rewrite-pulse 3s ease-in-out infinite;
+}
+
+@keyframes tone-rewrite-pulse {
+  0%, 100% { 
+    background: linear-gradient(90deg, 
+      rgba(147, 51, 234, 0.08) 0%, 
+      rgba(168, 85, 247, 0.12) 50%, 
+      rgba(147, 51, 234, 0.08) 100%);
+  }
+  50% { 
+    background: linear-gradient(90deg, 
+      rgba(147, 51, 234, 0.12) 0%, 
+      rgba(168, 85, 247, 0.18) 50%, 
+      rgba(147, 51, 234, 0.12) 100%);
+  }
+}
+
+/* Tone-rewrite popup specific styles */
+.tone-rewrite-popup {
+  border: 2px solid rgba(147, 51, 234, 0.2);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(147, 51, 234, 0.1);
+}
+
+/* Enhanced confidence bar for tone preservation */
+.confidence-bar {
+  background: rgba(147, 51, 234, 0.1);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.confidence-bar .bg-purple-500 {
+  background: linear-gradient(90deg, #9333ea, #a855f7);
+  position: relative;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.confidence-bar .bg-purple-500::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: confidence-shimmer 2s infinite;
+}
+
+@keyframes confidence-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Tone detection badge animation */
+.tone-detection-badge {
+  background: linear-gradient(135deg, #9333ea, #a855f7);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: badge-glow 2s ease-in-out infinite;
+  box-shadow: 0 2px 4px rgba(147, 51, 234, 0.3);
+}
+
+@keyframes badge-glow {
+  0%, 100% { 
+    box-shadow: 0 2px 4px rgba(147, 51, 234, 0.3);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 4px 8px rgba(147, 51, 234, 0.5);
+    transform: scale(1.02);
+  }
+}
+
+/* Enhanced button styles for tone-rewrite */
+.btn-tone-rewrite {
+  background: linear-gradient(135deg, #9333ea, #a855f7);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-tone-rewrite::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-tone-rewrite:hover::before {
+  left: 100%;
+}
+
+.btn-tone-rewrite:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(147, 51, 234, 0.4);
+  background: linear-gradient(135deg, #7c3aed, #9333ea);
+}
+
+.btn-tone-rewrite:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 8px rgba(147, 51, 234, 0.3);
+}
+
+/* Tone comparison boxes */
+.tone-comparison-original {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+  position: relative;
+  overflow: hidden;
+}
+
+.tone-comparison-rewrite {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.1), rgba(168, 85, 247, 0.1));
+  border: 1px solid rgba(147, 51, 234, 0.3);
+  color: #7c3aed;
+  position: relative;
+  overflow: hidden;
+}
+
+.tone-comparison-original::before,
+.tone-comparison-rewrite::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.5;
+  animation: comparison-shimmer 3s infinite;
+}
+
+@keyframes comparison-shimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+/* ========== END TONE-REWRITE ANIMATIONS ========== */

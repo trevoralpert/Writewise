@@ -1146,7 +1146,953 @@ function doRangesOverlap(range1, range2) {
 
 // ========== END PHASE 2: AI REWRITE ENGINE ==========
 
+// ========== PHASE 3: SMART SUGGESTION PROCESSING ==========
+
+// Phase 3D: Caching system for performance optimization
+const suggestionCache = new Map();
+const toneAnalysisCache = new Map();
+const rewriteCache = new Map();
+
+// Cache helper functions
+function getCacheKey(text, type, params = {}) {
+  return `${type}:${text}:${JSON.stringify(params)}`;
+}
+
+function getFromCache(cache, key, maxAge = 300000) { // 5 minutes default
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < maxAge) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCache(cache, key, data) {
+  cache.set(key, { data, timestamp: Date.now() });
+  
+  // Simple cache cleanup - remove oldest entries if cache gets too large
+  if (cache.size > 1000) {
+    const entries = Array.from(cache.entries());
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    // Remove oldest 20%
+    const toRemove = entries.slice(0, Math.floor(entries.length * 0.2));
+    toRemove.forEach(([key]) => cache.delete(key));
+  }
+}
+
+// Phase 3A: Enhanced suggestion filtering with sophisticated overlap detection
+async function enhancedSuggestionFiltering(suggestions, fullText, detectedSlang, demonetizationWords, toneAnalysis, settings) {
+  console.log(`🧠 Enhanced filtering: ${suggestions.length} suggestions, ${detectedSlang.length} slang, ${demonetizationWords.length} demonetization`);
+  
+  const { formalityLevel, conflictResolutionMode, toneDetectionSensitivity } = settings;
+  
+  // Step 1: Create suggestion groups by proximity and type
+  const suggestionGroups = groupSuggestionsByProximity(suggestions);
+  console.log(`📊 Grouped into ${suggestionGroups.length} suggestion clusters`);
+  
+  // Step 2: Analyze each group for conflicts and overlaps
+  const processedGroups = [];
+  for (const group of suggestionGroups) {
+    const processed = await processProximitySuggestionGroup(group, fullText, detectedSlang, demonetizationWords, toneAnalysis, settings);
+    processedGroups.push(...processed);
+  }
+  
+  // Step 3: Apply global filtering rules
+  const finalSuggestions = await applyGlobalFilteringRules(processedGroups, fullText, toneAnalysis, settings);
+  
+  console.log(`✅ Enhanced filtering complete: ${finalSuggestions.length} final suggestions`);
+  return finalSuggestions;
+}
+
+// Helper function to group suggestions by proximity (within 10 characters)
+function groupSuggestionsByProximity(suggestions) {
+  const groups = [];
+  const processed = new Set();
+  
+  for (let i = 0; i < suggestions.length; i++) {
+    if (processed.has(i)) continue;
+    
+    const current = suggestions[i];
+    const group = [current];
+    processed.add(i);
+    
+    // Find nearby suggestions
+    for (let j = i + 1; j < suggestions.length; j++) {
+      if (processed.has(j)) continue;
+      
+      const other = suggestions[j];
+      const distance = Math.min(
+        Math.abs(current.start - other.end),
+        Math.abs(other.start - current.end),
+        Math.abs(current.start - other.start)
+      );
+      
+      // Group if within 10 characters or overlapping
+      if (distance <= 10 || doRangesOverlap(
+        { start: current.start, end: current.end },
+        { start: other.start, end: other.end }
+      )) {
+        group.push(other);
+        processed.add(j);
+      }
+    }
+    
+    groups.push(group);
+  }
+  
+  return groups;
+}
+
+// Process a group of nearby suggestions
+async function processProximitySuggestionGroup(suggestionGroup, fullText, detectedSlang, demonetizationWords, toneAnalysis, settings) {
+  if (suggestionGroup.length === 1) {
+    // Single suggestion - apply basic filtering
+    return await applySingleSuggestionFiltering(suggestionGroup[0], fullText, detectedSlang, toneAnalysis, settings);
+  }
+  
+  console.log(`🔄 Processing group of ${suggestionGroup.length} nearby suggestions`);
+  
+  // Analyze conflicts within the group
+  const conflictAnalysis = await analyzeGroupConflicts(suggestionGroup, fullText, detectedSlang, demonetizationWords, toneAnalysis, settings);
+  
+  // Apply AI decision-making for the group
+  return await makeAIDecisionForGroup(conflictAnalysis, fullText, toneAnalysis, settings);
+}
+
+// Phase 3B: AI decision-making for suggestion priority
+async function analyzeGroupConflicts(suggestionGroup, fullText, detectedSlang, demonetizationWords, toneAnalysis, settings) {
+  const conflicts = {
+    grammarVsSlang: [],
+    grammarVsDemonetization: [],
+    styleVsSlang: [],
+    demonetizationVsSlang: [],
+    overlappingGrammar: [],
+    mixedTypes: []
+  };
+  
+  // Categorize conflicts
+  for (let i = 0; i < suggestionGroup.length; i++) {
+    for (let j = i + 1; j < suggestionGroup.length; j++) {
+      const s1 = suggestionGroup[i];
+      const s2 = suggestionGroup[j];
+      
+      if (doRangesOverlap({ start: s1.start, end: s1.end }, { start: s2.start, end: s2.end })) {
+        // Categorize the conflict type
+        if ((s1.type === 'grammar' || s1.type === 'spelling') && s2.type === 'slang-protected') {
+          conflicts.grammarVsSlang.push({ primary: s1, secondary: s2 });
+        } else if ((s2.type === 'grammar' || s2.type === 'spelling') && s1.type === 'slang-protected') {
+          conflicts.grammarVsSlang.push({ primary: s2, secondary: s1 });
+        } else if ((s1.type === 'grammar' || s1.type === 'spelling') && s2.type === 'demonetization') {
+          conflicts.grammarVsDemonetization.push({ primary: s1, secondary: s2 });
+        } else if ((s2.type === 'grammar' || s2.type === 'spelling') && s1.type === 'demonetization') {
+          conflicts.grammarVsDemonetization.push({ primary: s2, secondary: s1 });
+        } else if (s1.type === 'style' && s2.type === 'slang-protected') {
+          conflicts.styleVsSlang.push({ primary: s1, secondary: s2 });
+        } else if (s2.type === 'style' && s1.type === 'slang-protected') {
+          conflicts.styleVsSlang.push({ primary: s2, secondary: s1 });
+        } else if (s1.type === 'demonetization' && s2.type === 'slang-protected') {
+          conflicts.demonetizationVsSlang.push({ primary: s1, secondary: s2 });
+        } else if (s2.type === 'demonetization' && s1.type === 'slang-protected') {
+          conflicts.demonetizationVsSlang.push({ primary: s2, secondary: s1 });
+        } else if ((s1.type === 'grammar' || s1.type === 'spelling') && (s2.type === 'grammar' || s2.type === 'spelling')) {
+          conflicts.overlappingGrammar.push({ primary: s1, secondary: s2 });
+        } else {
+          conflicts.mixedTypes.push({ primary: s1, secondary: s2 });
+        }
+      }
+    }
+  }
+  
+  return {
+    suggestions: suggestionGroup,
+    conflicts,
+    hasConflicts: Object.values(conflicts).some(arr => arr.length > 0),
+    conflictCount: Object.values(conflicts).reduce((sum, arr) => sum + arr.length, 0)
+  };
+}
+
+// Phase 3B: Make AI decision for a conflict group
+async function makeAIDecisionForGroup(conflictAnalysis, fullText, toneAnalysis, settings) {
+  const { suggestions, conflicts, hasConflicts } = conflictAnalysis;
+  const { conflictResolutionMode } = settings;
+  
+  if (!hasConflicts) {
+    // No conflicts - return all suggestions after basic filtering
+    const filtered = [];
+    for (const suggestion of suggestions) {
+      const result = await applySingleSuggestionFiltering(suggestion, fullText, [], toneAnalysis, settings);
+      filtered.push(...result);
+    }
+    return filtered;
+  }
+  
+  console.log(`🤖 AI decision-making for ${suggestions.length} conflicting suggestions`);
+  
+  // Prioritize conflicts based on type and settings
+  const resolutionStrategy = await determineResolutionStrategy(conflictAnalysis, toneAnalysis, settings);
+  console.log(`📋 Resolution strategy: ${resolutionStrategy.approach}`);
+  
+  return await executeResolutionStrategy(resolutionStrategy, conflictAnalysis, fullText, toneAnalysis, settings);
+}
+
+// Determine the best resolution strategy for conflicts
+async function determineResolutionStrategy(conflictAnalysis, toneAnalysis, settings) {
+  const { conflicts, suggestions } = conflictAnalysis;
+  const { conflictResolutionMode } = settings;
+  
+  // Analyze the nature of conflicts
+  const hasGrammarSlangConflict = conflicts.grammarVsSlang.length > 0;
+  const hasGrammarDemonetizationConflict = conflicts.grammarVsDemonetization.length > 0;
+  const hasStyleConflicts = conflicts.styleVsSlang.length > 0;
+  const hasDemonetizationSlangConflict = conflicts.demonetizationVsSlang.length > 0;
+  
+  // Consider tone analysis confidence and type
+  const highToneConfidence = toneAnalysis.confidence > 0.8;
+  const casualTone = ['casual', 'conversational'].includes(toneAnalysis.primaryTone);
+  const creativeTone = toneAnalysis.primaryTone === 'creative';
+  
+  let approach = 'standard';
+  let reasoning = 'Default conflict resolution';
+  
+  // Decision tree based on conflict types and settings
+  if (hasGrammarSlangConflict && highToneConfidence && casualTone) {
+    if (conflictResolutionMode === 'tone-first') {
+      approach = 'tone-preserving-rewrite';
+      reasoning = 'High-confidence casual tone with tone-first preference';
+    } else if (conflictResolutionMode === 'balanced') {
+      approach = 'tone-preserving-rewrite';
+      reasoning = 'Balanced mode with strong casual tone detected';
+    } else {
+      approach = 'grammar-priority';
+      reasoning = 'Grammar-first mode overrides tone preservation';
+    }
+  } else if (hasGrammarDemonetizationConflict) {
+    approach = 'demonetization-priority';
+    reasoning = 'Demonetization risk takes priority over grammar';
+  } else if (hasDemonetizationSlangConflict) {
+    approach = 'demonetization-priority';
+    reasoning = 'Demonetization risk overrides slang protection';
+  } else if (hasGrammarSlangConflict) {
+    if (conflictResolutionMode === 'grammar-first') {
+      approach = 'grammar-priority';
+      reasoning = 'Grammar-first mode selected';
+    } else {
+      approach = 'tone-preserving-rewrite';
+      reasoning = 'Attempting to preserve tone while fixing grammar';
+    }
+  } else if (hasStyleConflicts && creativeTone) {
+    approach = 'style-preservation';
+    reasoning = 'Creative tone detected, preserving style choices';
+  } else {
+    approach = 'priority-based';
+    reasoning = 'Standard priority-based resolution';
+  }
+  
+  return {
+    approach,
+    reasoning,
+    shouldGenerateRewrite: approach === 'tone-preserving-rewrite',
+    primaryPriority: getPrimaryPriorityFromApproach(approach)
+  };
+}
+
+// Get primary priority type from resolution approach
+function getPrimaryPriorityFromApproach(approach) {
+  switch (approach) {
+    case 'demonetization-priority': return 'demonetization';
+    case 'grammar-priority': return 'grammar';
+    case 'tone-preserving-rewrite': return 'tone-rewrite';
+    case 'style-preservation': return 'style';
+    default: return 'balanced';
+  }
+}
+
+// Execute the chosen resolution strategy
+async function executeResolutionStrategy(strategy, conflictAnalysis, fullText, toneAnalysis, settings) {
+  const { approach, shouldGenerateRewrite } = strategy;
+  const { suggestions, conflicts } = conflictAnalysis;
+  
+  console.log(`⚡ Executing strategy: ${approach}`);
+  
+  if (shouldGenerateRewrite) {
+    // Phase 3C: Generate tone-matched rewrites only when needed
+    return await generateToneMatchedRewrites(conflictAnalysis, fullText, toneAnalysis, settings);
+  }
+  
+  // Apply priority-based filtering
+  return await applyPriorityBasedFiltering(suggestions, strategy.primaryPriority, fullText, toneAnalysis, settings);
+}
+
+// Phase 3C: Generate tone-matched rewrites only when needed
+async function generateToneMatchedRewrites(conflictAnalysis, fullText, toneAnalysis, settings) {
+  const { suggestions, conflicts } = conflictAnalysis;
+  const results = [];
+  
+  // Focus on grammar vs slang conflicts for tone-preserving rewrites
+  for (const conflict of conflicts.grammarVsSlang) {
+    const { primary: grammarSuggestion, secondary: slangSuggestion } = conflict;
+    
+    console.log(`🎨 Generating tone-matched rewrite for "${grammarSuggestion.text}"`);
+    
+    // Check cache first
+    const cacheKey = getCacheKey(grammarSuggestion.text, 'tone-rewrite', { 
+      tone: toneAnalysis.primaryTone, 
+      formality: toneAnalysis.formalityLevel 
+    });
+    
+    let rewrite = getFromCache(rewriteCache, cacheKey);
+    
+    if (!rewrite) {
+      const context = getWordContext(fullText, grammarSuggestion.start, grammarSuggestion.end);
+      rewrite = await generateTonePreservingRewrite(
+        fullText,
+        grammarSuggestion.text,
+        grammarSuggestion.type,
+        toneAnalysis,
+        context
+      );
+      setCache(rewriteCache, cacheKey, rewrite);
+    } else {
+      console.log(`📋 Using cached tone rewrite for "${grammarSuggestion.text}"`);
+    }
+    
+    // Create enhanced tone-rewrite suggestion
+    const toneRewriteSuggestion = {
+      id: `tone-rewrite-${Math.random().toString(36).slice(2, 10)}`,
+      text: grammarSuggestion.text,
+      message: `Grammar corrected while preserving your ${toneAnalysis.primaryTone} voice and style.`,
+      type: 'tone-rewrite',
+      alternatives: [rewrite.rewrittenText],
+      start: grammarSuggestion.start,
+      end: grammarSuggestion.end,
+      status: 'pending',
+      priority: calculateEnhancedPriority(grammarSuggestion, toneAnalysis, settings) + 2,
+      originalTone: toneAnalysis.primaryTone,
+      toneRewrite: {
+        originalText: grammarSuggestion.text,
+        rewrittenText: rewrite.rewrittenText,
+        tonePreserved: rewrite.tonePreserved,
+        confidenceScore: rewrite.confidenceScore,
+        reasoning: rewrite.reasoning
+      },
+      conflictsWith: [slangSuggestion.id],
+      enhancedMetadata: {
+        resolutionStrategy: 'tone-preserving-rewrite',
+        originalIssueType: grammarSuggestion.type,
+        slangProtected: slangSuggestion.text,
+        toneConfidence: toneAnalysis.confidence
+      }
+    };
+    
+    results.push(toneRewriteSuggestion);
+    
+    // Also include the slang-protected suggestion for user awareness
+    results.push({
+      ...slangSuggestion,
+      message: `"${slangSuggestion.text}" recognized as intentional ${toneAnalysis.primaryTone} expression.`,
+      enhancedMetadata: {
+        protectedBy: toneRewriteSuggestion.id,
+        toneReason: toneAnalysis.reasoning
+      }
+    });
+  }
+  
+  // Handle other conflicts with standard priority resolution
+  const otherSuggestions = suggestions.filter(s => 
+    !conflicts.grammarVsSlang.some(c => c.primary.id === s.id || c.secondary.id === s.id)
+  );
+  
+  for (const suggestion of otherSuggestions) {
+    const filtered = await applySingleSuggestionFiltering(suggestion, fullText, [], toneAnalysis, settings);
+    results.push(...filtered);
+  }
+  
+  return results;
+}
+
+// Apply priority-based filtering when not generating rewrites
+async function applyPriorityBasedFiltering(suggestions, primaryPriority, fullText, toneAnalysis, settings) {
+  const results = [];
+  
+  // Sort by calculated priority
+  const prioritized = suggestions.map(s => ({
+    ...s,
+    calculatedPriority: calculateEnhancedPriority(s, toneAnalysis, settings)
+  })).sort((a, b) => b.calculatedPriority - a.calculatedPriority);
+  
+  // Keep highest priority suggestions, filter out lower priority overlaps
+  const kept = new Set();
+  
+  for (const suggestion of prioritized) {
+    // Check if this overlaps with any already kept suggestion
+    const hasOverlap = Array.from(kept).some(keptId => {
+      const kept = prioritized.find(s => s.id === keptId);
+      return kept && doRangesOverlap(
+        { start: suggestion.start, end: suggestion.end },
+        { start: kept.start, end: kept.end }
+      );
+    });
+    
+    if (!hasOverlap) {
+      kept.add(suggestion.id);
+      results.push(suggestion);
+    } else {
+      console.log(`🚫 Filtered out lower priority suggestion: "${suggestion.text}" (${suggestion.type})`);
+    }
+  }
+  
+  return results;
+}
+
+// Enhanced priority calculation
+function calculateEnhancedPriority(suggestion, toneAnalysis, settings) {
+  const basePriority = calculateConflictPriority(suggestion, settings.conflictResolutionMode, toneAnalysis);
+  
+  // Additional factors for enhanced priority
+  let enhancement = 0;
+  
+  // Boost based on tone confidence
+  if (toneAnalysis.confidence > 0.9) enhancement += 1;
+  if (toneAnalysis.confidence > 0.8) enhancement += 0.5;
+  
+  // Boost tone-preserving suggestions for casual/creative content
+  if (suggestion.type === 'tone-rewrite' && ['casual', 'creative'].includes(toneAnalysis.primaryTone)) {
+    enhancement += 1.5;
+  }
+  
+  // Boost demonetization for any content
+  if (suggestion.type === 'demonetization') {
+    enhancement += 2;
+  }
+  
+  return basePriority + enhancement;
+}
+
+// Apply filtering to a single suggestion
+async function applySingleSuggestionFiltering(suggestion, fullText, detectedSlang, toneAnalysis, settings) {
+  // Basic validation
+  if (suggestion.status !== 'pending') return [];
+  
+  // Apply existing slang protection logic
+  if (['grammar', 'spelling', 'style'].includes(suggestion.type)) {
+    const shouldProtect = await shouldProtectGrammarSuggestion(
+      suggestion.text,
+      suggestion.start,
+      suggestion.end,
+      fullText,
+      detectedSlang,
+      settings.formalityLevel
+    );
+    
+    if (shouldProtect) {
+      console.log(`🛡️ Single suggestion protected: "${suggestion.text}"`);
+      return [];
+    }
+  }
+  
+  return [suggestion];
+}
+
+// Apply global filtering rules
+async function applyGlobalFilteringRules(suggestions, fullText, toneAnalysis, settings) {
+  const filtered = [];
+  
+  // Remove duplicates based on text and position
+  const seen = new Set();
+  
+  for (const suggestion of suggestions) {
+    const key = `${suggestion.text}:${suggestion.start}:${suggestion.end}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      
+      // Apply final validation
+      if (await isValidSuggestion(suggestion, fullText, toneAnalysis, settings)) {
+        filtered.push(suggestion);
+      }
+    }
+  }
+  
+  // Limit total suggestions to prevent UI overload
+  const maxSuggestions = 15;
+  if (filtered.length > maxSuggestions) {
+    console.log(`📊 Limiting suggestions from ${filtered.length} to ${maxSuggestions}`);
+    return filtered
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+      .slice(0, maxSuggestions);
+  }
+  
+  return filtered;
+}
+
+// Final validation for suggestions
+async function isValidSuggestion(suggestion, fullText, toneAnalysis, settings) {
+  // Basic checks
+  if (!suggestion.text || suggestion.start < 0 || suggestion.end <= suggestion.start) {
+    return false;
+  }
+  
+  // Check if suggestion text actually exists at the specified position
+  const actualText = fullText.slice(suggestion.start, suggestion.end);
+  if (actualText !== suggestion.text) {
+    console.warn(`⚠️ Position mismatch for suggestion "${suggestion.text}" - found "${actualText}"`);
+    return false;
+  }
+  
+  // Type-specific validation
+  if (suggestion.type === 'tone-rewrite') {
+    return suggestion.toneRewrite && suggestion.toneRewrite.rewrittenText;
+  }
+  
+  if (suggestion.type === 'demonetization') {
+    return suggestion.alternatives && suggestion.alternatives.length > 0;
+  }
+  
+  return true;
+}
+
+// ========== END PHASE 3: SMART SUGGESTION PROCESSING ==========
+
+// ========== PHASE 4: PERFORMANCE OPTIMIZATION & EDGE CASES ==========
+
+// Phase 4A: Real-time Performance Monitoring
+const performanceMetrics = {
+  requestCount: 0,
+  averageResponseTime: 0,
+  cacheHitRate: 0,
+  errorRate: 0,
+  aiCallCount: 0,
+  totalProcessingTime: 0,
+  lastReset: Date.now()
+};
+
+function updatePerformanceMetrics(responseTime, hadError = false, usedCache = false, madeAiCall = false) {
+  performanceMetrics.requestCount++;
+  performanceMetrics.totalProcessingTime += responseTime;
+  performanceMetrics.averageResponseTime = performanceMetrics.totalProcessingTime / performanceMetrics.requestCount;
+  
+  if (hadError) {
+    performanceMetrics.errorRate = (performanceMetrics.errorRate * (performanceMetrics.requestCount - 1) + 1) / performanceMetrics.requestCount;
+  } else {
+    performanceMetrics.errorRate = (performanceMetrics.errorRate * (performanceMetrics.requestCount - 1)) / performanceMetrics.requestCount;
+  }
+  
+  if (usedCache) {
+    performanceMetrics.cacheHitRate = (performanceMetrics.cacheHitRate * (performanceMetrics.requestCount - 1) + 1) / performanceMetrics.requestCount;
+  } else {
+    performanceMetrics.cacheHitRate = (performanceMetrics.cacheHitRate * (performanceMetrics.requestCount - 1)) / performanceMetrics.requestCount;
+  }
+  
+  if (madeAiCall) {
+    performanceMetrics.aiCallCount++;
+  }
+  
+  // Reset metrics every hour
+  if (Date.now() - performanceMetrics.lastReset > 3600000) {
+    resetPerformanceMetrics();
+  }
+}
+
+function resetPerformanceMetrics() {
+  performanceMetrics.requestCount = 0;
+  performanceMetrics.averageResponseTime = 0;
+  performanceMetrics.cacheHitRate = 0;
+  performanceMetrics.errorRate = 0;
+  performanceMetrics.aiCallCount = 0;
+  performanceMetrics.totalProcessingTime = 0;
+  performanceMetrics.lastReset = Date.now();
+  console.log('📊 Performance metrics reset');
+}
+
+function logPerformanceMetrics() {
+  console.log('📊 Performance Metrics:', {
+    requests: performanceMetrics.requestCount,
+    avgResponseTime: `${Math.round(performanceMetrics.averageResponseTime)}ms`,
+    cacheHitRate: `${Math.round(performanceMetrics.cacheHitRate * 100)}%`,
+    errorRate: `${Math.round(performanceMetrics.errorRate * 100)}%`,
+    aiCalls: performanceMetrics.aiCallCount,
+    uptime: `${Math.round((Date.now() - performanceMetrics.lastReset) / 60000)}min`
+  });
+}
+
+// Phase 4B: Edge Case Handling
+async function handleEdgeCases(text, suggestions, settings) {
+  console.log('🛡️ Checking for edge cases...');
+  
+  // Edge Case 1: Empty or very short text
+  if (!text || text.trim().length < 3) {
+    console.log('⚠️ Edge case: Text too short');
+    return {
+      suggestions: [],
+      edgeCaseHandled: 'text_too_short',
+      message: 'Text is too short for meaningful analysis'
+    };
+  }
+  
+  // Edge Case 2: Text too long (performance protection)
+  if (text.length > 10000) {
+    console.log('⚠️ Edge case: Text too long, truncating');
+    const truncatedText = text.slice(0, 10000);
+    return {
+      text: truncatedText,
+      suggestions: suggestions.filter(s => s.start < 10000 && s.end < 10000),
+      edgeCaseHandled: 'text_truncated',
+      message: 'Text truncated to 10,000 characters for performance'
+    };
+  }
+  
+  // Edge Case 3: Too many suggestions (UI protection)
+  if (suggestions.length > 20) {
+    console.log('⚠️ Edge case: Too many suggestions, prioritizing');
+    const prioritized = suggestions
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+      .slice(0, 20);
+    return {
+      suggestions: prioritized,
+      edgeCaseHandled: 'suggestions_limited',
+      message: `Limited to top 20 suggestions (${suggestions.length} total found)`
+    };
+  }
+  
+  // Edge Case 4: Overlapping suggestions cleanup
+  const cleanedSuggestions = await cleanupOverlappingSuggestions(suggestions);
+  if (cleanedSuggestions.length !== suggestions.length) {
+    console.log(`⚠️ Edge case: Cleaned up ${suggestions.length - cleanedSuggestions.length} overlapping suggestions`);
+    return {
+      suggestions: cleanedSuggestions,
+      edgeCaseHandled: 'overlaps_cleaned',
+      message: `Removed ${suggestions.length - cleanedSuggestions.length} overlapping suggestions`
+    };
+  }
+  
+  // Edge Case 5: Invalid suggestion positions
+  const validSuggestions = suggestions.filter(s => {
+    if (s.start < 0 || s.end <= s.start || s.end > text.length) {
+      console.log(`⚠️ Edge case: Invalid suggestion position for "${s.text}"`);
+      return false;
+    }
+    
+    const actualText = text.slice(s.start, s.end);
+    if (actualText !== s.text) {
+      console.log(`⚠️ Edge case: Position mismatch for "${s.text}" - found "${actualText}"`);
+      return false;
+    }
+    
+    return true;
+  });
+  
+  if (validSuggestions.length !== suggestions.length) {
+    console.log(`⚠️ Edge case: Removed ${suggestions.length - validSuggestions.length} invalid suggestions`);
+    return {
+      suggestions: validSuggestions,
+      edgeCaseHandled: 'invalid_positions_removed',
+      message: `Removed ${suggestions.length - validSuggestions.length} invalid suggestions`
+    };
+  }
+  
+  // Edge Case 6: Rate limiting protection
+  if (performanceMetrics.requestCount > 100 && performanceMetrics.averageResponseTime > 5000) {
+    console.log('⚠️ Edge case: System under heavy load, using simplified processing');
+    return {
+      suggestions: suggestions.slice(0, 10),
+      edgeCaseHandled: 'rate_limited',
+      message: 'Using simplified processing due to high system load'
+    };
+  }
+  
+  return { suggestions, edgeCaseHandled: null };
+}
+
+// Helper function for cleaning up overlapping suggestions
+async function cleanupOverlappingSuggestions(suggestions) {
+  const cleaned = [];
+  const processed = new Set();
+  
+  // Sort by priority and position
+  const sorted = suggestions.sort((a, b) => {
+    const priorityDiff = (b.priority || 0) - (a.priority || 0);
+    if (priorityDiff !== 0) return priorityDiff;
+    return a.start - b.start;
+  });
+  
+  for (const suggestion of sorted) {
+    if (processed.has(suggestion.id)) continue;
+    
+    let hasOverlap = false;
+    for (const existing of cleaned) {
+      if (doRangesOverlap(
+        { start: suggestion.start, end: suggestion.end },
+        { start: existing.start, end: existing.end }
+      )) {
+        hasOverlap = true;
+        break;
+      }
+    }
+    
+    if (!hasOverlap) {
+      cleaned.push(suggestion);
+      processed.add(suggestion.id);
+    }
+  }
+  
+  return cleaned;
+}
+
+// Phase 4C: User Experience Enhancements
+function enhanceUserExperience(suggestions, text, processingTime) {
+  console.log('✨ Enhancing user experience...');
+  
+  // Add user-friendly messages
+  const enhancedSuggestions = suggestions.map(suggestion => {
+    let enhancedMessage = suggestion.message;
+    let userTip = '';
+    
+    switch (suggestion.type) {
+      case 'tone-rewrite':
+        userTip = `This preserves your ${suggestion.originalTone || 'casual'} voice while fixing grammar.`;
+        break;
+      case 'demonetization':
+        userTip = 'Consider these platform-safe alternatives to avoid content restrictions.';
+        break;
+      case 'slang-protected':
+        userTip = 'This expression was recognized as intentional slang and protected from correction.';
+        break;
+      case 'grammar':
+      case 'spelling':
+        userTip = 'Quick grammar fix to improve readability.';
+        break;
+      case 'style':
+        userTip = 'Style suggestion to enhance your writing flow.';
+        break;
+    }
+    
+    return {
+      ...suggestion,
+      message: enhancedMessage,
+      userTip,
+      processingInfo: {
+        confidence: suggestion.confidence || 0.8,
+        processingTime: processingTime,
+        aiEnhanced: ['tone-rewrite', 'slang-protected', 'demonetization'].includes(suggestion.type)
+      }
+    };
+  });
+  
+  // Add contextual insights
+  const insights = generateContextualInsights(enhancedSuggestions, text);
+  
+  return {
+    suggestions: enhancedSuggestions,
+    insights,
+    processingMetadata: {
+      totalSuggestions: suggestions.length,
+      processingTime,
+      aiCallsMade: performanceMetrics.aiCallCount,
+      cacheHitRate: performanceMetrics.cacheHitRate
+    }
+  };
+}
+
+function generateContextualInsights(suggestions, text) {
+  const insights = [];
+  const wordCount = text.split(/\s+/).length;
+  
+  // Writing quality insights
+  const grammarIssues = suggestions.filter(s => s.type === 'grammar' || s.type === 'spelling').length;
+  const styleIssues = suggestions.filter(s => s.type === 'style').length;
+  const demonetizationRisks = suggestions.filter(s => s.type === 'demonetization').length;
+  const protectedSlang = suggestions.filter(s => s.type === 'slang-protected').length;
+  const toneRewrites = suggestions.filter(s => s.type === 'tone-rewrite').length;
+  
+  if (grammarIssues === 0 && styleIssues === 0) {
+    insights.push({
+      type: 'positive',
+      icon: '✅',
+      message: 'Excellent grammar and style! Your writing is clear and polished.'
+    });
+  }
+  
+  if (demonetizationRisks > 0) {
+    insights.push({
+      type: 'warning',
+      icon: '⚠️',
+      message: `Found ${demonetizationRisks} potential demonetization risk${demonetizationRisks > 1 ? 's' : ''}. Consider the suggested alternatives.`
+    });
+  }
+  
+  if (protectedSlang > 0) {
+    insights.push({
+      type: 'info',
+      icon: '🛡️',
+      message: `Protected ${protectedSlang} slang expression${protectedSlang > 1 ? 's' : ''} from correction to maintain your authentic voice.`
+    });
+  }
+  
+  if (toneRewrites > 0) {
+    insights.push({
+      type: 'enhancement',
+      icon: '🎨',
+      message: `Generated ${toneRewrites} tone-preserving fix${toneRewrites > 1 ? 'es' : ''} that maintain your writing style.`
+    });
+  }
+  
+  // Writing statistics
+  if (wordCount > 0) {
+    const issueRate = (grammarIssues + styleIssues) / wordCount * 100;
+    if (issueRate < 1) {
+      insights.push({
+        type: 'stats',
+        icon: '📊',
+        message: `Writing quality: Excellent (${issueRate.toFixed(1)}% issue rate)`
+      });
+    } else if (issueRate < 3) {
+      insights.push({
+        type: 'stats',
+        icon: '📊',
+        message: `Writing quality: Good (${issueRate.toFixed(1)}% issue rate)`
+      });
+    } else {
+      insights.push({
+        type: 'stats',
+        icon: '📊',
+        message: `Writing quality: Needs improvement (${issueRate.toFixed(1)}% issue rate)`
+      });
+    }
+  }
+  
+  return insights;
+}
+
+// Phase 4D: System Reliability
+async function ensureSystemReliability(operation, fallbackOperation = null, maxRetries = 3) {
+  let lastError = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await operation();
+      if (attempt > 1) {
+        console.log(`✅ Operation succeeded on attempt ${attempt}`);
+      }
+      return result;
+    } catch (error) {
+      lastError = error;
+      console.log(`❌ Operation failed on attempt ${attempt}:`, error.message);
+      
+      if (attempt < maxRetries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff
+        console.log(`⏳ Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  // If all retries failed, try fallback operation
+  if (fallbackOperation) {
+    console.log('🔄 Attempting fallback operation...');
+    try {
+      return await fallbackOperation();
+    } catch (fallbackError) {
+      console.log('❌ Fallback operation also failed:', fallbackError.message);
+    }
+  }
+  
+  throw lastError;
+}
+
+// Enhanced error handling with graceful degradation
+async function handleSystemError(error, context = 'unknown') {
+  console.error(`🚨 System error in ${context}:`, error);
+  
+  // Categorize error types
+  let errorType = 'unknown';
+  let gracefulResponse = null;
+  
+  if (error.message?.includes('rate limit') || error.status === 429) {
+    errorType = 'rate_limit';
+    gracefulResponse = {
+      suggestions: [],
+      error: {
+        type: 'rate_limit',
+        message: 'AI services are temporarily busy. Please try again in a moment.',
+        retryAfter: 30000
+      }
+    };
+  } else if (error.message?.includes('network') || error.code === 'ENOTFOUND') {
+    errorType = 'network';
+    gracefulResponse = {
+      suggestions: [],
+      error: {
+        type: 'network',
+        message: 'Connection issue detected. Using offline analysis.',
+        fallbackUsed: true
+      }
+    };
+  } else if (error.message?.includes('timeout')) {
+    errorType = 'timeout';
+    gracefulResponse = {
+      suggestions: [],
+      error: {
+        type: 'timeout',
+        message: 'Analysis is taking longer than expected. Try with shorter text.',
+        suggestion: 'Consider breaking your text into smaller sections.'
+      }
+    };
+  } else if (error.status >= 500) {
+    errorType = 'server';
+    gracefulResponse = {
+      suggestions: [],
+      error: {
+        type: 'server',
+        message: 'AI service temporarily unavailable. Basic analysis only.',
+        fallbackUsed: true
+      }
+    };
+  }
+  
+  // Update error metrics
+  updatePerformanceMetrics(0, true);
+  
+  return gracefulResponse || {
+    suggestions: [],
+    error: {
+      type: errorType,
+      message: 'Unable to analyze text at this time. Please try again.',
+      technical: error.message
+    }
+  };
+}
+
+// Health check endpoint for monitoring
+function getSystemHealth() {
+  const now = Date.now();
+  const uptime = now - performanceMetrics.lastReset;
+  
+  return {
+    status: 'healthy',
+    uptime: Math.round(uptime / 1000),
+    performance: {
+      requestCount: performanceMetrics.requestCount,
+      averageResponseTime: Math.round(performanceMetrics.averageResponseTime),
+      cacheHitRate: Math.round(performanceMetrics.cacheHitRate * 100),
+      errorRate: Math.round(performanceMetrics.errorRate * 100),
+      aiCallCount: performanceMetrics.aiCallCount
+    },
+    cache: {
+      suggestionCache: suggestionCache.size,
+      toneAnalysisCache: toneAnalysisCache.size,
+      rewriteCache: rewriteCache.size
+    },
+    memory: process.memoryUsage(),
+    timestamp: new Date().toISOString()
+  };
+}
+
+// ========== END PHASE 4: PERFORMANCE OPTIMIZATION & EDGE CASES ==========
+
 app.post('/api/suggestions', async (req, res) => {
+  const startTime = Date.now()
+  let hadError = false
+  let usedCache = false
+  let madeAiCall = false
+  
   const { 
     text, 
     formalityLevel = 'balanced',
@@ -1157,6 +2103,22 @@ app.post('/api/suggestions', async (req, res) => {
 
   try {
     console.log('🎯 Tone-preserving settings:', { tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity });
+
+    // Phase 4B: Handle edge cases early
+    const settings = { formalityLevel, tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity };
+    const edgeCaseResult = await handleEdgeCases(text, [], settings);
+    if (edgeCaseResult.edgeCaseHandled) {
+      console.log(`🛡️ Edge case handled: ${edgeCaseResult.edgeCaseHandled}`);
+      updatePerformanceMetrics(Date.now() - startTime, hadError, usedCache, madeAiCall);
+      return res.json({
+        suggestions: edgeCaseResult.suggestions || [],
+        edgeCase: {
+          type: edgeCaseResult.edgeCaseHandled,
+          message: edgeCaseResult.message
+        },
+        text: edgeCaseResult.text || text
+      });
+    }
     
     // Get AI suggestions for grammar, spelling, and style
     const prompt = `You are a writing-assistant that reviews a given passage for grammar, spelling, and stylistic issues.
@@ -1185,11 +2147,19 @@ Example response:
 Input:
 """${text}"""`
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-    })
+    // Phase 4D: Wrap AI call with reliability
+    const completion = await ensureSystemReliability(async () => {
+      madeAiCall = true;
+      return await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+      });
+    }, async () => {
+      // Fallback: return empty suggestions if AI fails
+      console.log('🔄 Using fallback for grammar suggestions');
+      return { choices: [{ message: { content: '[]' } }] };
+    });
 
     // Remove code fences if present
     let content = completion.choices[0].message.content || '[]'
@@ -1284,24 +2254,69 @@ Input:
     suggestions = await filterSuggestionsWithSlangProtection(suggestions, text, slangWords, formalityLevel);
     console.log('Suggestions after AI protection:', suggestions.length);
 
-    // ========== PHASE 2: TONE-PRESERVING INTEGRATION ==========
+    // ========== PHASE 2 & 3: ENHANCED TONE-PRESERVING INTEGRATION ==========
     if (tonePreservingEnabled && suggestions.length > 0) {
-      console.log('🎨 Starting tone-preserving analysis...');
+      console.log('🎨 Starting enhanced tone-preserving analysis...');
       
-      // Phase 2B: Analyze tone and style of the full text
-      const toneAnalysis = await analyzeToneAndStyle(text, toneDetectionSensitivity);
-      console.log('🎯 Tone analysis result:', toneAnalysis);
+      // Phase 2B + 3D: Analyze tone and style with caching
+      const toneAnalysisKey = getCacheKey(text, 'tone-analysis', { sensitivity: toneDetectionSensitivity });
+      let toneAnalysis = getFromCache(toneAnalysisCache, toneAnalysisKey);
       
-      // Phase 2D: Detect and resolve conflicts with tone-preserving rewrites
-      suggestions = await detectAndResolveConflicts(suggestions, text, conflictResolutionMode, toneAnalysis);
-      console.log('🔄 Suggestions after conflict resolution:', suggestions.length);
+      if (!toneAnalysis) {
+        toneAnalysis = await analyzeToneAndStyle(text, toneDetectionSensitivity);
+        setCache(toneAnalysisCache, toneAnalysisKey, toneAnalysis);
+        console.log('🎯 Fresh tone analysis result:', toneAnalysis);
+        madeAiCall = true;
+      } else {
+        console.log('📋 Using cached tone analysis:', toneAnalysis);
+        usedCache = true;
+      }
+      
+      // Phase 3: Enhanced suggestion processing with smart filtering
+      const processingSettings = {
+        formalityLevel,
+        conflictResolutionMode,
+        toneDetectionSensitivity,
+        tonePreservingEnabled
+      };
+      
+      suggestions = await enhancedSuggestionFiltering(
+        suggestions,
+        text,
+        slangWords,
+        demonetizationWords,
+        toneAnalysis,
+        processingSettings
+      );
+      console.log('🔄 Suggestions after enhanced processing:', suggestions.length);
     }
-    // ========== END PHASE 2 INTEGRATION ==========
+    // ========== END PHASE 2 & 3 INTEGRATION ==========
+
+    // Phase 4B: Final edge case handling for suggestions
+    const finalEdgeCaseResult = await handleEdgeCases(text, suggestions, settings);
+    if (finalEdgeCaseResult.edgeCaseHandled) {
+      suggestions = finalEdgeCaseResult.suggestions;
+      console.log(`🛡️ Final edge case handled: ${finalEdgeCaseResult.edgeCaseHandled}`);
+    }
+
+    // Phase 4C: Enhance user experience
+    const processingTime = Date.now() - startTime;
+    const enhancedResult = enhanceUserExperience(suggestions, text, processingTime);
+    
+    // Phase 4A: Update performance metrics
+    updatePerformanceMetrics(processingTime, hadError, usedCache, madeAiCall);
+    
+    // Log performance every 10 requests
+    if (performanceMetrics.requestCount % 10 === 0) {
+      logPerformanceMetrics();
+    }
 
     console.log('Text:', text)
     console.log('Found demonetization words:', demonetizationWords.length)
-    console.log('Final suggestions count:', suggestions.length)
-    suggestions.forEach(s => {
+    console.log('Final suggestions count:', enhancedResult.suggestions.length)
+    console.log(`⚡ Processing completed in ${processingTime}ms`);
+    
+    enhancedResult.suggestions.forEach(s => {
       console.log('Suggestion:', s)
       console.log('Extracted:', text.slice(s.start, s.end))
       if (s.type === 'tone-rewrite') {
@@ -1309,14 +2324,62 @@ Input:
       }
     })
 
-    res.json({ suggestions })
+    res.json({
+      suggestions: enhancedResult.suggestions,
+      insights: enhancedResult.insights,
+      processingMetadata: enhancedResult.processingMetadata,
+      edgeCase: finalEdgeCaseResult.edgeCaseHandled ? {
+        type: finalEdgeCaseResult.edgeCaseHandled,
+        message: finalEdgeCaseResult.message
+      } : null
+    })
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ suggestions: [] })
+    hadError = true;
+    const processingTime = Date.now() - startTime;
+    updatePerformanceMetrics(processingTime, hadError, usedCache, madeAiCall);
+    
+    console.error('🚨 API Error:', err);
+    
+    // Phase 4D: Handle system error with graceful degradation
+    const gracefulResponse = await handleSystemError(err, 'suggestions_api');
+    
+    res.status(err.status || 500).json({
+      ...gracefulResponse,
+      processingMetadata: {
+        processingTime,
+        hadError: true,
+        errorType: gracefulResponse.error?.type || 'unknown'
+      }
+    });
   }
 })
 
+// Phase 4A: Health check endpoint
+app.get('/api/health', (req, res) => {
+  const health = getSystemHealth();
+  res.json(health);
+});
+
+// Performance metrics endpoint (for monitoring)
+app.get('/api/metrics', (req, res) => {
+  res.json({
+    performance: performanceMetrics,
+    cache: {
+      suggestionCache: suggestionCache.size,
+      toneAnalysisCache: toneAnalysisCache.size,
+      rewriteCache: rewriteCache.size
+    },
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
-  console.log(`Suggestions API listening on port ${PORT}`)
+  console.log(`🚀 Suggestions API listening on port ${PORT}`)
+  console.log(`📊 Health check: http://localhost:${PORT}/api/health`)
+  console.log(`📈 Metrics: http://localhost:${PORT}/api/metrics`)
+  
+  // Log performance metrics every 5 minutes
+  setInterval(logPerformanceMetrics, 300000);
 })

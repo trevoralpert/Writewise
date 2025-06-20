@@ -47,6 +47,18 @@ interface EditorState {
   setCurrentDocument: (doc: Document | null) => void
   saveCurrentDocument: () => Promise<boolean>
 
+  // Phase 4C: Writing insights from enhanced AI response
+  writingInsights: Array<{
+    type: 'positive' | 'warning' | 'info' | 'enhancement' | 'stats'
+    icon: string
+    message: string
+  }>
+  setWritingInsights: (insights: Array<{
+    type: 'positive' | 'warning' | 'info' | 'enhancement' | 'stats'
+    icon: string
+    message: string
+  }>) => void
+
   // Feature toggles for settings page
   demonetizationEnabled: boolean
   setDemonetizationEnabled: (val: boolean) => void
@@ -278,6 +290,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return false
     }
   },
+
+  // Phase 4C: Writing insights from enhanced AI response
+  writingInsights: [],
+  setWritingInsights: (insights) => set({ writingInsights: insights }),
 
   // Feature toggles for settings page
   demonetizationEnabled: true,
