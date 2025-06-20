@@ -7,7 +7,7 @@ interface Suggestion {
   start: number
   end: number
   message: string
-  type: 'grammar' | 'spelling' | 'style'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization'
   alternatives?: string[]
   confidence?: number
   status: 'pending' | 'accepted' | 'ignored'
@@ -34,6 +34,9 @@ interface EditorState {
 
   showStyleSuggestions: boolean
   setShowStyleSuggestions: (val: boolean) => void
+
+  showDemonetizationSuggestions: boolean
+  setShowDemonetizationSuggestions: (val: boolean) => void
 
   // Save state
   isSaving: boolean
@@ -101,6 +104,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   showStyleSuggestions: true,
   setShowStyleSuggestions: (val) => set({ showStyleSuggestions: val }),
+
+  showDemonetizationSuggestions: true,
+  setShowDemonetizationSuggestions: (val) => set({ showDemonetizationSuggestions: val }),
 
   // Save state
   isSaving: false,

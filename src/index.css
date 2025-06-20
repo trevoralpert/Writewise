@@ -92,8 +92,155 @@ button:focus-visible {
   text-decoration-color: #2563eb; /* blue-600 */
 }
 
+/* demonetization suggestion underline */
+.suggestion-underline-demonetization {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: #ea580c; /* orange-600 */
+}
+
 .suggestion-underline,
-.suggestion-underline-style {
+.suggestion-underline-style,
+.suggestion-underline-demonetization {
   display: inline-block;      /* give it its own rect */
   position: relative;         /* stays inline, but Popper sees real coords */
+}
+
+/* Enhanced suggestion highlighting with animations */
+.suggestion-underline-grammar {
+  border-bottom: 2px solid rgb(239 68 68);
+  border-radius: 1px;
+  animation: suggestion-pulse 2s ease-in-out infinite;
+}
+
+.suggestion-underline-spelling {
+  border-bottom: 2px solid rgb(59 130 246);
+  border-radius: 1px;
+  animation: suggestion-pulse 2s ease-in-out infinite;
+}
+
+.suggestion-underline-style {
+  border-bottom: 2px solid rgb(249 115 22);
+  border-radius: 1px;
+  animation: suggestion-pulse 2s ease-in-out infinite;
+}
+
+.suggestion-underline-demonetization {
+  border-bottom: 3px wavy rgb(245 158 11);
+  border-radius: 1px;
+  animation: demonetization-pulse 2s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+}
+
+@keyframes suggestion-pulse {
+  0%, 100% { 
+    border-bottom-color: currentColor;
+    opacity: 1;
+  }
+  50% { 
+    border-bottom-color: rgba(156, 163, 175, 0.5);
+    opacity: 0.7;
+  }
+}
+
+@keyframes demonetization-pulse {
+  0%, 100% { 
+    border-bottom-color: rgb(245 158 11);
+    background-color: rgba(245, 158, 11, 0.1);
+  }
+  50% { 
+    border-bottom-color: rgba(245, 158, 11, 0.6);
+    background-color: rgba(245, 158, 11, 0.05);
+  }
+}
+
+/* Enhanced inline popup animations */
+.inline-popup {
+  backdrop-filter: blur(8px);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  animation: popup-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popup-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Button hover effects */
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading spinner customization */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Demonetization button specific animations */
+.btn[class*="bg-orange"] {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn[class*="bg-orange"]:hover {
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn[class*="bg-blue"] {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn[class*="bg-blue"]:hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn[class*="bg-purple"] {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn[class*="bg-purple"]:hover {
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+}
+
+/* Status indicator animations */
+.status-indicator {
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Enhanced focus states */
+.prose *:focus {
+  outline: 2px solid rgb(59 130 246);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }

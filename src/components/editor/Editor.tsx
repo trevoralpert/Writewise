@@ -1,5 +1,5 @@
 // src/components/editor/Editor.tsx
-import React, { useEffect } from 'react'
+import React, { useEffect, useCallback } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -97,6 +97,10 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     }
   }
 
+  const handleTextChange = useCallback((newContent: string) => {
+    setContent(newContent)
+  }, [setContent])
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -106,7 +110,19 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
       SuggestionHighlight.configure({
         getSuggestions: () => {
           const state = useEditorStore.getState()
-          return state.showStyleSuggestions ? state.suggestions : state.suggestions.filter(s => s.type !== 'style')
+          let filteredSuggestions = state.suggestions
+          
+          // Filter out style suggestions if disabled
+          if (!state.showStyleSuggestions) {
+            filteredSuggestions = filteredSuggestions.filter(s => s.type !== 'style')
+          }
+          
+          // Filter out demonetization suggestions if disabled
+          if (!state.showDemonetizationSuggestions) {
+            filteredSuggestions = filteredSuggestions.filter(s => s.type !== 'demonetization')
+          }
+          
+          return filteredSuggestions
         },
       }),
     ],
@@ -254,7 +270,7 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
       onClick={() => editor?.commands.focus('end')}
     >
       <div className="card-body p-4">
-        {/* Save Status Indicator */}
+        {/* Enhanced Save Status Indicator */}
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-2">
             {isEditingTitle ? (
@@ -306,20 +322,33 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
               </h2>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {(isSaving || isCreatingDocument) && (
-              <div className="loading loading-spinner loading-xs"></div>
-            )}
-            <div className={`text-sm ${getSaveStatusColor()}`}>
-              {isCreatingDocument ? 'Creating document...' : getSaveStatusText()}
+          
+          {/* Enhanced status indicators */}
+          <div className="flex items-center gap-4">
+            {/* Save status */}
+            <div className="flex items-center gap-2">
+              {(isSaving || isCreatingDocument) && (
+                <div className="loading loading-spinner loading-xs"></div>
+              )}
+              <div className={`text-sm ${getSaveStatusColor()}`}>
+                {isCreatingDocument ? 'Creating document...' : getSaveStatusText()}
+              </div>
             </div>
+            
+            {/* Suggestion count */}
+            {suggestions.length > 0 && (
+              <div className="text-sm text-blue-600">
+                {suggestions.length} suggestion{suggestions.length !== 1 ? 's' : ''}
+              </div>
+            )}
           </div>
         </div>
-        
+
         <EditorContent
           editor={editor}
           className="prose w-full min-h-[300px] focus:outline-none focus:ring-0"
         />
+        
         {popup && (
           <InlinePopup rect={popup.rect} suggestion={popup.suggestion} onClose={() => setPopup(null)} />
         )}

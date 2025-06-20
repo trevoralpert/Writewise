@@ -57,7 +57,13 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
               const from = mapIndexToPos(s.start)
               const to = mapIndexToPos(s.end)
               if (from < to) {
-                const className = s.type === 'style' ? 'suggestion-underline-style' : 'suggestion-underline'
+                let className = 'suggestion-underline'
+                if (s.type === 'style') {
+                  className = 'suggestion-underline-style'
+                } else if (s.type === 'demonetization') {
+                  className = 'suggestion-underline-demonetization'
+                }
+                
                 decos.push(
                   Decoration.inline(from, to, {
                     class: className,
