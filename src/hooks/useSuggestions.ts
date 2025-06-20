@@ -19,7 +19,14 @@ export function useSuggestions() {
 
   // Debounced fetch
   const fetchSuggestions = useCallback(() => {
-    const { content, showDemonetizationSuggestions, showStyleSuggestions } = useEditorStore.getState();
+    const { 
+      content, 
+      demonetizationEnabled, 
+      grammarEnabled, 
+      styleEnabled,
+      showDemonetizationSuggestions, 
+      showStyleSuggestions 
+    } = useEditorStore.getState();
     
     if (!content.trim()) {
       setSuggestions([])
@@ -57,8 +64,20 @@ export function useSuggestions() {
           }
         })
         
-        // Filter suggestions based on user preferences
+        // Filter suggestions based on feature toggles and sidebar preferences
         const filteredSuggestions = suggestions.filter((suggestion: any) => {
+          // First check if the feature is enabled
+          if (suggestion.type === 'demonetization' && !demonetizationEnabled) {
+            return false
+          }
+          if ((suggestion.type === 'grammar' || suggestion.type === 'spelling') && !grammarEnabled) {
+            return false
+          }
+          if (suggestion.type === 'style' && !styleEnabled) {
+            return false
+          }
+          
+          // Then check sidebar visibility preferences
           if (suggestion.type === 'demonetization') {
             return showDemonetizationSuggestions
           }

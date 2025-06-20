@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout'
 import Editor from './components/editor/Editor'
 import LoginPage from './components/auth/LoginPage'
 import DemoPage from './components/demo/DemoPage'
+import SettingsPage from './components/settings/SettingsPage'
 import { supabase } from './services/supabaseClient'
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
         <Route path="/demo" element={<DemoPage />} />
         <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
         <Route path="/auth/callback" element={user ? <Navigate to="/" /> : <Navigate to="/login" />} />
+        <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/login" />} />
         <Route path="/*" element={user ? <Layout user={user}><Editor /></Layout> : <Navigate to="/login" />} />
       </Routes>
     </Router>

@@ -8,6 +8,7 @@ import { supabase } from '../../services/supabaseClient'
 import SuggestionSidebar from '../suggestions/SuggestionSidebar'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '../../services/auth'
+import { CogIcon } from '@heroicons/react/24/outline'
 
 const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
   const setCurrentDocument = useEditorStore((s) => s.setCurrentDocument)
@@ -71,13 +72,22 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
       <header className="mb-2 flex flex-col items-center gap-1">
       <img src="/app_logo.jpg" alt="Writewise" className="w-128 h-64 object-cover rounded-2xl overflow-hidden" />
         {user && (
-          <button 
-            className="btn ml-4" 
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-          >
-            {isLoggingOut ? 'Saving & Logging out...' : 'Logout'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center" 
+              onClick={() => navigate('/settings')}
+            >
+              <CogIcon className="w-4 h-4 mr-2" />
+              Settings
+            </button>
+            <button 
+              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition" 
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? 'Saving & Logging out...' : 'Logout'}
+            </button>
+          </div>
         )}
     </header>
       

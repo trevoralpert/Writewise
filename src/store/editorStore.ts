@@ -38,6 +38,14 @@ interface EditorState {
   showDemonetizationSuggestions: boolean
   setShowDemonetizationSuggestions: (val: boolean) => void
 
+  // Feature toggles for settings page
+  demonetizationEnabled: boolean
+  setDemonetizationEnabled: (val: boolean) => void
+  grammarEnabled: boolean
+  setGrammarEnabled: (val: boolean) => void
+  styleEnabled: boolean
+  setStyleEnabled: (val: boolean) => void
+
   // Save state
   isSaving: boolean
   lastSaved: Date | null
@@ -140,6 +148,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   showDemonetizationSuggestions: true,
   setShowDemonetizationSuggestions: (val) => set({ showDemonetizationSuggestions: val }),
+
+  // Feature toggles for settings page
+  demonetizationEnabled: true,
+  setDemonetizationEnabled: (val) => set({ demonetizationEnabled: val }),
+  grammarEnabled: true,
+  setGrammarEnabled: (val) => set({ grammarEnabled: val }),
+  styleEnabled: true,
+  setStyleEnabled: (val) => set({ styleEnabled: val }),
 
   // Save state
   isSaving: false,
