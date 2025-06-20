@@ -16,6 +16,7 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges)
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
   const documentSidebarRef = useRef<DocumentSidebarRef>(null)
 
   // Periodic save every 30 seconds
@@ -28,6 +29,34 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
 
     return () => clearInterval(interval)
   }, [hasUnsavedChanges, saveCurrentDocument])
+
+  const handleNavigateWithSave = async (path: string) => {
+    if (isNavigating) return
+    
+    setIsNavigating(true)
+    
+    try {
+      // Save current document before navigation
+      if (hasUnsavedChanges) {
+        const saved = await saveCurrentDocument()
+        if (!saved) {
+          const proceed = window.confirm(
+            'Failed to save current document. Do you want to continue anyway? Unsaved changes will be lost.'
+          )
+          if (!proceed) {
+            setIsNavigating(false)
+            return
+          }
+        }
+      }
+      
+      navigate(path)
+    } catch (error) {
+      console.error('Navigation error:', error)
+    } finally {
+      setIsNavigating(false)
+    }
+  }
 
   const handleLogout = async () => {
     if (isLoggingOut) return
@@ -74,18 +103,20 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
         {user && (
           <div className="flex items-center gap-2">
             <button 
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition flex items-center" 
-              onClick={() => navigate('/analytics')}
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition flex items-center disabled:opacity-50" 
+              onClick={() => handleNavigateWithSave('/analytics')}
+              disabled={isNavigating}
             >
               <ChartBarIcon className="w-4 h-4 mr-2" />
-              Analytics
+              {isNavigating ? 'Saving...' : 'Analytics'}
             </button>
             <button 
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center" 
-              onClick={() => navigate('/settings')}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center disabled:opacity-50" 
+              onClick={() => handleNavigateWithSave('/settings')}
+              disabled={isNavigating}
             >
               <CogIcon className="w-4 h-4 mr-2" />
-              Settings
+              {isNavigating ? 'Saving...' : 'Settings'}
             </button>
             <button 
               className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition" 

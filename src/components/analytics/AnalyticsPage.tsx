@@ -1,19 +1,85 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useEditorStore } from '../../store/editorStore'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import AnalyticsDashboard from './AnalyticsDashboard'
 
 export default function AnalyticsPage() {
+  const navigate = useNavigate()
   const currentSessionId = useEditorStore(s => s.currentSessionId)
   const analytics = useEditorStore(s => s.analytics)
   const currentDocument = useEditorStore(s => s.currentDocument)
+  const suggestions = useEditorStore(s => s.suggestions)
+  const [showDebugInfo, setShowDebugInfo] = useState(false)
+
+  // Debug information
+  console.log('Analytics Page Debug:', {
+    currentSessionId,
+    analytics,
+    currentDocument: currentDocument?.title,
+    suggestionsCount: suggestions.length
+  })
 
   return (
     <div className="bg-white rounded-lg border p-6 mx-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Writing Analytics</h1>
-        <p className="text-gray-600">
-          Track your writing progress, quality metrics, and improvement over time.
-        </p>
+        {/* Header with Back Button when data is present */}
+        {(currentSessionId || analytics) && (
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Writing Analytics</h1>
+              <p className="text-gray-600">
+                Track your writing progress, quality metrics, and improvement over time.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <ArrowLeftIcon className="w-4 h-4" />
+              Back to Editor
+            </button>
+          </div>
+        )}
+        
+        {/* Title for no-data state */}
+        {!(currentSessionId || analytics) && (
+          <>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Writing Analytics</h1>
+            <p className="text-gray-600">
+              Track your writing progress, quality metrics, and improvement over time.
+            </p>
+          </>
+        )}
+        
+        {/* Collapsible Debug Panel */}
+        <div className="mt-4">
+          <button
+            onClick={() => setShowDebugInfo(!showDebugInfo)}
+            className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors w-full text-left"
+          >
+            {showDebugInfo ? (
+              <ChevronDownIcon className="w-4 h-4 text-yellow-600" />
+            ) : (
+              <ChevronRightIcon className="w-4 h-4 text-yellow-600" />
+            )}
+            <h3 className="font-semibold text-yellow-800">🐛 Debug Info</h3>
+            <span className="text-xs text-yellow-600 ml-auto">
+              {showDebugInfo ? 'Click to hide' : 'Click to show technical details'}
+            </span>
+          </button>
+          
+          {showDebugInfo && (
+            <div className="mt-2 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="text-sm text-yellow-700 space-y-1">
+                <p><strong>Session ID:</strong> {currentSessionId || 'null'}</p>
+                <p><strong>Analytics:</strong> {analytics ? 'Present' : 'null'}</p>
+                <p><strong>Document:</strong> {currentDocument?.title || 'None'}</p>
+                <p><strong>Suggestions:</strong> {suggestions.length}</p>
+              </div>
+            </div>
+          )}
+        </div>
         
         {currentDocument && (
           <div className="mt-4 p-4 bg-blue-50 rounded-lg">
@@ -66,7 +132,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="mt-6">
             <button 
-              onClick={() => window.history.back()}
+              onClick={() => navigate('/')}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Back to Editor

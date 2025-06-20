@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 const SettingsPage = () => {
   const navigate = useNavigate()
+  const [isNavigating, setIsNavigating] = useState(false)
   const { 
     demonetizationEnabled, 
     setDemonetizationEnabled,
@@ -15,8 +16,38 @@ const SettingsPage = () => {
     contextAwareGrammarEnabled,
     setContextAwareGrammarEnabled,
     formalityLevel,
-    setFormalityLevel
+    setFormalityLevel,
+    saveCurrentDocument,
+    hasUnsavedChanges
   } = useEditorStore()
+
+  const handleBackToEditor = async () => {
+    if (isNavigating) return
+    
+    setIsNavigating(true)
+    
+    try {
+      // Save current document before navigation
+      if (hasUnsavedChanges) {
+        const saved = await saveCurrentDocument()
+        if (!saved) {
+          const proceed = window.confirm(
+            'Failed to save current document. Do you want to continue anyway? Unsaved changes will be lost.'
+          )
+          if (!proceed) {
+            setIsNavigating(false)
+            return
+          }
+        }
+      }
+      
+      navigate('/')
+    } catch (error) {
+      console.error('Navigation error:', error)
+    } finally {
+      setIsNavigating(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -25,11 +56,12 @@ const SettingsPage = () => {
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              onClick={handleBackToEditor}
+              disabled={isNavigating}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
             >
               <ArrowLeftIcon className="w-5 h-5" />
-              Back to Editor
+              {isNavigating ? 'Saving & Returning...' : 'Back to Editor'}
             </button>
             <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
           </div>

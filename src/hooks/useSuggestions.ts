@@ -65,7 +65,8 @@ export function useSuggestions() {
         formalityLevel: formalityLevel,
         tonePreservingEnabled: tonePreservingEnabled,
         conflictResolutionMode: conflictResolutionMode,
-        toneDetectionSensitivity: toneDetectionSensitivity
+        toneDetectionSensitivity: toneDetectionSensitivity,
+        userId: 'user-' + Date.now() // Simple user ID for analytics
       }),
     })
       .then(res => {
@@ -117,10 +118,19 @@ export function useSuggestions() {
         }
         
         // Phase 5A: Handle analytics and session data
+        console.log('📊 Analytics Response Debug:', {
+          hasSessionId: !!data.sessionId,
+          hasAnalytics: !!data.analytics,
+          sessionId: data.sessionId,
+          analytics: data.analytics
+        })
+        
         if (data.sessionId) {
+          console.log('Setting session ID:', data.sessionId)
           setCurrentSessionId(data.sessionId)
         }
         if (data.analytics) {
+          console.log('Setting analytics:', data.analytics)
           setAnalytics(data.analytics)
         }
       })

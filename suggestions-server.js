@@ -2743,6 +2743,8 @@ function generateCSVReport(data) {
 // ========== END PHASE 5: ADVANCED FEATURES & POLISH ==========
 
 app.post('/api/suggestions', async (req, res) => {
+  console.log('🚀 API CALL RECEIVED - Request body:', req.body);
+  
   const startTime = Date.now()
   let hadError = false
   let usedCache = false
@@ -2755,6 +2757,8 @@ app.post('/api/suggestions', async (req, res) => {
     conflictResolutionMode = 'balanced',
     toneDetectionSensitivity = 'medium'
   } = req.body
+
+  console.log('📝 Processing text:', text?.length, 'characters');
 
   try {
     console.log('🎯 Tone-preserving settings:', { tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity });
@@ -2852,8 +2856,11 @@ Input:
     const slangWords = await detectSlangWords(text, formalityLevel);
     console.log('Detected slang words with AI analysis:', slangWords.length);
     
-    // Create slang-protected suggestions to show users what's being protected
-    const slangProtectedSuggestions = slangWords.map((detected, index) => {
+    // Create slang-protected suggestions to show users what's being protected (only high-confidence ones)
+    const slangProtectedSuggestions = slangWords
+      .filter(detected => detected.confidence > 0.8) // Only show high-confidence slang protection
+      .slice(0, 2) // Limit to max 2 slang protections per request
+      .map((detected, index) => {
       const aiReasoning = detected.aiAnalysis ? detected.aiAnalysis.reasoning : 'Rule-based detection';
       const confidenceSource = detected.aiAnalysis ? 'AI + Rules' : 'Rules only';
       
@@ -3019,6 +3026,14 @@ Input:
       if (s.type === 'tone-rewrite') {
         console.log('🎨 Tone rewrite:', s.toneRewrite)
       }
+    })
+
+    // Debug: Log what we're sending
+    console.log('📊 Response Debug:', {
+      sessionId,
+      hasAnalytics: !!writingAnalyticsData,
+      analyticsData: writingAnalyticsData,
+      suggestionsCount: enhancedResult.suggestions.length
     })
 
     res.json({
