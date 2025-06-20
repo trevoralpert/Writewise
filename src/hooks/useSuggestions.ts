@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useEditorStore } from '../store/editorStore'
 
 interface Suggestion {
@@ -36,145 +36,313 @@ interface Suggestion {
 }
 
 export function useSuggestions() {
-  // Get store methods
-  const setAllSuggestionsAndFilter = useEditorStore(s => s.setAllSuggestionsAndFilter)
-  const refilterSuggestions = useEditorStore(s => s.refilterSuggestions)
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { 
+    content, 
+    setAllSuggestionsAndFilter, 
+    refilterSuggestions,
+    setWritingInsights, 
+    setCurrentSessionId, 
+    setAnalytics,
+    currentSessionId,
+    
+    // Feature settings
+    demonetizationEnabled,
+    grammarEnabled,
+    styleEnabled,
+    contextAwareGrammarEnabled,
+    tonePreservingEnabled,
+    engagementEnabled,
+    platformAdaptationEnabled,
+    selectedPlatform,
+    conflictResolutionMode,
+    toneDetectionSensitivity,
+    formalityLevel,
+    
+    // SEO settings
+    seoOptimizationEnabled,
+    seoContentType,
+    seoPrimaryKeyword,
+    seoSecondaryKeywords,
+    seoTargetAudience,
+    
+    // Phase 3: Advanced SEO Features
+    seoTemplateEnabled,
+    seoSelectedTemplate,
+    seoMetaOptimization,
+    seoKeywordResearch,
+    seoCompetitorAnalysis,
+    seoAnalyticsDashboard,
+    seoMetaTitle,
+    seoMetaDescription,
+    seoFocusKeyphrase,
+    seoLSIKeywords,
+    seoReadabilityTarget,
+    seoInternalLinking,
+    seoSchemaMarkup,
+    setSeoContentScore,
+    setSeoLSIKeywords,
+    
+    // Phase 4: Enterprise SEO Features
+    seoCompetitorTracking,
+    seoCompetitorUrls,
+    seoContentGapAnalysis,
+    seoTechnicalSEO,
+    seoLocalSEO,
+    seoLocalBusiness,
+    seoLocalLocation,
+    seoMultilingual,
+    seoTargetLanguages,
+    seoAdvancedSchema,
+    seoSchemaTypes,
+    seoContentClusters,
+    seoTopicAuthority,
+    seoE_A_T_Optimization,
+    seoFeaturedSnippets,
+    seoVoiceSearch,
+    seoMobileFirst,
+    seoPageSpeed,
+    seoCoreWebVitals
+  } = useEditorStore();
+
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Shared fetch logic
-  const fetchSuggestions = useCallback(() => {
-    const { 
-      content, 
-      formalityLevel, 
-      tonePreservingEnabled,
-      conflictResolutionMode,
-      toneDetectionSensitivity,
-      engagementEnabled,
-      platformAdaptationEnabled,
-      selectedPlatform,
-      seoOptimizationEnabled,
-      seoContentType,
-      seoPrimaryKeyword,
-      seoSecondaryKeywords,
-      seoTargetAudience
-    } = useEditorStore.getState();
-    
+  const getSuggestions = useCallback(async () => {
     if (!content.trim()) {
-      setAllSuggestionsAndFilter([])
-      return
+      setAllSuggestionsAndFilter([]);
+      return;
     }
 
-    const safeText = content;
-    
-    // Debug logging
-    console.log('🔍 Sending text to server:', JSON.stringify(safeText))
-    console.log('🔍 Text length:', safeText.length)
-    console.log('🔍 Formality level:', formalityLevel)
-    console.log('🔍 Tone preserving enabled:', tonePreservingEnabled)
-    console.log('🔍 Conflict resolution mode:', conflictResolutionMode)
-    
-    // Use environment variable or fallback to localhost for development
-    const apiUrl = import.meta.env.VITE_SUGGESTIONS_API_URL || 'http://localhost:3001';
-    
-    fetch(`${apiUrl}/api/suggestions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        text: safeText,
-        formalityLevel: formalityLevel,
-        tonePreservingEnabled: tonePreservingEnabled,
-        conflictResolutionMode: conflictResolutionMode,
-        toneDetectionSensitivity: toneDetectionSensitivity,
-        engagementEnabled: engagementEnabled,
-        platformAdaptationEnabled: platformAdaptationEnabled,
-        selectedPlatform: selectedPlatform,
-        seoOptimizationEnabled: seoOptimizationEnabled,
-        contentType: seoContentType,
-        primaryKeyword: seoPrimaryKeyword,
-        secondaryKeywords: seoSecondaryKeywords,
-        targetAudience: seoTargetAudience,
-        userId: 'user-' + Date.now() // Simple user ID for analytics
-      }),
-    })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`)
-        }
-        return res.json()
-      })
-      .then(data => {
-        const suggestions = data.suggestions || []
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('🎯 SEO Analysis - Making API call with advanced features:', {
+        seoOptimizationEnabled,
+        seoTemplateEnabled,
+        seoMetaOptimization,
+        seoKeywordResearch,
+        seoCompetitorAnalysis,
+        seoInternalLinking,
+        seoSchemaMarkup
+      });
+
+      const response = await fetch('http://localhost:3001/api/suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: content,
+          
+          // Feature settings
+          demonetizationEnabled,
+          grammarEnabled,
+          styleEnabled,
+          contextAwareGrammarEnabled,
+          tonePreservingEnabled,
+          engagementEnabled,
+          platformAdaptationEnabled,
+          selectedPlatform,
+          conflictResolutionMode,
+          toneDetectionSensitivity,
+          formalityLevel,
+          
+          // SEO settings
+          seoOptimizationEnabled,
+          contentType: seoContentType,
+          primaryKeyword: seoPrimaryKeyword,
+          secondaryKeywords: seoSecondaryKeywords,
+          targetAudience: seoTargetAudience,
+          
+          // Phase 3: Advanced SEO Features
+          seoTemplateEnabled,
+          seoSelectedTemplate,
+          seoMetaOptimization,
+          seoKeywordResearch,
+          seoCompetitorAnalysis,
+          seoAnalyticsDashboard,
+          seoMetaTitle,
+          seoMetaDescription,
+          seoFocusKeyphrase,
+          seoLSIKeywords,
+          seoReadabilityTarget,
+          seoInternalLinking,
+          seoSchemaMarkup,
+          
+          // Phase 4: Enterprise SEO Features
+          seoCompetitorTracking,
+          seoCompetitorUrls,
+          seoContentGapAnalysis,
+          seoTechnicalSEO,
+          seoLocalSEO,
+          seoLocalBusiness,
+          seoLocalLocation,
+          seoMultilingual,
+          seoTargetLanguages,
+          seoAdvancedSchema,
+          seoSchemaTypes,
+          seoContentClusters,
+          seoTopicAuthority,
+          seoE_A_T_Optimization,
+          seoFeaturedSnippets,
+          seoVoiceSearch,
+          seoMobileFirst,
+          seoPageSpeed,
+          seoCoreWebVitals
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Handle Phase 3 SEO analytics and insights
+      if (data.seoAnalytics && seoAnalyticsDashboard) {
+        setSeoContentScore(data.seoAnalytics.contentScore || 0);
         
-        // Phase 4C: Handle enhanced response with insights
-        if (data.insights && data.insights.length > 0) {
-          console.log('✨ Writing Insights:')
-          data.insights.forEach((insight: any) => {
-            console.log(`  ${insight.icon} ${insight.message}`)
-          })
+        // Update LSI keywords if keyword research is enabled
+        if (seoKeywordResearch && data.seoAnalytics.suggestedLSIKeywords) {
+          setSeoLSIKeywords(data.seoAnalytics.suggestedLSIKeywords);
         }
-        
-        if (data.processingMetadata) {
-          console.log('📊 Processing Metadata:', data.processingMetadata)
-        }
-        
-        if (data.edgeCase) {
-          console.log(`🛡️ Edge Case Handled: ${data.edgeCase.type} - ${data.edgeCase.message}`)
-        }
-        
-        // Debug logging for suggestions
-        console.log('🔍 Received suggestions:')
-        suggestions.forEach((suggestion: any) => {
-          if (suggestion.type === 'demonetization') {
-            console.log(`  - ${suggestion.text} (${suggestion.start}-${suggestion.end}): "${safeText.substring(suggestion.start, suggestion.end)}"`)
-          }
-          if (suggestion.type === 'tone-rewrite') {
-            console.log(`  - Tone rewrite: "${suggestion.text}" -> "${suggestion.toneRewrite?.rewrittenText}"`)
-          }
-          if (suggestion.type === 'engagement') {
-            console.log(`  - Engagement (${suggestion.engagementCategory}): "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
-          }
-          if (suggestion.type === 'platform-adaptation') {
-            console.log(`  - Platform (${suggestion.platformName}): "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
-          }
-          if (suggestion.type === 'seo') {
-            console.log(`  - SEO: "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
-          }
-          if (suggestion.userTip) {
-            console.log(`    💡 Tip: ${suggestion.userTip}`)
-          }
+      }
+
+      const suggestions = data.suggestions || []
+      
+      // Phase 4C: Handle enhanced response with insights
+      if (data.insights && data.insights.length > 0) {
+        console.log('✨ Writing Insights:')
+        data.insights.forEach((insight: any) => {
+          console.log(`  ${insight.icon} ${insight.message}`)
         })
-        
-        // Store all suggestions and filter based on current settings
-        setAllSuggestionsAndFilter(suggestions)
-        
-        // Store insights in the editor store for potential UI display
-        const { setWritingInsights, setCurrentSessionId, setAnalytics } = useEditorStore.getState()
-        if (setWritingInsights && data.insights) {
-          setWritingInsights(data.insights)
+      }
+      
+      if (data.processingMetadata) {
+        console.log('📊 Processing Metadata:', data.processingMetadata)
+      }
+      
+      if (data.edgeCase) {
+        console.log(`🛡️ Edge Case Handled: ${data.edgeCase.type} - ${data.edgeCase.message}`)
+      }
+      
+      // Debug logging for suggestions
+      console.log('🔍 Received suggestions:')
+      suggestions.forEach((suggestion: any) => {
+        if (suggestion.type === 'demonetization') {
+          console.log(`  - ${suggestion.text} (${suggestion.start}-${suggestion.end}): "${content.substring(suggestion.start, suggestion.end)}"`)
         }
-        
-        // Phase 5A: Handle analytics and session data
-        console.log('📊 Analytics Response Debug:', {
-          hasSessionId: !!data.sessionId,
-          hasAnalytics: !!data.analytics,
-          sessionId: data.sessionId,
-          analytics: data.analytics
-        })
-        
-        if (data.sessionId) {
-          console.log('Setting session ID:', data.sessionId)
-          setCurrentSessionId(data.sessionId)
+        if (suggestion.type === 'tone-rewrite') {
+          console.log(`  - Tone rewrite: "${suggestion.text}" -> "${suggestion.toneRewrite?.rewrittenText}"`)
         }
-        if (data.analytics) {
-          console.log('Setting analytics:', data.analytics)
-          setAnalytics(data.analytics)
+        if (suggestion.type === 'engagement') {
+          console.log(`  - Engagement (${suggestion.engagementCategory}): "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
+        }
+        if (suggestion.type === 'platform-adaptation') {
+          console.log(`  - Platform (${suggestion.platformName}): "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
+        }
+        if (suggestion.type === 'seo') {
+          console.log(`  - SEO: "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
+        }
+        if (suggestion.userTip) {
+          console.log(`    💡 Tip: ${suggestion.userTip}`)
         }
       })
-      .catch(error => {
-        console.error('Error fetching suggestions:', error)
-        setAllSuggestionsAndFilter([])
+      
+      // Store all suggestions and filter based on current settings
+      setAllSuggestionsAndFilter(suggestions)
+      
+      // Store insights in the editor store for potential UI display
+      if (setWritingInsights && data.insights) {
+        setWritingInsights(data.insights)
+      }
+      
+      // Phase 5A: Handle analytics and session data
+      console.log('📊 Analytics Response Debug:', {
+        hasSessionId: !!data.sessionId,
+        hasAnalytics: !!data.analytics,
+        sessionId: data.sessionId,
+        analytics: data.analytics
       })
-  }, [setAllSuggestionsAndFilter])
+      
+      if (data.sessionId) {
+        console.log('Setting session ID:', data.sessionId)
+        setCurrentSessionId(data.sessionId)
+      }
+      if (data.analytics) {
+        console.log('Setting analytics:', data.analytics)
+        setAnalytics(data.analytics)
+      }
+    } catch (err) {
+      console.error('Error fetching suggestions:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    content,
+    demonetizationEnabled,
+    grammarEnabled,
+    styleEnabled,
+    contextAwareGrammarEnabled,
+    tonePreservingEnabled,
+    engagementEnabled,
+    platformAdaptationEnabled,
+    selectedPlatform,
+    conflictResolutionMode,
+    toneDetectionSensitivity,
+    formalityLevel,
+    seoOptimizationEnabled,
+    seoContentType,
+    seoPrimaryKeyword,
+    seoSecondaryKeywords,
+    seoTargetAudience,
+    
+    // Phase 3: Advanced SEO Features dependencies
+    seoTemplateEnabled,
+    seoSelectedTemplate,
+    seoMetaOptimization,
+    seoKeywordResearch,
+    seoCompetitorAnalysis,
+    seoAnalyticsDashboard,
+    seoMetaTitle,
+    seoMetaDescription,
+    seoFocusKeyphrase,
+    seoLSIKeywords,
+    seoReadabilityTarget,
+    seoInternalLinking,
+    seoSchemaMarkup,
+    setSeoContentScore,
+    setSeoLSIKeywords,
+    setAllSuggestionsAndFilter,
+    setWritingInsights,
+    setCurrentSessionId,
+    setAnalytics,
+    
+    // Phase 4: Enterprise SEO Features
+    seoCompetitorTracking,
+    seoCompetitorUrls,
+    seoContentGapAnalysis,
+    seoTechnicalSEO,
+    seoLocalSEO,
+    seoLocalBusiness,
+    seoLocalLocation,
+    seoMultilingual,
+    seoTargetLanguages,
+    seoAdvancedSchema,
+    seoSchemaTypes,
+    seoContentClusters,
+    seoTopicAuthority,
+    seoE_A_T_Optimization,
+    seoFeaturedSnippets,
+    seoVoiceSearch,
+    seoMobileFirst,
+    seoPageSpeed,
+    seoCoreWebVitals
+  ]);
 
   // Immediate fetch for document loading (no debounce)
   const requestSuggestionsImmediate = useCallback(() => {
@@ -184,15 +352,15 @@ export function useSuggestions() {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
-    fetchSuggestions()
-  }, [fetchSuggestions])
+    getSuggestions()
+  }, [getSuggestions])
 
   // Debounced fetch for typing (800ms delay)
   const requestSuggestions = useCallback(() => {
     console.log('⏱️ Debounced suggestions request (typing)')
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    timeoutRef.current = setTimeout(fetchSuggestions, 800)
-  }, [fetchSuggestions])
+    timeoutRef.current = setTimeout(getSuggestions, 800)
+  }, [getSuggestions])
 
   return { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions }
 }

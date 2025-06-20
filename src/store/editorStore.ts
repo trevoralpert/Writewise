@@ -34,6 +34,12 @@ interface Suggestion {
   platformCategory?: string
   platformScore?: number
   userTip?: string
+  
+  // New properties for SEO suggestions
+  seoCategory?: string
+  seoType?: string
+  seoScore?: number
+  recommendation?: any
 }
 
 interface Document {
@@ -112,7 +118,7 @@ interface EditorState {
   formalityLevel: 'casual' | 'balanced' | 'formal'
   setFormalityLevel: (level: 'casual' | 'balanced' | 'formal') => void
 
-  // New: SEO Content Optimization settings
+  // SEO Content Optimization settings
   seoOptimizationEnabled: boolean
   setSeoOptimizationEnabled: (val: boolean) => void
   seoContentType: 'blogPost' | 'article' | 'socialMedia' | 'email' | 'landingPage' | 'productDescription'
@@ -129,6 +135,78 @@ interface EditorState {
   lastSaved: Date | null
   hasUnsavedChanges: boolean
   setHasUnsavedChanges: (val: boolean) => void
+
+  // Phase 3: Advanced SEO Features
+  seoTemplateEnabled: boolean
+  setSeoTemplateEnabled: (val: boolean) => void
+  seoSelectedTemplate: string
+  setSeoSelectedTemplate: (template: string) => void
+  seoMetaOptimization: boolean
+  setSeoMetaOptimization: (val: boolean) => void
+  seoKeywordResearch: boolean
+  setSeoKeywordResearch: (val: boolean) => void
+  seoCompetitorAnalysis: boolean
+  setSeoCompetitorAnalysis: (val: boolean) => void
+  seoAnalyticsDashboard: boolean
+  setSeoAnalyticsDashboard: (val: boolean) => void
+  seoMetaTitle: string
+  setSeoMetaTitle: (title: string) => void
+  seoMetaDescription: string
+  setSeoMetaDescription: (description: string) => void
+  seoFocusKeyphrase: string
+  setSeoFocusKeyphrase: (keyphrase: string) => void
+  seoLSIKeywords: string[]
+  setSeoLSIKeywords: (keywords: string[]) => void
+  seoContentScore: number
+  setSeoContentScore: (score: number) => void
+  seoReadabilityTarget: 'easy' | 'medium' | 'difficult'
+  setSeoReadabilityTarget: (target: 'easy' | 'medium' | 'difficult') => void
+  seoInternalLinking: boolean
+  setSeoInternalLinking: (val: boolean) => void
+  seoSchemaMarkup: boolean
+  setSeoSchemaMarkup: (val: boolean) => void
+
+  // Phase 4: Enterprise SEO Features
+  seoCompetitorTracking: boolean
+  setSeoCompetitorTracking: (val: boolean) => void
+  seoCompetitorUrls: string[]
+  setSeoCompetitorUrls: (urls: string[]) => void
+  seoContentGapAnalysis: boolean
+  setSeoContentGapAnalysis: (val: boolean) => void
+  seoTechnicalSEO: boolean
+  setSeoTechnicalSEO: (val: boolean) => void
+  seoLocalSEO: boolean
+  setSeoLocalSEO: (val: boolean) => void
+  seoLocalBusiness: string
+  setSeoLocalBusiness: (business: string) => void
+  seoLocalLocation: string
+  setSeoLocalLocation: (location: string) => void
+  seoMultilingual: boolean
+  setSeoMultilingual: (val: boolean) => void
+  seoTargetLanguages: string[]
+  setSeoTargetLanguages: (languages: string[]) => void
+  seoAdvancedSchema: boolean
+  setSeoAdvancedSchema: (val: boolean) => void
+  seoSchemaTypes: string[]
+  setSeoSchemaTypes: (types: string[]) => void
+  seoContentClusters: boolean
+  setSeoContentClusters: (val: boolean) => void
+  seoTopicAuthority: boolean
+  setSeoTopicAuthority: (val: boolean) => void
+  seoAuthorityScore: number
+  setSeoAuthorityScore: (score: number) => void
+  seoE_A_T_Optimization: boolean
+  setSeoE_A_T_Optimization: (val: boolean) => void
+  seoFeaturedSnippets: boolean
+  setSeoFeaturedSnippets: (val: boolean) => void
+  seoVoiceSearch: boolean
+  setSeoVoiceSearch: (val: boolean) => void
+  seoMobileFirst: boolean
+  setSeoMobileFirst: (val: boolean) => void
+  seoPageSpeed: boolean
+  setSeoPageSpeed: (val: boolean) => void
+  seoCoreWebVitals: boolean
+  setSeoCoreWebVitals: (val: boolean) => void
 }
 
 // Helper function to check if two text ranges overlap
@@ -174,6 +252,16 @@ const calculateSuggestionPriority = (suggestion: Suggestion, conflictResolutionM
   // Factor in confidence score if available
   if (suggestion.confidence) {
     priority += (suggestion.confidence - 0.5) * 2 // -1 to +1 adjustment
+  }
+  
+  // SEO suggestions (including advanced features)
+  if (suggestion.type === 'seo') {
+    if (suggestion.seoCategory === 'meta-optimization') return 9; // Meta tags are critical
+    if (suggestion.seoCategory === 'keyword-research') return 8; // Keyword research is high priority
+    if (suggestion.seoCategory === 'content-structure') return 7; // Structure is important
+    if (suggestion.seoCategory === 'internal-linking') return 6; // Internal links help SEO
+    if (suggestion.seoCategory === 'schema-markup') return 5; // Schema is beneficial
+    return 7; // Default SEO priority
   }
   
   return Math.max(1, Math.min(10, priority))
@@ -441,4 +529,94 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   lastSaved: null,
   hasUnsavedChanges: false,
   setHasUnsavedChanges: (val) => set({ hasUnsavedChanges: val }),
+
+  // Phase 3: Advanced SEO Features
+  seoTemplateEnabled: false,
+  setSeoTemplateEnabled: (val) => {
+    set({ seoTemplateEnabled: val })
+    get().refilterSuggestions()
+  },
+  seoSelectedTemplate: 'blog-post-template',
+  setSeoSelectedTemplate: (template) => set({ seoSelectedTemplate: template }),
+  seoMetaOptimization: false,
+  setSeoMetaOptimization: (val) => {
+    set({ seoMetaOptimization: val })
+    get().refilterSuggestions()
+  },
+  seoKeywordResearch: false,
+  setSeoKeywordResearch: (val) => {
+    set({ seoKeywordResearch: val })
+    get().refilterSuggestions()
+  },
+  seoCompetitorAnalysis: false,
+  setSeoCompetitorAnalysis: (val) => {
+    set({ seoCompetitorAnalysis: val })
+    get().refilterSuggestions()
+  },
+  seoAnalyticsDashboard: false,
+  setSeoAnalyticsDashboard: (val) => set({ seoAnalyticsDashboard: val }),
+  seoMetaTitle: '',
+  setSeoMetaTitle: (title) => set({ seoMetaTitle: title }),
+  seoMetaDescription: '',
+  setSeoMetaDescription: (description) => set({ seoMetaDescription: description }),
+  seoFocusKeyphrase: '',
+  setSeoFocusKeyphrase: (keyphrase) => set({ seoFocusKeyphrase: keyphrase }),
+  seoLSIKeywords: [],
+  setSeoLSIKeywords: (keywords) => set({ seoLSIKeywords: keywords }),
+  seoContentScore: 0,
+  setSeoContentScore: (score) => set({ seoContentScore: score }),
+  seoReadabilityTarget: 'medium',
+  setSeoReadabilityTarget: (target) => set({ seoReadabilityTarget: target }),
+  seoInternalLinking: false,
+  setSeoInternalLinking: (val) => {
+    set({ seoInternalLinking: val })
+    get().refilterSuggestions()
+  },
+  seoSchemaMarkup: false,
+  setSeoSchemaMarkup: (val) => {
+    set({ seoSchemaMarkup: val })
+    get().refilterSuggestions()
+  },
+
+  // Phase 4: Enterprise SEO Features
+  seoCompetitorTracking: false,
+  setSeoCompetitorTracking: (val) => set({ seoCompetitorTracking: val }),
+  seoCompetitorUrls: [],
+  setSeoCompetitorUrls: (urls) => set({ seoCompetitorUrls: urls }),
+  seoContentGapAnalysis: false,
+  setSeoContentGapAnalysis: (val) => set({ seoContentGapAnalysis: val }),
+  seoTechnicalSEO: false,
+  setSeoTechnicalSEO: (val) => set({ seoTechnicalSEO: val }),
+  seoLocalSEO: false,
+  setSeoLocalSEO: (val) => set({ seoLocalSEO: val }),
+  seoLocalBusiness: '',
+  setSeoLocalBusiness: (business) => set({ seoLocalBusiness: business }),
+  seoLocalLocation: '',
+  setSeoLocalLocation: (location) => set({ seoLocalLocation: location }),
+  seoMultilingual: false,
+  setSeoMultilingual: (val) => set({ seoMultilingual: val }),
+  seoTargetLanguages: [],
+  setSeoTargetLanguages: (languages) => set({ seoTargetLanguages: languages }),
+  seoAdvancedSchema: false,
+  setSeoAdvancedSchema: (val) => set({ seoAdvancedSchema: val }),
+  seoSchemaTypes: [],
+  setSeoSchemaTypes: (types) => set({ seoSchemaTypes: types }),
+  seoContentClusters: false,
+  setSeoContentClusters: (val) => set({ seoContentClusters: val }),
+  seoTopicAuthority: false,
+  setSeoTopicAuthority: (val) => set({ seoTopicAuthority: val }),
+  seoAuthorityScore: 0,
+  setSeoAuthorityScore: (score) => set({ seoAuthorityScore: score }),
+  seoE_A_T_Optimization: false,
+  setSeoE_A_T_Optimization: (val) => set({ seoE_A_T_Optimization: val }),
+  seoFeaturedSnippets: false,
+  setSeoFeaturedSnippets: (val) => set({ seoFeaturedSnippets: val }),
+  seoVoiceSearch: false,
+  setSeoVoiceSearch: (val) => set({ seoVoiceSearch: val }),
+  seoMobileFirst: false,
+  setSeoMobileFirst: (val) => set({ seoMobileFirst: val }),
+  seoPageSpeed: false,
+  setSeoPageSpeed: (val) => set({ seoPageSpeed: val }),
+  seoCoreWebVitals: false,
+  setSeoCoreWebVitals: (val) => set({ seoCoreWebVitals: val }),
 }))

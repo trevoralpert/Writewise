@@ -34,7 +34,68 @@ const SettingsPage = () => {
     seoTargetAudience,
     setSeoTargetAudience,
     saveCurrentDocument,
-    hasUnsavedChanges
+    hasUnsavedChanges,
+    seoTemplateEnabled,
+    setSeoTemplateEnabled,
+    seoSelectedTemplate,
+    setSeoSelectedTemplate,
+    seoMetaOptimization,
+    setSeoMetaOptimization,
+    seoKeywordResearch,
+    setSeoKeywordResearch,
+    seoAnalyticsDashboard,
+    setSeoAnalyticsDashboard,
+    seoMetaTitle,
+    setSeoMetaTitle,
+    seoMetaDescription,
+    setSeoMetaDescription,
+    seoFocusKeyphrase,
+    setSeoFocusKeyphrase,
+    seoReadabilityTarget,
+    setSeoReadabilityTarget,
+    seoInternalLinking,
+    setSeoInternalLinking,
+    seoSchemaMarkup,
+    setSeoSchemaMarkup,
+    // Phase 4: Enterprise SEO Features
+    seoCompetitorTracking,
+    setSeoCompetitorTracking,
+    seoCompetitorUrls,
+    setSeoCompetitorUrls,
+    seoContentGapAnalysis,
+    setSeoContentGapAnalysis,
+    seoTechnicalSEO,
+    setSeoTechnicalSEO,
+    seoLocalSEO,
+    setSeoLocalSEO,
+    seoLocalBusiness,
+    setSeoLocalBusiness,
+    seoLocalLocation,
+    setSeoLocalLocation,
+    seoMultilingual,
+    setSeoMultilingual,
+    seoTargetLanguages,
+    setSeoTargetLanguages,
+    seoAdvancedSchema,
+    setSeoAdvancedSchema,
+    seoSchemaTypes,
+    setSeoSchemaTypes,
+    seoContentClusters,
+    setSeoContentClusters,
+    seoTopicAuthority,
+    setSeoTopicAuthority,
+    seoE_A_T_Optimization,
+    setSeoE_A_T_Optimization,
+    seoFeaturedSnippets,
+    setSeoFeaturedSnippets,
+    seoVoiceSearch,
+    setSeoVoiceSearch,
+    seoMobileFirst,
+    setSeoMobileFirst,
+    seoPageSpeed,
+    setSeoPageSpeed,
+    seoCoreWebVitals,
+    setSeoCoreWebVitals,
   } = useEditorStore()
 
   const handleBackToEditor = async () => {
@@ -393,156 +454,479 @@ const SettingsPage = () => {
           </div>
 
           {/* Advanced Features Section */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Advanced Features</h2>
-            <div className="space-y-4">
-              
-              {/* SEO Content Optimization */}
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Advanced Features</h2>
+            
+            {/* SEO Content Optimization */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                    <span className="mr-2">🔍</span>
                     SEO Content Optimization
                   </h3>
-                  <p className="text-gray-600 text-sm mb-3">
-                    Optimize your content for search engines with keyword analysis, readability scoring, and SEO best practices. 
-                    Get suggestions for better keyword placement, content structure, and meta optimization.
+                  <p className="text-sm text-gray-600">
+                    Optimize your content for search engines with keyword analysis and SEO suggestions
                   </p>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="inline-block w-3 h-3 bg-purple-400 rounded-full"></span>
-                    <span>Purple wavy underlines indicate SEO optimization opportunities</span>
-                  </div>
                 </div>
-                <div className="ml-6">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={seoOptimizationEnabled}
-                      onChange={(e) => setSeoOptimizationEnabled(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="seo-optimization"
+                    checked={seoOptimizationEnabled}
+                    onChange={(e) => setSeoOptimizationEnabled(e.target.checked)}
+                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="seo-optimization" className="ml-2 text-sm text-gray-700">
+                    Enable SEO Optimization
                   </label>
                 </div>
               </div>
 
-              {/* SEO Configuration */}
               {seoOptimizationEnabled && (
-                <div className="border-t pt-6 space-y-6">
-                  {/* Content Type */}
-                  <div>
-                    <h4 className="text-md font-medium text-gray-900 mb-2">
-                      Content Type
-                    </h4>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Select the type of content you're creating for tailored SEO recommendations.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {[
-                        { id: 'blogPost', name: 'Blog Post', icon: '📝', description: 'Long-form articles' },
-                        { id: 'article', name: 'Article', icon: '📰', description: 'News or informational content' },
-                        { id: 'socialMedia', name: 'Social Media', icon: '📱', description: 'Social platform posts' },
-                        { id: 'email', name: 'Email', icon: '📧', description: 'Email newsletters' },
-                        { id: 'landingPage', name: 'Landing Page', icon: '🎯', description: 'Marketing pages' },
-                        { id: 'productDescription', name: 'Product Description', icon: '🛍️', description: 'E-commerce content' }
-                      ].map((type) => (
-                        <label key={type.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
-                          <input
-                            type="radio"
-                            name="contentType"
-                            value={type.id}
-                            checked={seoContentType === type.id}
-                            onChange={(e) => setSeoContentType(e.target.value as any)}
-                            className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 focus:ring-purple-500"
-                          />
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className="text-lg">{type.icon}</span>
-                            <div>
-                              <span className="text-sm font-medium text-gray-900">{type.name}</span>
-                              <p className="text-xs text-gray-600">{type.description}</p>
-                            </div>
-                          </div>
-                        </label>
-                      ))}
+                <div className="ml-6 space-y-6 border-l-2 border-purple-100 pl-6">
+                  {/* Basic SEO Settings */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Content Type
+                      </label>
+                      <select
+                        value={seoContentType}
+                        onChange={(e) => setSeoContentType(e.target.value as any)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="blogPost">Blog Post</option>
+                        <option value="article">Article</option>
+                        <option value="socialMedia">Social Media</option>
+                        <option value="email">Email</option>
+                        <option value="landingPage">Landing Page</option>
+                        <option value="productDescription">Product Description</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Primary Keyword
+                      </label>
+                      <input
+                        type="text"
+                        value={seoPrimaryKeyword}
+                        onChange={(e) => setSeoPrimaryKeyword(e.target.value)}
+                        placeholder="Enter your main keyword"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
                     </div>
                   </div>
 
-                  {/* Primary Keyword */}
                   <div>
-                    <h4 className="text-md font-medium text-gray-900 mb-2">
-                      Primary Keyword
-                    </h4>
-                    <p className="text-gray-600 text-sm mb-3">
-                      Enter the main keyword you want to optimize for. This will be used for keyword density analysis.
-                    </p>
-                    <input
-                      type="text"
-                      value={seoPrimaryKeyword}
-                      onChange={(e) => setSeoPrimaryKeyword(e.target.value)}
-                      placeholder="e.g., content marketing, SEO optimization"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  {/* Secondary Keywords */}
-                  <div>
-                    <h4 className="text-md font-medium text-gray-900 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Secondary Keywords
-                    </h4>
-                    <p className="text-gray-600 text-sm mb-3">
-                      Add related keywords separated by commas. These help with semantic SEO analysis.
-                    </p>
+                    </label>
                     <input
                       type="text"
                       value={seoSecondaryKeywords.join(', ')}
-                      onChange={(e) => setSeoSecondaryKeywords(e.target.value.split(',').map(k => k.trim()).filter(k => k))}
-                      placeholder="e.g., digital marketing, search optimization, content strategy"
+                      onChange={(e) => setSeoSecondaryKeywords(e.target.value.split(',').map(k => k.trim()).filter(Boolean))}
+                      placeholder="Enter secondary keywords (comma-separated)"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                   </div>
 
-                  {/* Target Audience */}
                   <div>
-                    <h4 className="text-md font-medium text-gray-900 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Target Audience
-                    </h4>
-                    <p className="text-gray-600 text-sm mb-3">
-                      Describe your target audience to get more relevant SEO suggestions.
-                    </p>
+                    </label>
                     <input
                       type="text"
                       value={seoTargetAudience}
                       onChange={(e) => setSeoTargetAudience(e.target.value)}
-                      placeholder="e.g., small business owners, digital marketers, beginners"
+                      placeholder="e.g., digital marketers, small business owners"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                   </div>
+
+                  {/* Phase 3: Advanced SEO Features */}
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="mr-2">⚡</span>
+                      Advanced SEO Features
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* SEO Templates */}
+                      <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                        <div>
+                          <h5 className="font-medium text-gray-900">SEO Templates</h5>
+                          <p className="text-sm text-gray-600">Pre-built content structures</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={seoTemplateEnabled}
+                          onChange={(e) => setSeoTemplateEnabled(e.target.checked)}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                      </div>
+
+                      {/* Keyword Research */}
+                      <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                        <div>
+                          <h5 className="font-medium text-gray-900">Keyword Research</h5>
+                          <p className="text-sm text-gray-600">LSI and related keywords</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={seoKeywordResearch}
+                          onChange={(e) => setSeoKeywordResearch(e.target.checked)}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                      </div>
+
+                      {/* Meta Optimization */}
+                      <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                        <div>
+                          <h5 className="font-medium text-gray-900">Meta Optimization</h5>
+                          <p className="text-sm text-gray-600">Title and description tags</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={seoMetaOptimization}
+                          onChange={(e) => setSeoMetaOptimization(e.target.checked)}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                      </div>
+
+                      {/* Analytics Dashboard */}
+                      <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                        <div>
+                          <h5 className="font-medium text-gray-900">Analytics Dashboard</h5>
+                          <p className="text-sm text-gray-600">Performance metrics</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={seoAnalyticsDashboard}
+                          onChange={(e) => setSeoAnalyticsDashboard(e.target.checked)}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                      </div>
+
+                      {/* Internal Linking */}
+                      <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                        <div>
+                          <h5 className="font-medium text-gray-900">Internal Linking</h5>
+                          <p className="text-sm text-gray-600">Link optimization suggestions</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={seoInternalLinking}
+                          onChange={(e) => setSeoInternalLinking(e.target.checked)}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                      </div>
+
+                      {/* Schema Markup */}
+                      <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                        <div>
+                          <h5 className="font-medium text-gray-900">Schema Markup</h5>
+                          <p className="text-sm text-gray-600">Structured data suggestions</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={seoSchemaMarkup}
+                          onChange={(e) => setSeoSchemaMarkup(e.target.checked)}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Meta Optimization Settings */}
+                    {seoMetaOptimization && (
+                      <div className="mt-6 space-y-4">
+                        <h5 className="font-medium text-gray-900">Meta Tag Settings</h5>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Meta Title (50-60 characters)
+                          </label>
+                          <input
+                            type="text"
+                            value={seoMetaTitle}
+                            onChange={(e) => setSeoMetaTitle(e.target.value)}
+                            placeholder="Enter your SEO title"
+                            maxLength={60}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                          <div className="text-xs text-gray-500 mt-1">
+                            {seoMetaTitle.length}/60 characters
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Meta Description (150-160 characters)
+                          </label>
+                          <textarea
+                            value={seoMetaDescription}
+                            onChange={(e) => setSeoMetaDescription(e.target.value)}
+                            placeholder="Enter your meta description"
+                            maxLength={160}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                          <div className="text-xs text-gray-500 mt-1">
+                            {seoMetaDescription.length}/160 characters
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Focus Keyphrase
+                          </label>
+                          <input
+                            type="text"
+                            value={seoFocusKeyphrase}
+                            onChange={(e) => setSeoFocusKeyphrase(e.target.value)}
+                            placeholder="Main keyphrase for this content"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Readability Target */}
+                    <div className="mt-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Readability Target
+                      </label>
+                      <select
+                        value={seoReadabilityTarget}
+                        onChange={(e) => setSeoReadabilityTarget(e.target.value as any)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="easy">Easy (General audience)</option>
+                        <option value="medium">Medium (Professional audience)</option>
+                        <option value="difficult">Difficult (Expert audience)</option>
+                      </select>
+                    </div>
+
+                    {/* Phase 4: Enterprise SEO Features */}
+                    <div className="mt-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-200">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <span className="mr-2">🚀</span>
+                        Enterprise SEO Features
+                        <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                          Phase 4
+                        </span>
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Competitor Analysis */}
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                          <div>
+                            <h5 className="font-medium text-gray-900">Competitor Analysis</h5>
+                            <p className="text-sm text-gray-600">Track and analyze competitors</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seoCompetitorTracking}
+                            onChange={(e) => setSeoCompetitorTracking(e.target.checked)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </div>
+
+                        {/* Content Gap Analysis */}
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                          <div>
+                            <h5 className="font-medium text-gray-900">Content Gap Analysis</h5>
+                            <p className="text-sm text-gray-600">Identify content opportunities</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seoContentGapAnalysis}
+                            onChange={(e) => setSeoContentGapAnalysis(e.target.checked)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </div>
+
+                        {/* Technical SEO */}
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                          <div>
+                            <h5 className="font-medium text-gray-900">Technical SEO</h5>
+                            <p className="text-sm text-gray-600">Page speed and technical analysis</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seoTechnicalSEO}
+                            onChange={(e) => setSeoTechnicalSEO(e.target.checked)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </div>
+
+                        {/* Local SEO */}
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                          <div>
+                            <h5 className="font-medium text-gray-900">Local SEO</h5>
+                            <p className="text-sm text-gray-600">Location-based optimization</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seoLocalSEO}
+                            onChange={(e) => setSeoLocalSEO(e.target.checked)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </div>
+
+                        {/* Multilingual SEO */}
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                          <div>
+                            <h5 className="font-medium text-gray-900">Multilingual SEO</h5>
+                            <p className="text-sm text-gray-600">Multi-language optimization</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seoMultilingual}
+                            onChange={(e) => setSeoMultilingual(e.target.checked)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </div>
+
+                        {/* Topic Authority */}
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                          <div>
+                            <h5 className="font-medium text-gray-900">Topic Authority</h5>
+                            <p className="text-sm text-gray-600">Build domain expertise</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seoTopicAuthority}
+                            onChange={(e) => setSeoTopicAuthority(e.target.checked)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </div>
+
+                        {/* E-A-T Optimization */}
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                          <div>
+                            <h5 className="font-medium text-gray-900">E-A-T Optimization</h5>
+                            <p className="text-sm text-gray-600">Expertise, Authority, Trust</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seoE_A_T_Optimization}
+                            onChange={(e) => setSeoE_A_T_Optimization(e.target.checked)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </div>
+
+                        {/* Featured Snippets */}
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                          <div>
+                            <h5 className="font-medium text-gray-900">Featured Snippets</h5>
+                            <p className="text-sm text-gray-600">Optimize for position zero</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seoFeaturedSnippets}
+                            onChange={(e) => setSeoFeaturedSnippets(e.target.checked)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </div>
+
+                        {/* Voice Search */}
+                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                          <div>
+                            <h5 className="font-medium text-gray-900">Voice Search</h5>
+                            <p className="text-sm text-gray-600">Conversational queries</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seoVoiceSearch}
+                            onChange={(e) => setSeoVoiceSearch(e.target.checked)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Local SEO Settings */}
+                      {seoLocalSEO && (
+                        <div className="mt-6 space-y-4">
+                          <h5 className="font-medium text-gray-900">Local SEO Configuration</h5>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Business Name
+                              </label>
+                              <input
+                                type="text"
+                                value={seoLocalBusiness}
+                                onChange={(e) => setSeoLocalBusiness(e.target.value)}
+                                placeholder="Your business name"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Primary Location
+                              </label>
+                              <input
+                                type="text"
+                                value={seoLocalLocation}
+                                onChange={(e) => setSeoLocalLocation(e.target.value)}
+                                placeholder="City, State/Country"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Multilingual Settings */}
+                      {seoMultilingual && (
+                        <div className="mt-6 space-y-4">
+                          <h5 className="font-medium text-gray-900">Multilingual Configuration</h5>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Target Languages
+                            </label>
+                            <input
+                              type="text"
+                              value={seoTargetLanguages.join(', ')}
+                              onChange={(e) => setSeoTargetLanguages(e.target.value.split(',').map(l => l.trim()).filter(Boolean))}
+                              placeholder="English, Spanish, French (comma-separated)"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Competitor URLs Settings */}
+                      {seoCompetitorTracking && (
+                        <div className="mt-6 space-y-4">
+                          <h5 className="font-medium text-gray-900">Competitor URLs</h5>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Competitor Websites
+                            </label>
+                            <textarea
+                              value={seoCompetitorUrls.join('\n')}
+                              onChange={(e) => setSeoCompetitorUrls(e.target.value.split('\n').map(u => u.trim()).filter(Boolean))}
+                              placeholder="https://competitor1.com&#10;https://competitor2.com&#10;(one URL per line)"
+                              rows={4}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Enter one competitor URL per line for analysis
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
-
-              <div className="flex items-center justify-between opacity-50 border-t pt-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Tone Adjustment</h3>
-                  <p className="text-gray-600 text-sm">Adjust writing tone for different audiences (professional, casual, persuasive, etc.).</p>
-                </div>
-                <div className="ml-6">
-                  <div className="w-11 h-6 bg-gray-200 rounded-full relative">
-                    <div className="absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between opacity-50 border-t pt-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Content Expansion</h3>
-                  <p className="text-gray-600 text-sm">AI-powered suggestions to expand and enhance your content with relevant ideas.</p>
-                </div>
-                <div className="ml-6">
-                  <div className="w-11 h-6 bg-gray-200 rounded-full relative">
-                    <div className="absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5"></div>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
 
