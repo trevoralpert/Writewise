@@ -32,7 +32,7 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     conflictResolutionMode,
     toneDetectionSensitivity
   } = useEditorStore()
-  const { requestSuggestions, refilterSuggestions } = useSuggestions()
+  const { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions } = useSuggestions()
   const saveTimeout = React.useRef<NodeJS.Timeout | null>(null)
   const [popup, setPopup] = React.useState<{rect: DOMRect, suggestion: any} | null>(null)
   const prevDocId = React.useRef<string | null>(null)
@@ -155,12 +155,13 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     }
   }, [suggestions, editor])
 
-  // Request suggestions once when a document is first loaded
+  // Request suggestions immediately when a document is first loaded
   useEffect(() => {
-    if (editor && currentDocument) {
-      requestSuggestions()
+    if (editor && currentDocument && currentDocument.content) {
+      console.log('📄 Document loaded, requesting immediate suggestions for:', currentDocument.title)
+      requestSuggestionsImmediate()
     }
-  }, [currentDocument, editor, requestSuggestions])
+  }, [currentDocument, editor, requestSuggestionsImmediate])
 
   // Listen for settings changes and refilter suggestions
   useEffect(() => {

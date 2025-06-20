@@ -30,7 +30,7 @@ export function useSuggestions() {
   const refilterSuggestions = useEditorStore(s => s.refilterSuggestions)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Debounced fetch
+  // Shared fetch logic
   const fetchSuggestions = useCallback(() => {
     const { 
       content, 
@@ -140,11 +140,23 @@ export function useSuggestions() {
       })
   }, [setAllSuggestionsAndFilter])
 
-  // Call this after typing pauses
+  // Immediate fetch for document loading (no debounce)
+  const requestSuggestionsImmediate = useCallback(() => {
+    console.log('🚀 Immediate suggestions request (document load)')
+    // Clear any pending debounced requests
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    fetchSuggestions()
+  }, [fetchSuggestions])
+
+  // Debounced fetch for typing (800ms delay)
   const requestSuggestions = useCallback(() => {
+    console.log('⏱️ Debounced suggestions request (typing)')
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
     timeoutRef.current = setTimeout(fetchSuggestions, 800)
   }, [fetchSuggestions])
 
-  return { requestSuggestions, refilterSuggestions }
+  return { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions }
 }
