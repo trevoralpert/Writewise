@@ -8,7 +8,7 @@ import { supabase } from '../../services/supabaseClient'
 import SuggestionSidebar from '../suggestions/SuggestionSidebar'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '../../services/auth'
-import { CogIcon } from '@heroicons/react/24/outline'
+import { CogIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 
 const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
   const setCurrentDocument = useEditorStore((s) => s.setCurrentDocument)
@@ -73,6 +73,13 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
       <img src="/app_logo.jpg" alt="Writewise" className="w-128 h-64 object-cover rounded-2xl overflow-hidden" />
         {user && (
           <div className="flex items-center gap-2">
+            <button 
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition flex items-center" 
+              onClick={() => navigate('/analytics')}
+            >
+              <ChartBarIcon className="w-4 h-4 mr-2" />
+              Analytics
+            </button>
             <button 
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center" 
               onClick={() => navigate('/settings')}

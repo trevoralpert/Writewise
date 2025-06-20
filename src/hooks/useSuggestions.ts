@@ -111,9 +111,17 @@ export function useSuggestions() {
         setAllSuggestionsAndFilter(suggestions)
         
         // Store insights in the editor store for potential UI display
-        const { setWritingInsights } = useEditorStore.getState()
+        const { setWritingInsights, setCurrentSessionId, setAnalytics } = useEditorStore.getState()
         if (setWritingInsights && data.insights) {
           setWritingInsights(data.insights)
+        }
+        
+        // Phase 5A: Handle analytics and session data
+        if (data.sessionId) {
+          setCurrentSessionId(data.sessionId)
+        }
+        if (data.analytics) {
+          setAnalytics(data.analytics)
         }
       })
       .catch(error => {

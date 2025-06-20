@@ -2087,6 +2087,661 @@ function getSystemHealth() {
 
 // ========== END PHASE 4: PERFORMANCE OPTIMIZATION & EDGE CASES ==========
 
+// ========== PHASE 5: ADVANCED FEATURES & POLISH ==========
+
+// Phase 5A: Real-time Writing Analytics Dashboard
+const writingAnalytics = {
+  sessions: new Map(), // sessionId -> analytics data
+  globalStats: {
+    totalDocuments: 0,
+    totalWords: 0,
+    totalSuggestions: 0,
+    totalImprovements: 0,
+    averageImprovementRate: 0,
+    mostCommonIssues: new Map(),
+    writingStyles: new Map(),
+    lastReset: Date.now()
+  }
+};
+
+function generateSessionId() {
+  return `session_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function initializeWritingSession(text, userId = 'anonymous') {
+  const sessionId = generateSessionId();
+  const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+  const charCount = text.length;
+  
+  const sessionData = {
+    id: sessionId,
+    userId,
+    startTime: Date.now(),
+    originalText: text,
+    currentText: text,
+    wordCount,
+    charCount,
+    suggestions: {
+      total: 0,
+      accepted: 0,
+      ignored: 0,
+      byType: new Map(),
+      timeline: []
+    },
+    writingMetrics: {
+      readabilityScore: calculateReadabilityScore(text),
+      sentenceVariety: analyzeSentenceVariety(text),
+      vocabularyRichness: calculateVocabularyRichness(text),
+      toneConsistency: 0, // Will be updated after tone analysis
+      avgSentenceLength: calculateAverageSentenceLength(text)
+    },
+    improvements: [],
+    timeSpent: 0,
+    keystrokeCount: 0,
+    revisionsCount: 0
+  };
+  
+  writingAnalytics.sessions.set(sessionId, sessionData);
+  return sessionId;
+}
+
+function updateWritingSession(sessionId, updates) {
+  const session = writingAnalytics.sessions.get(sessionId);
+  if (!session) return null;
+  
+  const updatedSession = {
+    ...session,
+    ...updates,
+    timeSpent: Date.now() - session.startTime
+  };
+  
+  writingAnalytics.sessions.set(sessionId, updatedSession);
+  return updatedSession;
+}
+
+function calculateReadabilityScore(text) {
+  // Simplified Flesch Reading Ease Score
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  const syllables = words.reduce((total, word) => total + countSyllables(word), 0);
+  
+  if (sentences.length === 0 || words.length === 0) return 0;
+  
+  const avgSentenceLength = words.length / sentences.length;
+  const avgSyllablesPerWord = syllables / words.length;
+  
+  const score = 206.835 - (1.015 * avgSentenceLength) - (84.6 * avgSyllablesPerWord);
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function countSyllables(word) {
+  word = word.toLowerCase();
+  if (word.length <= 3) return 1;
+  word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+  word = word.replace(/^y/, '');
+  const matches = word.match(/[aeiouy]{1,2}/g);
+  return matches ? matches.length : 1;
+}
+
+function analyzeSentenceVariety(text) {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const lengths = sentences.map(s => s.split(/\s+/).length);
+  
+  if (lengths.length === 0) return 0;
+  
+  const avg = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+  const variance = lengths.reduce((sum, len) => sum + Math.pow(len - avg, 2), 0) / lengths.length;
+  const stdDev = Math.sqrt(variance);
+  
+  // Higher standard deviation = more variety
+  return Math.min(100, Math.round((stdDev / avg) * 100));
+}
+
+function calculateVocabularyRichness(text) {
+  const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+  const uniqueWords = new Set(words);
+  
+  if (words.length === 0) return 0;
+  
+  // Type-Token Ratio (TTR) as percentage
+  return Math.round((uniqueWords.size / words.length) * 100);
+}
+
+function calculateAverageSentenceLength(text) {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  
+  if (sentences.length === 0) return 0;
+  return Math.round(words.length / sentences.length);
+}
+
+function generateWritingAnalytics(sessionId) {
+  const session = writingAnalytics.sessions.get(sessionId);
+  if (!session) return null;
+  
+  const improvementRate = session.suggestions.total > 0 
+    ? (session.suggestions.accepted / session.suggestions.total) * 100 
+    : 0;
+  
+  return {
+    session: {
+      id: sessionId,
+      duration: session.timeSpent,
+      wordCount: session.wordCount,
+      charCount: session.charCount,
+      improvementRate: Math.round(improvementRate),
+      suggestionsProcessed: session.suggestions.total,
+      suggestionsAccepted: session.suggestions.accepted
+    },
+    writingQuality: {
+      readabilityScore: session.writingMetrics.readabilityScore,
+      readabilityLevel: getReadabilityLevel(session.writingMetrics.readabilityScore),
+      sentenceVariety: session.writingMetrics.sentenceVariety,
+      vocabularyRichness: session.writingMetrics.vocabularyRichness,
+      avgSentenceLength: session.writingMetrics.avgSentenceLength,
+      toneConsistency: session.writingMetrics.toneConsistency
+    },
+    improvements: session.improvements,
+    suggestionBreakdown: Array.from(session.suggestions.byType.entries()).map(([type, count]) => ({
+      type,
+      count,
+      percentage: Math.round((count / session.suggestions.total) * 100)
+    }))
+  };
+}
+
+function getReadabilityLevel(score) {
+  if (score >= 90) return 'Very Easy';
+  if (score >= 80) return 'Easy';
+  if (score >= 70) return 'Fairly Easy';
+  if (score >= 60) return 'Standard';
+  if (score >= 50) return 'Fairly Difficult';
+  if (score >= 30) return 'Difficult';
+  return 'Very Difficult';
+}
+
+// Phase 5B: Advanced Suggestion Interactions
+async function generateAdvancedSuggestionMetadata(suggestion, text, context) {
+  const metadata = {
+    confidence: suggestion.confidence || 0.8,
+    impact: calculateImpactScore(suggestion, text),
+    complexity: assessChangeComplexity(suggestion),
+    alternatives: await generateAlternativeOptions(suggestion, text, context),
+    explanation: await generateDetailedExplanation(suggestion, context),
+    examples: await generateExamples(suggestion.type),
+    relatedRules: getRelatedGrammarRules(suggestion.type)
+  };
+  
+  return metadata;
+}
+
+function calculateImpactScore(suggestion, text) {
+  // Calculate how much this suggestion improves the text (1-10 scale)
+  let impact = 5; // Base score
+  
+  // Higher impact for more visible issues
+  if (['spelling', 'grammar'].includes(suggestion.type)) impact += 2;
+  if (suggestion.type === 'demonetization') impact += 3;
+  if (suggestion.type === 'tone-rewrite') impact += 1;
+  
+  // Consider position in text (earlier = higher impact)
+  const position = suggestion.start / text.length;
+  if (position < 0.2) impact += 1; // First 20% of text
+  
+  // Consider length of affected text
+  const affectedLength = suggestion.end - suggestion.start;
+  if (affectedLength > 10) impact += 1;
+  
+  return Math.min(10, Math.max(1, impact));
+}
+
+function assessChangeComplexity(suggestion) {
+  // Assess how complex the suggested change is (1-5 scale)
+  const originalLength = suggestion.text.length;
+  const newLength = suggestion.alternatives?.[0]?.length || originalLength;
+  
+  let complexity = 1;
+  
+  // Length change indicates complexity
+  if (Math.abs(newLength - originalLength) > 5) complexity += 1;
+  if (Math.abs(newLength - originalLength) > 15) complexity += 1;
+  
+  // Type-based complexity
+  if (suggestion.type === 'style') complexity += 1;
+  if (suggestion.type === 'tone-rewrite') complexity += 2;
+  
+  return Math.min(5, complexity);
+}
+
+async function generateAlternativeOptions(suggestion, text, context) {
+  if (!suggestion.alternatives || suggestion.alternatives.length === 0) return [];
+  
+  // Generate additional alternatives using AI
+  try {
+    const prompt = `Given the text "${suggestion.text}" in context "${context}", provide 2-3 additional alternative phrasings that maintain the same meaning but offer different stylistic approaches.
+
+Original: "${suggestion.text}"
+Current alternative: "${suggestion.alternatives[0]}"
+
+Provide alternatives that are:
+1. More concise
+2. More formal
+3. More engaging
+
+Return only a JSON array of strings: ["alternative1", "alternative2", "alternative3"]`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 150
+    });
+
+    let content = completion.choices[0].message.content || '[]';
+    content = content.replace(/```json|```/g, '').trim();
+    const additionalAlternatives = JSON.parse(content);
+    
+    return [...suggestion.alternatives, ...additionalAlternatives];
+  } catch (error) {
+    console.error('Error generating additional alternatives:', error);
+    return suggestion.alternatives;
+  }
+}
+
+async function generateDetailedExplanation(suggestion, context) {
+  try {
+    const prompt = `Explain why "${suggestion.text}" should be changed to "${suggestion.alternatives?.[0] || 'the suggested alternative'}" in the context: "${context}"
+
+Provide a clear, educational explanation that helps the user understand:
+1. What the issue is
+2. Why it matters
+3. How the suggestion improves the text
+
+Keep it concise but informative (2-3 sentences max).`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 100
+    });
+
+    return completion.choices[0].message.content || suggestion.message;
+  } catch (error) {
+    console.error('Error generating explanation:', error);
+    return suggestion.message;
+  }
+}
+
+async function generateExamples(suggestionType) {
+  const exampleSets = {
+    grammar: [
+      { wrong: "There's many options", right: "There are many options" },
+      { wrong: "Between you and I", right: "Between you and me" }
+    ],
+    spelling: [
+      { wrong: "recieve", right: "receive" },
+      { wrong: "definately", right: "definitely" }
+    ],
+    style: [
+      { wrong: "very unique", right: "unique" },
+      { wrong: "in order to", right: "to" }
+    ],
+    demonetization: [
+      { wrong: "kill the competition", right: "outperform competitors" },
+      { wrong: "viral outbreak", right: "widespread trend" }
+    ]
+  };
+  
+  return exampleSets[suggestionType] || [];
+}
+
+function getRelatedGrammarRules(suggestionType) {
+  const rules = {
+    grammar: [
+      "Subject-verb agreement",
+      "Pronoun case",
+      "Parallel structure"
+    ],
+    spelling: [
+      "I before E rule",
+      "Double consonants",
+      "Silent letters"
+    ],
+    style: [
+      "Conciseness",
+      "Active voice",
+      "Varied sentence structure"
+    ]
+  };
+  
+  return rules[suggestionType] || [];
+}
+
+// Phase 5C: Writing Style Consistency Checking
+async function analyzeStyleConsistency(text, existingSuggestions) {
+  console.log('🎨 Analyzing writing style consistency...');
+  
+  const styleAnalysis = {
+    tenseConsistency: analyzeTenseConsistency(text),
+    voiceConsistency: analyzeVoiceConsistency(text),
+    personConsistency: analyzePersonConsistency(text),
+    toneConsistency: await analyzeToneConsistency(text),
+    formattingConsistency: analyzeFormattingConsistency(text),
+    vocabularyConsistency: analyzeVocabularyConsistency(text)
+  };
+  
+  const consistencySuggestions = generateConsistencySuggestions(styleAnalysis, text);
+  
+  return {
+    analysis: styleAnalysis,
+    suggestions: consistencySuggestions,
+    overallScore: calculateOverallConsistencyScore(styleAnalysis)
+  };
+}
+
+function analyzeTenseConsistency(text) {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const tensePattern = /\b(was|were|had|have|has|will|would|could|should)\b/gi;
+  
+  const tenses = {
+    past: 0,
+    present: 0,
+    future: 0
+  };
+  
+  sentences.forEach(sentence => {
+    if (/\b(was|were|had)\b/i.test(sentence)) tenses.past++;
+    if (/\b(have|has|am|is|are)\b/i.test(sentence)) tenses.present++;
+    if (/\b(will|would|could|should)\b/i.test(sentence)) tenses.future++;
+  });
+  
+  const total = tenses.past + tenses.present + tenses.future;
+  const dominant = Object.keys(tenses).reduce((a, b) => tenses[a] > tenses[b] ? a : b);
+  const consistency = total > 0 ? (tenses[dominant] / total) * 100 : 100;
+  
+  return {
+    dominant,
+    consistency: Math.round(consistency),
+    distribution: tenses,
+    issues: consistency < 70 ? ['Mixed tenses detected'] : []
+  };
+}
+
+function analyzeVoiceConsistency(text) {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  let activeCount = 0;
+  let passiveCount = 0;
+  
+  sentences.forEach(sentence => {
+    // Simple passive voice detection
+    if (/\b(was|were|been|being)\s+\w+ed\b/i.test(sentence) || 
+        /\b(is|are|am)\s+\w+ed\b/i.test(sentence)) {
+      passiveCount++;
+    } else {
+      activeCount++;
+    }
+  });
+  
+  const total = activeCount + passiveCount;
+  const activePercentage = total > 0 ? (activeCount / total) * 100 : 100;
+  
+  return {
+    activePercentage: Math.round(activePercentage),
+    passivePercentage: Math.round(100 - activePercentage),
+    recommendation: activePercentage < 60 ? 'Consider using more active voice' : 'Good voice consistency',
+    issues: activePercentage < 40 ? ['Excessive passive voice'] : []
+  };
+}
+
+function analyzePersonConsistency(text) {
+  const firstPerson = (text.match(/\b(I|me|my|we|us|our)\b/gi) || []).length;
+  const secondPerson = (text.match(/\b(you|your|yours)\b/gi) || []).length;
+  const thirdPerson = (text.match(/\b(he|she|it|they|his|her|their)\b/gi) || []).length;
+  
+  const total = firstPerson + secondPerson + thirdPerson;
+  const dominant = firstPerson >= secondPerson && firstPerson >= thirdPerson ? 'first' :
+                   secondPerson >= thirdPerson ? 'second' : 'third';
+  
+  return {
+    dominant,
+    distribution: { first: firstPerson, second: secondPerson, third: thirdPerson },
+    consistency: total > 0 ? Math.round((Math.max(firstPerson, secondPerson, thirdPerson) / total) * 100) : 100,
+    issues: total > 10 && Math.max(firstPerson, secondPerson, thirdPerson) / total < 0.6 ? ['Inconsistent point of view'] : []
+  };
+}
+
+async function analyzeToneConsistency(text) {
+  // This would use the existing tone analysis but check for consistency across paragraphs
+  const paragraphs = text.split('\n\n').filter(p => p.trim().length > 50);
+  
+  if (paragraphs.length < 2) {
+    return { consistency: 100, issues: [], dominant: 'consistent' };
+  }
+  
+  // For now, return a simplified analysis
+  return {
+    consistency: 85, // Placeholder - would use actual tone analysis
+    dominant: 'professional',
+    issues: []
+  };
+}
+
+function analyzeFormattingConsistency(text) {
+  const issues = [];
+  
+  // Check for consistent list formatting
+  const bulletPoints = text.match(/^\s*[•\-\*]\s/gm) || [];
+  const numberedLists = text.match(/^\s*\d+\.\s/gm) || [];
+  
+  // Check for consistent quotation marks
+  const singleQuotes = (text.match(/'/g) || []).length;
+  const doubleQuotes = (text.match(/"/g) || []).length;
+  
+  if (bulletPoints.length > 0 && numberedLists.length > 0) {
+    issues.push('Mixed list formatting styles');
+  }
+  
+  if (singleQuotes > 0 && doubleQuotes > 0 && Math.abs(singleQuotes - doubleQuotes) > 2) {
+    issues.push('Inconsistent quotation mark usage');
+  }
+  
+  return {
+    listFormatting: bulletPoints.length > 0 || numberedLists.length > 0 ? 'present' : 'none',
+    quotationStyle: doubleQuotes > singleQuotes ? 'double' : singleQuotes > 0 ? 'single' : 'none',
+    issues
+  };
+}
+
+function analyzeVocabularyConsistency(text) {
+  const words = text.toLowerCase().split(/\s+/);
+  const wordFreq = new Map();
+  
+  words.forEach(word => {
+    if (word.length > 3) {
+      wordFreq.set(word, (wordFreq.get(word) || 0) + 1);
+    }
+  });
+  
+  const repeatedWords = Array.from(wordFreq.entries())
+    .filter(([word, count]) => count > 3)
+    .sort((a, b) => b[1] - a[1]);
+  
+  return {
+    uniqueWords: wordFreq.size,
+    totalWords: words.length,
+    repetitionRate: Math.round((repeatedWords.length / wordFreq.size) * 100),
+    mostRepeated: repeatedWords.slice(0, 5),
+    issues: repeatedWords.length > wordFreq.size * 0.1 ? ['High word repetition'] : []
+  };
+}
+
+function generateConsistencySuggestions(styleAnalysis, text) {
+  const suggestions = [];
+  
+  // Generate suggestions based on style analysis
+  Object.entries(styleAnalysis).forEach(([aspect, analysis]) => {
+    if (analysis.issues && analysis.issues.length > 0) {
+      analysis.issues.forEach(issue => {
+        suggestions.push({
+          id: `consistency-${Math.random().toString(36).slice(2, 10)}`,
+          type: 'style-consistency',
+          aspect,
+          issue,
+          message: `Style consistency: ${issue}`,
+          severity: 'medium',
+          suggestion: getConsistencySuggestion(aspect, issue)
+        });
+      });
+    }
+  });
+  
+  return suggestions;
+}
+
+function getConsistencySuggestion(aspect, issue) {
+  const suggestions = {
+    'Mixed tenses detected': 'Consider maintaining consistent tense throughout your writing.',
+    'Excessive passive voice': 'Try using more active voice to make your writing more engaging.',
+    'Inconsistent point of view': 'Maintain a consistent perspective (first, second, or third person).',
+    'Mixed list formatting styles': 'Use consistent formatting for all lists (either bullets or numbers).',
+    'Inconsistent quotation mark usage': 'Choose either single or double quotes and use them consistently.',
+    'High word repetition': 'Consider using synonyms to add variety to your vocabulary.'
+  };
+  
+  return suggestions[issue] || 'Consider reviewing this aspect for consistency.';
+}
+
+function calculateOverallConsistencyScore(styleAnalysis) {
+  const scores = [];
+  
+  if (styleAnalysis.tenseConsistency?.consistency) {
+    scores.push(styleAnalysis.tenseConsistency.consistency);
+  }
+  if (styleAnalysis.voiceConsistency?.activePercentage) {
+    scores.push(Math.min(100, styleAnalysis.voiceConsistency.activePercentage + 20));
+  }
+  if (styleAnalysis.personConsistency?.consistency) {
+    scores.push(styleAnalysis.personConsistency.consistency);
+  }
+  
+  return scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 85;
+}
+
+// Phase 5D: Export & Integration Features
+function generateExportData(sessionId, format = 'json') {
+  const session = writingAnalytics.sessions.get(sessionId);
+  if (!session) return null;
+  
+  const analytics = generateWritingAnalytics(sessionId);
+  const exportData = {
+    document: {
+      originalText: session.originalText,
+      finalText: session.currentText,
+      wordCount: session.wordCount,
+      charCount: session.charCount
+    },
+    analytics,
+    suggestions: session.suggestions,
+    improvements: session.improvements,
+    exportedAt: new Date().toISOString(),
+    format
+  };
+  
+  switch (format) {
+    case 'markdown':
+      return generateMarkdownReport(exportData);
+    case 'html':
+      return generateHTMLReport(exportData);
+    case 'csv':
+      return generateCSVReport(exportData);
+    default:
+      return exportData;
+  }
+}
+
+function generateMarkdownReport(data) {
+  return `# Writing Analysis Report
+
+## Document Summary
+- **Word Count:** ${data.document.wordCount}
+- **Character Count:** ${data.document.charCount}
+- **Analysis Date:** ${data.exportedAt}
+
+## Writing Quality Metrics
+- **Readability Score:** ${data.analytics.writingQuality.readabilityScore}/100 (${data.analytics.writingQuality.readabilityLevel})
+- **Sentence Variety:** ${data.analytics.writingQuality.sentenceVariety}%
+- **Vocabulary Richness:** ${data.analytics.writingQuality.vocabularyRichness}%
+- **Average Sentence Length:** ${data.analytics.writingQuality.avgSentenceLength} words
+
+## Suggestions Summary
+- **Total Suggestions:** ${data.analytics.session.suggestionsProcessed}
+- **Accepted:** ${data.analytics.session.suggestionsAccepted}
+- **Improvement Rate:** ${data.analytics.session.improvementRate}%
+
+## Suggestion Breakdown
+${data.analytics.suggestionBreakdown.map(item => 
+  `- **${item.type}:** ${item.count} (${item.percentage}%)`
+).join('\n')}
+
+---
+*Generated by Writewise AI Writing Assistant*`;
+}
+
+function generateHTMLReport(data) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+    <title>Writing Analysis Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .metric { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .score { font-size: 24px; font-weight: bold; color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>Writing Analysis Report</h1>
+    
+    <div class="metric">
+        <h3>Readability Score</h3>
+        <div class="score">${data.analytics.writingQuality.readabilityScore}/100</div>
+        <p>${data.analytics.writingQuality.readabilityLevel}</p>
+    </div>
+    
+    <div class="metric">
+        <h3>Document Stats</h3>
+        <p>Words: ${data.document.wordCount} | Characters: ${data.document.charCount}</p>
+    </div>
+    
+    <div class="metric">
+        <h3>Suggestions</h3>
+        <p>Processed: ${data.analytics.session.suggestionsProcessed} | Accepted: ${data.analytics.session.suggestionsAccepted}</p>
+        <p>Improvement Rate: ${data.analytics.session.improvementRate}%</p>
+    </div>
+    
+    <p><em>Generated on ${data.exportedAt}</em></p>
+</body>
+</html>`;
+}
+
+function generateCSVReport(data) {
+  const rows = [
+    ['Metric', 'Value'],
+    ['Word Count', data.document.wordCount],
+    ['Character Count', data.document.charCount],
+    ['Readability Score', data.analytics.writingQuality.readabilityScore],
+    ['Sentence Variety', data.analytics.writingQuality.sentenceVariety],
+    ['Vocabulary Richness', data.analytics.writingQuality.vocabularyRichness],
+    ['Suggestions Total', data.analytics.session.suggestionsProcessed],
+    ['Suggestions Accepted', data.analytics.session.suggestionsAccepted],
+    ['Improvement Rate', data.analytics.session.improvementRate]
+  ];
+  
+  return rows.map(row => row.join(',')).join('\n');
+}
+
+// ========== END PHASE 5: ADVANCED FEATURES & POLISH ==========
+
 app.post('/api/suggestions', async (req, res) => {
   const startTime = Date.now()
   let hadError = false
@@ -2104,6 +2759,10 @@ app.post('/api/suggestions', async (req, res) => {
   try {
     console.log('🎯 Tone-preserving settings:', { tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity });
 
+    // Phase 5A: Initialize writing session for analytics
+    const sessionId = initializeWritingSession(text, req.body.userId);
+    console.log(`📊 Writing session initialized: ${sessionId}`);
+
     // Phase 4B: Handle edge cases early
     const settings = { formalityLevel, tonePreservingEnabled, conflictResolutionMode, toneDetectionSensitivity };
     const edgeCaseResult = await handleEdgeCases(text, [], settings);
@@ -2116,7 +2775,8 @@ app.post('/api/suggestions', async (req, res) => {
           type: edgeCaseResult.edgeCaseHandled,
           message: edgeCaseResult.message
         },
-        text: edgeCaseResult.text || text
+        text: edgeCaseResult.text || text,
+        sessionId
       });
     }
     
@@ -2289,6 +2949,13 @@ Input:
         processingSettings
       );
       console.log('🔄 Suggestions after enhanced processing:', suggestions.length);
+      
+      // Phase 5C: Analyze style consistency
+      const styleConsistency = await analyzeStyleConsistency(text, suggestions);
+      console.log('🎨 Style consistency analysis complete:', styleConsistency.overallScore);
+      
+      // Add consistency suggestions to the main suggestions array
+      suggestions.push(...styleConsistency.suggestions);
     }
     // ========== END PHASE 2 & 3 INTEGRATION ==========
 
@@ -2299,9 +2966,39 @@ Input:
       console.log(`🛡️ Final edge case handled: ${finalEdgeCaseResult.edgeCaseHandled}`);
     }
 
+    // Phase 5B: Generate advanced suggestion metadata
+    const enhancedSuggestions = await Promise.all(
+      suggestions.map(async (suggestion) => {
+        if (['grammar', 'style', 'spelling'].includes(suggestion.type)) {
+          const context = getWordContext(text, suggestion.start, suggestion.end);
+          const advancedMetadata = await generateAdvancedSuggestionMetadata(suggestion, text, context);
+          return { ...suggestion, advancedMetadata };
+        }
+        return suggestion;
+      })
+    );
+
+    // Phase 5A: Update writing session with suggestions
+    const sessionUpdates = {
+      suggestions: {
+        total: enhancedSuggestions.length,
+        accepted: 0,
+        ignored: 0,
+        byType: enhancedSuggestions.reduce((acc, s) => {
+          acc.set(s.type, (acc.get(s.type) || 0) + 1);
+          return acc;
+        }, new Map()),
+        timeline: [{ timestamp: Date.now(), count: enhancedSuggestions.length, type: 'generated' }]
+      }
+    };
+    updateWritingSession(sessionId, sessionUpdates);
+
     // Phase 4C: Enhance user experience
     const processingTime = Date.now() - startTime;
-    const enhancedResult = enhanceUserExperience(suggestions, text, processingTime);
+    const enhancedResult = enhanceUserExperience(enhancedSuggestions, text, processingTime);
+    
+    // Phase 5A: Generate writing analytics
+    const writingAnalyticsData = generateWritingAnalytics(sessionId);
     
     // Phase 4A: Update performance metrics
     updatePerformanceMetrics(processingTime, hadError, usedCache, madeAiCall);
@@ -2328,6 +3025,8 @@ Input:
       suggestions: enhancedResult.suggestions,
       insights: enhancedResult.insights,
       processingMetadata: enhancedResult.processingMetadata,
+      analytics: writingAnalyticsData,
+      sessionId,
       edgeCase: finalEdgeCaseResult.edgeCaseHandled ? {
         type: finalEdgeCaseResult.edgeCaseHandled,
         message: finalEdgeCaseResult.message
@@ -2372,6 +3071,136 @@ app.get('/api/metrics', (req, res) => {
     uptime: process.uptime(),
     memory: process.memoryUsage()
   });
+});
+
+// Phase 5A: Writing analytics endpoint
+app.get('/api/analytics/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  const analytics = generateWritingAnalytics(sessionId);
+  
+  if (!analytics) {
+    return res.status(404).json({ error: 'Session not found' });
+  }
+  
+  res.json(analytics);
+});
+
+// Phase 5A: Update writing session endpoint
+app.post('/api/analytics/:sessionId/update', (req, res) => {
+  const { sessionId } = req.params;
+  const updates = req.body;
+  
+  const updatedSession = updateWritingSession(sessionId, updates);
+  
+  if (!updatedSession) {
+    return res.status(404).json({ error: 'Session not found' });
+  }
+  
+  res.json({ success: true, session: updatedSession });
+});
+
+// Phase 5C: Style consistency analysis endpoint
+app.post('/api/style-consistency', async (req, res) => {
+  try {
+    const { text, existingSuggestions = [] } = req.body;
+    
+    if (!text || text.trim() === '') {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+    
+    const styleAnalysis = await analyzeStyleConsistency(text, existingSuggestions);
+    res.json(styleAnalysis);
+  } catch (error) {
+    console.error('Style consistency analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze style consistency' });
+  }
+});
+
+// Phase 5D: Export endpoint - with format specified
+app.get('/api/export/:sessionId/:format', (req, res) => {
+  const { sessionId, format } = req.params;
+  
+  try {
+    const exportData = generateExportData(sessionId, format);
+    
+    if (!exportData) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    // Set appropriate content type and headers
+    switch (format) {
+      case 'markdown':
+        res.setHeader('Content-Type', 'text/markdown');
+        res.setHeader('Content-Disposition', `attachment; filename="writing-report-${sessionId}.md"`);
+        break;
+      case 'html':
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Disposition', `attachment; filename="writing-report-${sessionId}.html"`);
+        break;
+      case 'csv':
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="writing-report-${sessionId}.csv"`);
+        break;
+      default:
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="writing-report-${sessionId}.json"`);
+    }
+    
+    res.send(exportData);
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Failed to generate export' });
+  }
+});
+
+// Phase 5D: Export endpoint - default to JSON format
+app.get('/api/export/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  const format = 'json';
+  
+  try {
+    const exportData = generateExportData(sessionId, format);
+    
+    if (!exportData) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="writing-report-${sessionId}.json"`);
+    res.json(exportData);
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Failed to generate export' });
+  }
+});
+
+// Phase 5B: Advanced suggestion details endpoint
+app.get('/api/suggestion/:suggestionId/details', async (req, res) => {
+  try {
+    const { suggestionId } = req.params;
+    const { text, context } = req.query;
+    
+    if (!text || !context) {
+      return res.status(400).json({ error: 'Text and context are required' });
+    }
+    
+    // Mock suggestion for demonstration
+    const suggestion = {
+      id: suggestionId,
+      text: req.query.suggestionText || 'example',
+      type: req.query.type || 'grammar',
+      alternatives: [req.query.alternative || 'corrected example']
+    };
+    
+    const advancedMetadata = await generateAdvancedSuggestionMetadata(suggestion, text, context);
+    res.json({
+      suggestion,
+      metadata: advancedMetadata
+    });
+  } catch (error) {
+    console.error('Advanced suggestion details error:', error);
+    res.status(500).json({ error: 'Failed to generate suggestion details' });
+  }
 });
 
 const PORT = process.env.PORT || 3001

@@ -59,6 +59,12 @@ interface EditorState {
     message: string
   }>) => void
 
+  // Phase 5A: Writing analytics session tracking
+  currentSessionId: string | null
+  setCurrentSessionId: (sessionId: string | null) => void
+  analytics: any | null
+  setAnalytics: (analytics: any | null) => void
+
   // Feature toggles for settings page
   demonetizationEnabled: boolean
   setDemonetizationEnabled: (val: boolean) => void
@@ -294,6 +300,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Phase 4C: Writing insights from enhanced AI response
   writingInsights: [],
   setWritingInsights: (insights) => set({ writingInsights: insights }),
+
+  // Phase 5A: Writing analytics session tracking
+  currentSessionId: null,
+  setCurrentSessionId: (sessionId) => set({ currentSessionId: sessionId }),
+  analytics: null,
+  setAnalytics: (analytics) => set({ analytics }),
 
   // Feature toggles for settings page
   demonetizationEnabled: true,
