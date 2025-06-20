@@ -25,18 +25,15 @@ interface EditorState {
   setContent: (content: string) => void
 
   suggestions: Suggestion[]
+  allSuggestions: Suggestion[] // Store all unfiltered suggestions
   setSuggestions: (suggestions: Suggestion[]) => void
+  setAllSuggestionsAndFilter: (allSuggestions: Suggestion[]) => void
+  refilterSuggestions: () => void
   updateSuggestionStatus: (id: string, status: Suggestion['status']) => void
 
   currentDocument: Document | null
   setCurrentDocument: (doc: Document | null) => void
   saveCurrentDocument: () => Promise<boolean>
-
-  showStyleSuggestions: boolean
-  setShowStyleSuggestions: (val: boolean) => void
-
-  showDemonetizationSuggestions: boolean
-  setShowDemonetizationSuggestions: (val: boolean) => void
 
   // Feature toggles for settings page
   demonetizationEnabled: boolean
@@ -65,7 +62,42 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   suggestions: [],
+  allSuggestions: [],
   setSuggestions: (suggestions) => set({ suggestions }),
+  setAllSuggestionsAndFilter: (allSuggestions) => {
+    const state = get()
+    const filteredSuggestions = allSuggestions.filter((suggestion) => {
+      // Filter based on feature toggles
+      if (suggestion.type === 'demonetization' && !state.demonetizationEnabled) {
+        return false
+      }
+      if ((suggestion.type === 'grammar' || suggestion.type === 'spelling') && !state.grammarEnabled) {
+        return false
+      }
+      if (suggestion.type === 'style' && !state.styleEnabled) {
+        return false
+      }
+      return true
+    })
+    set({ allSuggestions, suggestions: filteredSuggestions })
+  },
+  refilterSuggestions: () => {
+    const state = get()
+    const filteredSuggestions = state.allSuggestions.filter((suggestion) => {
+      // Filter based on feature toggles
+      if (suggestion.type === 'demonetization' && !state.demonetizationEnabled) {
+        return false
+      }
+      if ((suggestion.type === 'grammar' || suggestion.type === 'spelling') && !state.grammarEnabled) {
+        return false
+      }
+      if (suggestion.type === 'style' && !state.styleEnabled) {
+        return false
+      }
+      return true
+    })
+    set({ suggestions: filteredSuggestions })
+  },
   updateSuggestionStatus: (id, status) =>
     set((state) => {
       const targetSuggestion = state.suggestions.find(s => s.id === id);
@@ -108,6 +140,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       currentDocument: doc, 
       content: doc?.content || '', 
       suggestions: [],
+      allSuggestions: [],
       hasUnsavedChanges: false,
       lastSaved: doc ? new Date() : null
     })
@@ -142,12 +175,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return false
     }
   },
-
-  showStyleSuggestions: true,
-  setShowStyleSuggestions: (val) => set({ showStyleSuggestions: val }),
-
-  showDemonetizationSuggestions: true,
-  setShowDemonetizationSuggestions: (val) => set({ showDemonetizationSuggestions: val }),
 
   // Feature toggles for settings page
   demonetizationEnabled: true,

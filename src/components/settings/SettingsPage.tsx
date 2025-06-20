@@ -38,7 +38,13 @@ const SettingsPage = () => {
           
           {/* AI Writing Features Section */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">AI Writing Features</h2>
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">AI Writing Features</h2>
+              <p className="text-sm text-gray-600">
+                Control which AI-powered writing assistance features are enabled. 
+                These settings apply to all your documents and control whether suggestions are generated.
+              </p>
+            </div>
             
             <div className="space-y-6">
               

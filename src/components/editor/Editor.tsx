@@ -23,9 +23,12 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     isSaving,
     hasUnsavedChanges,
     lastSaved,
-    setCurrentDocument 
+    setCurrentDocument,
+    demonetizationEnabled,
+    grammarEnabled,
+    styleEnabled
   } = useEditorStore()
-  const { requestSuggestions } = useSuggestions()
+  const { requestSuggestions, refilterSuggestions } = useSuggestions()
   const saveTimeout = React.useRef<NodeJS.Timeout | null>(null)
   const [popup, setPopup] = React.useState<{rect: DOMRect, suggestion: any} | null>(null)
   const prevDocId = React.useRef<string | null>(null)
@@ -110,19 +113,7 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
       SuggestionHighlight.configure({
         getSuggestions: () => {
           const state = useEditorStore.getState()
-          let filteredSuggestions = state.suggestions
-          
-          // Filter out style suggestions if disabled
-          if (!state.showStyleSuggestions) {
-            filteredSuggestions = filteredSuggestions.filter(s => s.type !== 'style')
-          }
-          
-          // Filter out demonetization suggestions if disabled
-          if (!state.showDemonetizationSuggestions) {
-            filteredSuggestions = filteredSuggestions.filter(s => s.type !== 'demonetization')
-          }
-          
-          return filteredSuggestions
+          return state.suggestions
         },
       }),
     ],
@@ -166,6 +157,13 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
       requestSuggestions()
     }
   }, [currentDocument, editor, requestSuggestions])
+
+  // Re-filter suggestions when settings change
+  useEffect(() => {
+    if (editor && content.trim()) {
+      refilterSuggestions()
+    }
+  }, [demonetizationEnabled, grammarEnabled, styleEnabled, editor, content, refilterSuggestions])
 
   // Hover listeners with delay mechanism
   useEffect(() => {

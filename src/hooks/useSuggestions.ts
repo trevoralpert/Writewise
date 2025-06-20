@@ -13,23 +13,17 @@ interface Suggestion {
 }
 
 export function useSuggestions() {
-  // We only need the setSuggestions updater; read content dynamically to avoid stale values
-  const setSuggestions = useEditorStore(s => s.setSuggestions)
+  // Get store methods
+  const setAllSuggestionsAndFilter = useEditorStore(s => s.setAllSuggestionsAndFilter)
+  const refilterSuggestions = useEditorStore(s => s.refilterSuggestions)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Debounced fetch
   const fetchSuggestions = useCallback(() => {
-    const { 
-      content, 
-      demonetizationEnabled, 
-      grammarEnabled, 
-      styleEnabled,
-      showDemonetizationSuggestions, 
-      showStyleSuggestions 
-    } = useEditorStore.getState();
+    const { content } = useEditorStore.getState();
     
     if (!content.trim()) {
-      setSuggestions([])
+      setAllSuggestionsAndFilter([])
       return
     }
 
@@ -64,36 +58,14 @@ export function useSuggestions() {
           }
         })
         
-        // Filter suggestions based on feature toggles and sidebar preferences
-        const filteredSuggestions = suggestions.filter((suggestion: any) => {
-          // First check if the feature is enabled
-          if (suggestion.type === 'demonetization' && !demonetizationEnabled) {
-            return false
-          }
-          if ((suggestion.type === 'grammar' || suggestion.type === 'spelling') && !grammarEnabled) {
-            return false
-          }
-          if (suggestion.type === 'style' && !styleEnabled) {
-            return false
-          }
-          
-          // Then check sidebar visibility preferences
-          if (suggestion.type === 'demonetization') {
-            return showDemonetizationSuggestions
-          }
-          if (suggestion.type === 'style') {
-            return showStyleSuggestions
-          }
-          return true
-        })
-        
-        setSuggestions(filteredSuggestions)
+        // Store all suggestions and filter based on current settings
+        setAllSuggestionsAndFilter(suggestions)
       })
       .catch(error => {
         console.error('Error fetching suggestions:', error)
-        setSuggestions([])
+        setAllSuggestionsAndFilter([])
       })
-  }, [setSuggestions])
+  }, [setAllSuggestionsAndFilter])
 
   // Call this after typing pauses
   const requestSuggestions = useCallback(() => {
@@ -101,5 +73,5 @@ export function useSuggestions() {
     timeoutRef.current = setTimeout(fetchSuggestions, 800)
   }, [fetchSuggestions])
 
-  return { requestSuggestions }
+  return { requestSuggestions, refilterSuggestions }
 }
