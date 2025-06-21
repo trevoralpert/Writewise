@@ -17,8 +17,6 @@ const SettingsPage = () => {
     setContextAwareGrammarEnabled,
     engagementEnabled,
     setEngagementEnabled,
-    platformAdaptationEnabled,
-    setPlatformAdaptationEnabled,
     selectedPlatform,
     setSelectedPlatform,
     formalityLevel,
@@ -299,36 +297,8 @@ const SettingsPage = () => {
                 </div>
               </div>
 
-              {/* Platform Adaptation */}
-              <div className="flex items-start justify-between border-t pt-6">
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Platform Adaptation
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-3">
-                    Optimize your content for specific social media platforms and audiences. 
-                    Get suggestions for character limits, tone adjustments, engagement tactics, and platform-specific best practices.
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="inline-block w-3 h-3 bg-yellow-400 rounded-full"></span>
-                    <span>Yellow solid underlines show platform optimization opportunities</span>
-                  </div>
-                </div>
-                <div className="ml-6">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={platformAdaptationEnabled}
-                      onChange={(e) => setPlatformAdaptationEnabled(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Platform Selection */}
-              {platformAdaptationEnabled && (
+              {/* Platform Selection - Always visible since platform optimization is now integrated */}
+              {(
                 <div className="border-t pt-6">
                   <div className="mb-4">
                     <h4 className="text-md font-medium text-gray-900 mb-2">

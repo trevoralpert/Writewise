@@ -102,8 +102,7 @@ interface EditorState {
   setEngagementEnabled: (val: boolean) => void
   
   // New: Platform adaptation settings
-  platformAdaptationEnabled: boolean
-  setPlatformAdaptationEnabled: (val: boolean) => void
+
   selectedPlatform: string | null
   setSelectedPlatform: (platform: string | null) => void
   
@@ -306,9 +305,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (suggestion.type === 'engagement' && !state.engagementEnabled) {
         return false
       }
-      if (suggestion.type === 'platform-adaptation' && !state.platformAdaptationEnabled) {
-        return false
-      }
+      // Platform adaptation is now always enabled and integrated into priority system
       if (suggestion.type === 'seo' && !state.seoOptimizationEnabled) {
         return false
       }
@@ -346,9 +343,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (suggestion.type === 'engagement' && !state.engagementEnabled) {
         return false
       }
-      if (suggestion.type === 'platform-adaptation' && !state.platformAdaptationEnabled) {
-        return false
-      }
+      // Platform adaptation is now always enabled and integrated into priority system
       if (suggestion.type === 'seo' && !state.seoOptimizationEnabled) {
         return false
       }
@@ -487,11 +482,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
   
   // New: Platform adaptation settings
-  platformAdaptationEnabled: true,
-  setPlatformAdaptationEnabled: (val) => {
-    set({ platformAdaptationEnabled: val })
-    get().refilterSuggestions()
-  },
   selectedPlatform: null,
   setSelectedPlatform: (platform) => set({ selectedPlatform: platform }),
   

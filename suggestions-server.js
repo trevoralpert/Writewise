@@ -1012,7 +1012,7 @@ Focus on: "${problemText}"`;
 }
 
 // Phase 2D: Conflict prioritization logic - decides what takes priority
-async function detectAndResolveConflicts(suggestions, fullText, conflictResolutionMode, toneAnalysis) {
+async function detectAndResolveConflicts(suggestions, fullText, conflictResolutionMode, toneAnalysis, platformContext = null, audienceContext = null) {
   console.log(`🔍 Analyzing ${suggestions.length} suggestions for conflicts (mode: ${conflictResolutionMode})`);
   
   const conflictGroups = [];
@@ -1047,7 +1047,7 @@ async function detectAndResolveConflicts(suggestions, fullText, conflictResoluti
   
   // Process conflict groups
   for (const group of conflictGroups) {
-    const resolved = await resolveConflictGroup(group, fullText, conflictResolutionMode, toneAnalysis);
+          const resolved = await resolveConflictGroup(group, fullText, conflictResolutionMode, toneAnalysis, platformContext, audienceContext);
     processedSuggestions.push(...resolved);
   }
   
@@ -1059,7 +1059,7 @@ async function detectAndResolveConflicts(suggestions, fullText, conflictResoluti
 }
 
 // Helper function to resolve a specific conflict group
-async function resolveConflictGroup(conflictGroup, fullText, conflictResolutionMode, toneAnalysis) {
+async function resolveConflictGroup(conflictGroup, fullText, conflictResolutionMode, toneAnalysis, platformContext = null, audienceContext = null) {
   const { primary, conflicts, allSuggestions } = conflictGroup;
   
   console.log(`🎯 Resolving conflict group with ${allSuggestions.length} suggestions`);
@@ -1067,7 +1067,7 @@ async function resolveConflictGroup(conflictGroup, fullText, conflictResolutionM
   // Calculate priorities for each suggestion
   const prioritizedSuggestions = allSuggestions.map(s => ({
     ...s,
-    calculatedPriority: calculateConflictPriority(s, conflictResolutionMode, toneAnalysis)
+            calculatedPriority: calculateConflictPriority(s, conflictResolutionMode, toneAnalysis, platformContext, audienceContext)
   }));
   
   // Sort by priority (highest first)
@@ -1122,69 +1122,314 @@ async function resolveConflictGroup(conflictGroup, fullText, conflictResolutionM
 }
 
 // Helper function to calculate priority in conflict resolution
-function calculateConflictPriority(suggestion, conflictResolutionMode, toneAnalysis) {
-  // --- CORRECTED PRIORITIES ---
+function calculateConflictPriority(suggestion, conflictResolutionMode, toneAnalysis, platformContext = null, audienceContext = null) {
+  // --- PHASE 3B: DYNAMIC PRIORITY OPTIMIZATION ---
+  
+  // Base priorities (before context adjustments)
   const basePriorities = {
-    // Top priority: Correctness
-    'spelling': 100, // Significantly higher to win all conflicts
+    'spelling': 100,
     'grammar': 90,
-    
-    // High priority: Content safety and major tone changes
     'demonetization': 80,
-    'tone-rewrite': 70,
-    
-    // Mid priority: Contextual and style suggestions
+    'audience-adaptation': 75,
+    'platform-adaptation': 70,
     'style': 50,
     'engagement': 40,
-    'platform-adaptation': 30,
-    
-    // Low priority: Informational
     'slang-protected': 20,
   };
-  
-  let priority = basePriorities[suggestion.type] || 50; // Default to 50 for unknown types
 
-  if (conflictResolutionMode === 'tone-preserving' && toneAnalysis) {
-    if (suggestion.type === 'slang-protected' && toneAnalysis.formalityLevel === 'casual') {
-      priority = 95; // Boost to beat grammar, but not spelling
+  // PLATFORM-SPECIFIC PRIORITY PROFILES
+  const platformProfiles = {
+    'tiktok': {
+      'slang-protected': +30,    // Boost slang protection significantly
+      'engagement': +25,         // High engagement priority
+      'style': -15,             // Reduce formal style corrections
+      'grammar': -10            // Slightly reduce grammar strictness
+    },
+    'instagram': {
+      'slang-protected': +25,
+      'engagement': +20,
+      'style': -10,
+      'grammar': -5
+    },
+    'twitter': {
+      'slang-protected': +15,
+      'engagement': +15,
+      'style': +5,              // Some style matters for readability
+      'grammar': +0             // Neutral grammar
+    },
+    'linkedin': {
+      'slang-protected': -20,    // Reduce slang protection
+      'engagement': +5,
+      'style': +20,             // High style priority
+      'grammar': +15            // High grammar priority
+    },
+    'facebook': {
+      'slang-protected': +10,
+      'engagement': +10,
+      'style': +5,
+      'grammar': +5
+    },
+    'youtube': {
+      'slang-protected': +20,
+      'engagement': +30,        // Very high engagement for video descriptions
+      'style': +0,
+      'grammar': +5
+    },
+    'blog': {
+      'slang-protected': -10,
+      'engagement': +10,
+      'style': +25,             // High style for readability
+      'grammar': +20            // High grammar for professionalism
+    },
+    'email': {
+      'slang-protected': -15,
+      'engagement': +0,
+      'style': +15,
+      'grammar': +20
+    }
+  };
+
+  // FORMALITY-SPECIFIC PRIORITY PROFILES
+  const formalityProfiles = {
+    'casual': {
+      'slang-protected': +35,    // Highest slang protection
+      'style': -20,             // Reduce formal style suggestions
+      'grammar': -15,           // More lenient grammar
+      'engagement': +10
+    },
+    'balanced': {
+      'slang-protected': +10,
+      'style': +0,
+      'grammar': +0,
+      'engagement': +5
+    },
+    'formal': {
+      'slang-protected': -25,    // Reduce slang protection
+      'style': +25,             // High style priority
+      'grammar': +20,           // High grammar priority
+      'engagement': -5
+    },
+    'professional': {
+      'slang-protected': -30,    // Lowest slang protection
+      'style': +30,             // Highest style priority
+      'grammar': +25,           // Highest grammar priority
+      'engagement': -10
+    }
+  };
+  
+  let priority = basePriorities[suggestion.type] || 50;
+  let adjustments = [];
+
+  // PHASE 3B: APPLY FORMALITY-BASED ADJUSTMENTS
+  if (toneAnalysis && toneAnalysis.formalityLevel) {
+    const formalityLevel = toneAnalysis.formalityLevel;
+    const formalityAdjustments = formalityProfiles[formalityLevel];
+    
+    if (formalityAdjustments && formalityAdjustments[suggestion.type] !== undefined) {
+      const adjustment = formalityAdjustments[suggestion.type];
+      priority += adjustment;
+      adjustments.push(`formality(${formalityLevel}): ${adjustment > 0 ? '+' : ''}${adjustment}`);
     }
   }
 
+  // PHASE 3B: APPLY PLATFORM-BASED ADJUSTMENTS
+  if (platformContext && platformContext.displayName) {
+    const platformName = platformContext.displayName.toLowerCase();
+    const platformAdjustments = platformProfiles[platformName];
+    
+    if (platformAdjustments && platformAdjustments[suggestion.type] !== undefined) {
+      const adjustment = platformAdjustments[suggestion.type];
+      priority += adjustment;
+      adjustments.push(`platform(${platformName}): ${adjustment > 0 ? '+' : ''}${adjustment}`);
+    }
+    
+    // Additional platform-specific logic
+    if (platformContext.characterLimits && platformContext.characterLimits.post) {
+      // Prioritize conciseness suggestions on character-limited platforms
+      if (suggestion.message && suggestion.message.toLowerCase().includes('shorten')) {
+        priority += 15;
+        adjustments.push('character-limit: +15');
+      }
+    }
+  }
+
+  // PHASE 3B: APPLY AUDIENCE-BASED ADJUSTMENTS
+  if (audienceContext) {
+    const audience = audienceContext;
+    
+    if (audience.formalityPreference === 'high') {
+      if (suggestion.type === 'grammar') {
+        priority += 8;
+        adjustments.push('audience(formal): +8');
+      }
+      if (suggestion.type === 'style') {
+        priority += 12;
+        adjustments.push('audience(formal): +12');
+      }
+    } else if (audience.formalityPreference === 'low') {
+      if (suggestion.type === 'slang-protected') {
+        priority += 20;
+        adjustments.push('audience(casual): +20');
+      }
+      if (suggestion.type === 'engagement') {
+        priority += 10;
+        adjustments.push('audience(casual): +10');
+      }
+    }
+    
+    if (audience.engagementFocus === 'high') {
+      if (suggestion.type === 'engagement') {
+        priority += 15;
+        adjustments.push('audience(engagement): +15');
+      }
+    }
+  }
+
+  // Log priority adjustments for debugging
+  if (adjustments.length > 0) {
+    console.log(`🎯 Priority adjusted for ${suggestion.type}: ${basePriorities[suggestion.type] || 50} → ${priority} (${adjustments.join(', ')})`);
+  }
+
+  // Quality bonus
   if (suggestion.alternatives && suggestion.alternatives.length > 0) {
     priority += 1;
   }
   
-  return priority;
+  return Math.min(priority, 120); // Cap at 120 to maintain relative ordering
 }
 
-// Helper function to determine if we should generate a tone-rewrite
-function shouldGenerateToneRewrite(winner, losers, conflictResolutionMode, toneAnalysis) {
-  // Don't generate if winner is already a tone-rewrite
-  if (winner.type === 'tone-rewrite') return false;
+// PHASE 3: Integrated audience adaptation - no more standalone tone-rewrites
+function shouldGenerateAudienceAdaptation(suggestion, toneAnalysis, platformContext, audienceContext) {
+  // Generate audience-adapted alternatives for grammar/style suggestions when there's a context mismatch
   
-  // Don't generate for demonetization (different handling)
-  if (winner.type === 'demonetization') return false;
+  if (!toneAnalysis || (!platformContext && !audienceContext)) return false;
   
-  // Don't generate for slang-protected (informational only)
-  if (winner.type === 'slang-protected') return false;
+  // Only adapt grammar and style suggestions
+  if (!['grammar', 'style'].includes(suggestion.type)) return false;
   
-  // Check if there's a tone/style conflict
-  const hasSlangConflict = losers.some(l => l.type === 'slang-protected');
-  const hasStyleConflict = losers.some(l => l.type === 'style');
+  // Check for formality mismatch
+  const formalityMismatch = (
+    (toneAnalysis.formalityLevel === 'casual' && audienceContext?.formalityPreference === 'high') ||
+    (toneAnalysis.formalityLevel === 'formal' && audienceContext?.formalityPreference === 'low')
+  );
   
-  // Generate tone-rewrite if:
-  // 1. Grammar/spelling winner conflicts with slang/style
-  // 2. Tone analysis shows strong casual/creative style
-  // 3. Conflict resolution mode favors tone preservation
+  // Check for platform mismatch
+  const platformMismatch = platformContext && (
+    (platformContext.preferredTone.includes('casual') && suggestion.message.toLowerCase().includes('formal')) ||
+    (platformContext.preferredTone.includes('professional') && toneAnalysis.formalityLevel === 'casual')
+  );
   
-  if (['grammar', 'spelling'].includes(winner.type)) {
-    if (hasSlangConflict) return true;
-    if (conflictResolutionMode === 'tone-first') return true;
-    if (conflictResolutionMode === 'balanced' && toneAnalysis.confidence > 0.7) return true;
-    if (['casual', 'creative'].includes(toneAnalysis.primaryTone) && toneAnalysis.confidence > 0.8) return true;
+  return formalityMismatch || platformMismatch;
+}
+
+// PHASE 3: Generate audience-adapted suggestions (replaces tone-rewrite)
+async function generateAudienceAdaptedSuggestions(suggestions, fullText, toneAnalysis, platformContext = null, audienceContext = null) {
+  if (!suggestions || suggestions.length === 0) return [];
+  
+  const adaptedSuggestions = [];
+  
+  for (const suggestion of suggestions) {
+    // Check if this suggestion needs audience adaptation
+    if (shouldGenerateAudienceAdaptation(suggestion, toneAnalysis, platformContext, audienceContext)) {
+      try {
+        const adaptedSuggestion = await createAudienceAdaptedAlternative(
+          suggestion, 
+          fullText, 
+          toneAnalysis, 
+          platformContext, 
+          audienceContext
+        );
+        
+        if (adaptedSuggestion) {
+          adaptedSuggestions.push(adaptedSuggestion);
+        }
+      } catch (error) {
+        console.warn('Failed to generate audience adaptation for suggestion:', suggestion.id, error);
+      }
+    }
   }
   
-  return false;
+  return adaptedSuggestions;
+}
+
+// Helper function to create audience-adapted alternatives
+async function createAudienceAdaptedAlternative(originalSuggestion, fullText, toneAnalysis, platformContext, audienceContext) {
+  const context = getWordContext(fullText, originalSuggestion.start, originalSuggestion.end);
+  
+  // Determine target style based on audience and platform
+  let targetStyle = 'balanced';
+  let targetAudience = 'general';
+  
+  if (audienceContext) {
+    if (audienceContext.formalityPreference === 'high') {
+      targetStyle = 'professional';
+      targetAudience = 'business professionals';
+    } else if (audienceContext.formalityPreference === 'low') {
+      targetStyle = 'casual';
+      targetAudience = 'general readers';
+    }
+    
+    if (audienceContext.engagementFocus === 'high') {
+      targetAudience += ' (engagement-focused)';
+    }
+  }
+  
+  if (platformContext) {
+    if (platformContext.preferredTone.includes('professional')) {
+      targetStyle = 'professional';
+    } else if (platformContext.preferredTone.includes('casual')) {
+      targetStyle = 'casual';
+    }
+    
+    if (platformContext.prioritizeEngagement) {
+      targetAudience += ' (platform-optimized)';
+    }
+  }
+  
+  const prompt = `Adapt this writing suggestion for a ${targetStyle} style targeting ${targetAudience}:
+
+Original text: "${originalSuggestion.text}"
+Original suggestion: "${originalSuggestion.message}"
+Original alternatives: ${originalSuggestion.alternatives.join(', ')}
+Context: "${context}"
+
+Provide 2-3 alternatives that maintain the correction but match the ${targetStyle} style for ${targetAudience}.
+Return only the alternatives as a JSON array of strings.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+    });
+
+    const adaptedAlternatives = JSON.parse(completion.choices[0].message.content || '[]');
+    
+    if (adaptedAlternatives.length > 0) {
+      return {
+        id: `audience-adapted-${Math.random().toString(36).slice(2, 10)}`,
+        text: originalSuggestion.text,
+        message: `Audience-adapted: ${originalSuggestion.message} (optimized for ${targetStyle} ${targetAudience})`,
+        type: 'audience-adaptation',
+        alternatives: adaptedAlternatives,
+        start: originalSuggestion.start,
+        end: originalSuggestion.end,
+        status: 'pending',
+        priority: 75,
+        originalSuggestion: originalSuggestion.id,
+        adaptationContext: {
+          targetStyle,
+          targetAudience,
+          platformContext: platformContext?.displayName || null,
+          audienceContext: audienceContext || null
+        }
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to generate audience-adapted alternative:', error);
+  }
+  
+  return null;
 }
 
 // Helper function to check if two ranges overlap
@@ -3423,6 +3668,75 @@ Input:
         processingSettings
       );
       console.log('🔄 Suggestions after enhanced processing:', suggestions.length);
+
+      // PHASE 3: Generate audience-adapted suggestions (baked-in feature)
+      console.log('🎯 Starting audience adaptation analysis...');
+      
+      // PHASE 3B: Always determine platform context (no toggle needed)
+      let platformContext = null;
+      if (selectedPlatform) {
+        console.log(`🎯 Applying dynamic priority optimization for platform: ${selectedPlatform}`);
+        
+        // Create platform context for priority optimization
+        platformContext = {
+          displayName: selectedPlatform,
+          preferredTone: ['casual'], // Default, will be overridden by platform profiles
+          prioritizeEngagement: true,
+          strictFormality: false,
+          characterLimits: selectedPlatform === 'twitter' ? { post: 280 } : null
+        };
+        
+        // Add platform-specific characteristics
+        switch (selectedPlatform.toLowerCase()) {
+          case 'linkedin':
+            platformContext.preferredTone = ['professional', 'formal'];
+            platformContext.strictFormality = true;
+            platformContext.prioritizeEngagement = false;
+            break;
+          case 'tiktok':
+          case 'instagram':
+            platformContext.preferredTone = ['casual', 'creative'];
+            platformContext.prioritizeEngagement = true;
+            platformContext.strictFormality = false;
+            break;
+          case 'twitter':
+            platformContext.preferredTone = ['casual', 'concise'];
+            platformContext.prioritizeEngagement = true;
+            platformContext.characterLimits = { post: 280 };
+            break;
+          case 'youtube':
+            platformContext.preferredTone = ['engaging', 'casual'];
+            platformContext.prioritizeEngagement = true;
+            break;
+          case 'blog':
+          case 'email':
+            platformContext.preferredTone = ['professional', 'readable'];
+            platformContext.strictFormality = true;
+            break;
+        }
+      } else {
+        console.log('🎯 No platform selected - using neutral priority optimization');
+      }
+      
+      // Create audience context from available data
+      const audienceContext = targetAudience ? {
+        formalityPreference: formalityLevel === 'formal' ? 'high' : formalityLevel === 'casual' ? 'low' : 'medium',
+        engagementFocus: engagementEnabled ? 'high' : 'medium',
+        targetAudience: targetAudience
+      } : null;
+      
+      // Generate audience-adapted alternatives
+      const audienceAdaptedSuggestions = await generateAudienceAdaptedSuggestions(
+        suggestions,
+        text,
+        toneAnalysis,
+        platformContext,
+        audienceContext
+      );
+      
+      // Add audience-adapted suggestions to the main array
+      suggestions.push(...audienceAdaptedSuggestions);
+      console.log('🎯 Added', audienceAdaptedSuggestions.length, 'audience-adapted suggestions');
       
       // Phase 5C: Analyze style consistency
       const styleConsistency = await analyzeStyleConsistency(text, suggestions);
@@ -3469,37 +3783,8 @@ Input:
       console.log('🎯 Added', engagementSuggestions.length, 'engagement suggestions to pipeline');
     }
 
-    // Phase 7: Platform Adaptation Analysis (Independent)
-    console.log('🎯 Platform adaptation check - enabled:', platformAdaptationEnabled, 'platform:', selectedPlatform);
-    if (platformAdaptationEnabled && selectedPlatform && text.length > 30) { // Only analyze for substantial content
-      console.log('🎯 Starting platform adaptation analysis...');
-      
-      // Get tone analysis if available (may be null if tone preserving is disabled)
-      let toneAnalysis = null;
-      if (tonePreservingEnabled) {
-        const toneAnalysisKey = getCacheKey(text, 'tone-analysis', { sensitivity: toneDetectionSensitivity });
-        toneAnalysis = getFromCache(toneAnalysisCache, toneAnalysisKey);
-      }
-      
-      // Use cached platform analysis if available
-      const platformCacheKey = getCacheKey(text, 'platform-analysis', { platform: selectedPlatform, toneDetectionSensitivity });
-      let platformSuggestions = getFromCache(platformCache, platformCacheKey);
-      
-      if (!platformSuggestions) {
-        platformSuggestions = await generatePlatformAdaptationSuggestions(text, selectedPlatform, toneAnalysis);
-        setCache(platformCache, platformCacheKey, platformSuggestions);
-        console.log('🎯 Fresh platform adaptation analysis completed');
-        madeAiCall = true;
-      } else {
-        console.log('📋 Using cached platform adaptation analysis');
-        usedCache = true;
-      }
-      
-      // Add platform adaptation suggestions to the main suggestions array
-      suggestions.push(...platformSuggestions);
-      
-      console.log('🎯 Added', platformSuggestions.length, 'platform adaptation suggestions to pipeline');
-    }
+    // Phase 7: Platform Optimization (Now integrated into priority system)
+    console.log('🎯 Platform optimization integrated into priority system - platform:', selectedPlatform || 'none');
 
     // Phase 8: SEO Content Optimization Analysis (Independent)
     console.log('🎯 SEO optimization check - enabled:', seoOptimizationEnabled, 'contentType:', contentType);
@@ -3807,11 +4092,45 @@ app.get('/api/suggestion/:suggestionId/details', async (req, res) => {
   }
 });
 
+// PHASE 3B: Priority optimization status endpoint
+app.get('/api/priority-status', (req, res) => {
+  const { platform, formality } = req.query;
+  const sampleSuggestions = ['spelling', 'grammar', 'style', 'engagement', 'slang-protected'];
+  const basePriorities = { 'spelling': 100, 'grammar': 90, 'style': 50, 'engagement': 40, 'slang-protected': 20 };
+  const platformProfiles = {
+    'tiktok': { 'slang-protected': +30, 'engagement': +25, 'style': -15, 'grammar': -10 },
+    'linkedin': { 'slang-protected': -20, 'engagement': +5, 'style': +20, 'grammar': +15 }
+  };
+  const formalityProfiles = {
+    'casual': { 'slang-protected': +35, 'style': -20, 'grammar': -15, 'engagement': +10 },
+    'formal': { 'slang-protected': -25, 'style': +25, 'grammar': +20, 'engagement': -5 }
+  };
+
+  const priorityStatus = sampleSuggestions.map(type => {
+    let priority = basePriorities[type] || 50;
+    let adjustments = [];
+    if (formality && formalityProfiles[formality]?.[type] !== undefined) {
+      const adjustment = formalityProfiles[formality][type];
+      priority += adjustment;
+      adjustments.push(`formality(${formality}): ${adjustment > 0 ? '+' : ''}${adjustment}`);
+    }
+    if (platform && platformProfiles[platform]?.[type] !== undefined) {
+      const adjustment = platformProfiles[platform][type];
+      priority += adjustment;
+      adjustments.push(`platform(${platform}): ${adjustment > 0 ? '+' : ''}${adjustment}`);
+    }
+    return { type, basePriority: basePriorities[type] || 50, finalPriority: Math.min(priority, 120), adjustments: adjustments.length > 0 ? adjustments.join(', ') : 'none' };
+  });
+
+  res.json({ platform: platform || 'none', formality: formality || 'none', priorityOptimization: 'active', priorities: priorityStatus.sort((a, b) => b.finalPriority - a.finalPriority) });
+});
+
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`🚀 Suggestions API listening on port ${PORT}`)
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`)
   console.log(`📈 Metrics: http://localhost:${PORT}/api/metrics`)
+  console.log(`🎯 Priority status: http://localhost:${PORT}/api/priority-status?platform=general&formality=casual`)
   
   // Log performance metrics every 5 minutes
   setInterval(logPerformanceMetrics, 300000);
