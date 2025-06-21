@@ -5951,3 +5951,245 @@ function generateLongTailKeywords(primaryKeyword, contentType) {
   
   return longTailKeywords;
 }
+
+// ========== NEW OPTIMIZED API ENDPOINTS ==========
+
+// Core Grammar & Spelling API (Fast, Essential)
+app.post('/api/suggestions/core', async (req, res) => {
+  console.log('🚀 CORE API CALL - Grammar & Spelling Only');
+  
+  const startTime = Date.now()
+  const { text, formalityLevel = 'casual', userId = 'anonymous' } = req.body
+
+  try {
+    // Initialize session
+    const sessionId = initializeWritingSession(text, userId);
+    
+    // Handle edge cases
+    const settings = { formalityLevel };
+    const edgeCaseResult = await handleEdgeCases(text, [], settings);
+    if (edgeCaseResult.edgeCaseHandled) {
+      return res.json({
+        suggestions: edgeCaseResult.suggestions || [],
+        edgeCase: { type: edgeCaseResult.edgeCaseHandled, message: edgeCaseResult.message },
+        sessionId
+      });
+    }
+
+    // FOCUSED AI PROMPT - Only Grammar & Spelling
+    const corePrompt = `You are a grammar and spelling checker. Review the text for ONLY grammar and spelling errors.
+
+Return ONLY a JSON array of objects with this exact structure:
+{
+  "id": string,           // unique identifier  
+  "text": string,         // exact problematic text
+  "message": string,      // explanation
+  "type": "grammar" | "spelling",
+  "alternatives": string[] // corrections
+}
+
+Focus on:
+- Spelling mistakes
+- Grammar errors (subject-verb agreement, tense consistency, etc.)
+- Punctuation issues
+
+Do NOT suggest style, tone, or engagement changes.
+
+Text: "${text}"`;
+
+    // Single focused AI call
+    const completion = await ensureSystemReliability(async () => {
+      return await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: corePrompt }],
+        temperature: 0.1, // Lower temperature for more consistent grammar checking
+      });
+    });
+
+    let content = completion.choices[0].message.content || '[]'
+    content = content.replace(/```json|```/g, '').trim()
+    let suggestions = JSON.parse(content)
+
+    // Add our reliable spelling detection
+    const spellingErrors = detectSpellingErrors(text);
+    suggestions = [...suggestions, ...spellingErrors];
+
+    // Add demonetization detection (rule-based, no AI needed)
+    const demonetizationWords = detectDemonetizationWords(text);
+    const demonetizationSuggestions = demonetizationWords.map(detected => ({
+      id: `demonetization-${Math.random().toString(36).slice(2, 10)}`,
+      text: detected.word,
+      message: `This word may cause demonetization. Consider alternatives.`,
+      type: 'demonetization',
+      alternatives: ['[content-friendly alternative]'], // Placeholder - can be enhanced later
+      start: detected.start,
+      end: detected.end,
+      status: 'pending'
+    }));
+
+    suggestions = [...suggestions, ...demonetizationSuggestions];
+
+    // Add positions for AI suggestions
+    const escapeRegex = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    suggestions.forEach(s => {
+      if (!s.start && s.text) {
+        const wordRegex = new RegExp(`\\b${escapeRegex(s.text)}\\b`, 'i');
+        const match = wordRegex.exec(text);
+        if (match) {
+          s.start = match.index;
+          s.end = match.index + match[0].length;
+        }
+        
+        if (!s.id) s.id = `core-${Math.random().toString(36).slice(2, 10)}`;
+        if (!s.status) s.status = 'pending';
+      }
+    });
+
+    updatePerformanceMetrics(Date.now() - startTime, false, false, true);
+    
+    res.json({
+      suggestions: suggestions.slice(0, 10), // Limit for performance
+      sessionId,
+      processingTime: Date.now() - startTime
+    });
+
+  } catch (error) {
+    console.error('Core API error:', error);
+    updatePerformanceMetrics(Date.now() - startTime, true, false, true);
+    res.status(500).json({ error: 'Core analysis failed', suggestions: [] });
+  }
+});
+
+// Style & Tone API (Secondary, Optional)
+app.post('/api/suggestions/style', async (req, res) => {
+  console.log('🎨 STYLE API CALL - Style & Tone Analysis');
+  
+  const startTime = Date.now()
+  const { text, formalityLevel = 'casual', toneDetectionSensitivity = 'medium' } = req.body
+
+  try {
+    // Focused style analysis
+    const stylePrompt = `You are a writing style analyst. Review the text for ONLY style and tone improvements.
+
+Return ONLY a JSON array of objects with this exact structure:
+{
+  "id": string,
+  "text": string,
+  "message": string,
+  "type": "style",
+  "alternatives": string[]
+}
+
+Focus on:
+- Word choice improvements
+- Sentence structure
+- Clarity and conciseness
+- Tone consistency
+
+Text: "${text}"`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: stylePrompt }],
+      temperature: 0.3,
+    });
+
+    let content = completion.choices[0].message.content || '[]'
+    content = content.replace(/```json|```/g, '').trim()
+    let suggestions = JSON.parse(content)
+
+    // Add positions and IDs
+    const escapeRegex = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    suggestions.forEach(s => {
+      if (s.text) {
+        const match = new RegExp(`\\b${escapeRegex(s.text)}\\b`, 'i').exec(text);
+        if (match) {
+          s.start = match.index;
+          s.end = match.index + match[0].length;
+        }
+      }
+      if (!s.id) s.id = `style-${Math.random().toString(36).slice(2, 10)}`;
+      if (!s.status) s.status = 'pending';
+    });
+
+    updatePerformanceMetrics(Date.now() - startTime, false, false, true);
+    
+    res.json({
+      suggestions: suggestions.slice(0, 8),
+      processingTime: Date.now() - startTime
+    });
+
+  } catch (error) {
+    console.error('Style API error:', error);
+    res.status(500).json({ error: 'Style analysis failed', suggestions: [] });
+  }
+});
+
+// Engagement API (Optional, Creative)
+app.post('/api/suggestions/engagement', async (req, res) => {
+  console.log('🎯 ENGAGEMENT API CALL - Engagement Enhancement');
+  
+  const startTime = Date.now()
+  const { text } = req.body
+
+  try {
+    if (text.length < 50) {
+      return res.json({ suggestions: [], message: 'Text too short for engagement analysis' });
+    }
+
+    const engagementPrompt = `You are an engagement specialist. Review the text for ONLY engagement improvements.
+
+Return ONLY a JSON array of objects with this exact structure:
+{
+  "id": string,
+  "text": string,
+  "message": string,
+  "type": "engagement",
+  "alternatives": string[]
+}
+
+Focus on:
+- Weak opening hooks
+- Missing calls-to-action
+- Lack of reader engagement
+- Emotional language opportunities
+
+Text: "${text}"`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: engagementPrompt }],
+      temperature: 0.4,
+    });
+
+    let content = completion.choices[0].message.content || '[]'
+    content = content.replace(/```json|```/g, '').trim()
+    let suggestions = JSON.parse(content)
+
+    // Add positions and IDs
+    suggestions.forEach((s, index) => {
+      if (s.text) {
+        const idx = text.indexOf(s.text);
+        if (idx !== -1) {
+          s.start = idx;
+          s.end = idx + s.text.length;
+        }
+      }
+      if (!s.id) s.id = `engagement-${Math.random().toString(36).slice(2, 10)}`;
+      if (!s.status) s.status = 'pending';
+    });
+
+    updatePerformanceMetrics(Date.now() - startTime, false, false, true);
+    
+    res.json({
+      suggestions: suggestions.slice(0, 5),
+      processingTime: Date.now() - startTime
+    });
+
+  } catch (error) {
+    console.error('Engagement API error:', error);
+    res.status(500).json({ error: 'Engagement analysis failed', suggestions: [] });
+  }
+});
+
+// ========== END NEW OPTIMIZED ENDPOINTS ==========

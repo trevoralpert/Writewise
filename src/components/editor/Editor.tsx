@@ -4,10 +4,12 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import { SuggestionHighlight } from '../../extensions/SuggestionHighlight'
+import { ClipboardExtension } from '../../extensions/ClipboardExtension'
 import { useEditorStore } from '../../store/editorStore'
 import { useSuggestions } from '../../hooks/useSuggestions'
 import { createDocument } from '../../services/documents'
 import InlinePopup from './InlinePopup'
+import ContextMenu from './ContextMenu'
 
 interface EditorProps {
   refreshDocuments?: () => Promise<void>
@@ -35,6 +37,7 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
   const { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions } = useSuggestions()
   const saveTimeout = React.useRef<NodeJS.Timeout | null>(null)
   const [popup, setPopup] = React.useState<{rect: DOMRect, suggestion: any} | null>(null)
+  const [contextMenu, setContextMenu] = React.useState<{x: number, y: number} | null>(null)
   const prevDocId = React.useRef<string | null>(null)
   const [isEditingTitle, setIsEditingTitle] = React.useState(false)
   const [titleInput, setTitleInput] = React.useState('')
@@ -120,6 +123,7 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
           return state.suggestions
         },
       }),
+      // ClipboardExtension, // Temporarily disabled to debug
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
@@ -231,20 +235,50 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
       }
 
       const el = e.target as HTMLElement
-      if (el && el.dataset && el.dataset.suggestionId) {
-        const id = el.dataset.suggestionId
-        const sugg = useEditorStore.getState().suggestions.find(s => s.id === id)
-        if (!sugg) return
-        const range = document.createRange()
-        range.selectNodeContents(el)
-        const rect = range.getBoundingClientRect()
-        setPopup({ rect, suggestion: sugg })
+      if (el && el.dataset) {
+        // Handle new multi-layer suggestions
+        if (el.dataset.suggestionIds) {
+          const primaryId = el.dataset.primarySuggestion
+          const suggestionIds = el.dataset.suggestionIds.split(',')
+          
+          // Find the primary suggestion (highest priority) for the popup
+          const primarySugg = useEditorStore.getState().suggestions.find(s => s.id === primaryId)
+          if (!primarySugg) return
+          
+          const range = document.createRange()
+          range.selectNodeContents(el)
+          const rect = range.getBoundingClientRect()
+          
+          // Add metadata about all suggestions in this group
+          const allSuggestions = suggestionIds
+            .map(id => useEditorStore.getState().suggestions.find(s => s.id === id))
+            .filter(Boolean)
+          
+          setPopup({ 
+            rect, 
+            suggestion: { 
+              ...primarySugg, 
+              _multiLayer: true,
+              _allSuggestions: allSuggestions 
+            } 
+          })
+        }
+        // Handle legacy single suggestions (for backward compatibility)
+        else if (el.dataset.suggestionId) {
+          const id = el.dataset.suggestionId
+          const sugg = useEditorStore.getState().suggestions.find(s => s.id === id)
+          if (!sugg) return
+          const range = document.createRange()
+          range.selectNodeContents(el)
+          const rect = range.getBoundingClientRect()
+          setPopup({ rect, suggestion: sugg })
+        }
       }
     }
 
     const handleMouseLeave = (e: MouseEvent) => {
       const el = e.target as HTMLElement
-      if (el && el.dataset && el.dataset.suggestionId) {
+      if (el && el.dataset && (el.dataset.suggestionIds || el.dataset.suggestionId)) {
         const related = e.relatedTarget as HTMLElement | null
         
         // If moving to the popup, don't hide
@@ -281,7 +315,7 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
       }
       
       // Don't close if clicking on a suggestion underline (let hover handle it)
-      if (target && target.dataset && target.dataset.suggestionId) {
+      if (target && target.dataset && (target.dataset.suggestionIds || target.dataset.suggestionId)) {
         return
       }
       
@@ -344,6 +378,45 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
   }, [hasUnsavedChanges, saveCurrentDocument]);
+
+  // Listen for clipboard paste events and refresh suggestions
+  useEffect(() => {
+    const handleClipboardPaste = (event: CustomEvent) => {
+      console.log('📥 Clipboard paste detected, refreshing suggestions for:', event.detail.content)
+      requestSuggestionsImmediate()
+    }
+
+    window.addEventListener('clipboard-paste-complete', handleClipboardPaste as EventListener)
+    
+    return () => {
+      window.removeEventListener('clipboard-paste-complete', handleClipboardPaste as EventListener)
+    }
+  }, [requestSuggestionsImmediate])
+
+  // Context menu handler
+  useEffect(() => {
+    if (!editor) return
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault()
+      setContextMenu({ x: e.clientX, y: e.clientY })
+      // Close popup if open
+      setPopup(null)
+    }
+
+    const handleClick = () => {
+      setContextMenu(null)
+    }
+
+    const dom = editor.view.dom
+    dom.addEventListener('contextmenu', handleContextMenu)
+    document.addEventListener('click', handleClick)
+
+    return () => {
+      dom.removeEventListener('contextmenu', handleContextMenu)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [editor])
 
   const getSaveStatusColor = () => {
     if (isSaving) return 'text-yellow-600'
@@ -456,6 +529,12 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
         {popup && (
           <InlinePopup rect={popup.rect} suggestion={popup.suggestion} onClose={() => setPopup(null)} />
         )}
+        
+        <ContextMenu
+          editor={editor}
+          position={contextMenu}
+          onClose={() => setContextMenu(null)}
+        />
       </div>
     </div>
   )

@@ -13,6 +13,10 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
   const [isVisible, setIsVisible] = useState(false)
   const [isReplacing, setIsReplacing] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  
+  // Check if this is a multi-layer suggestion
+  const isMultiLayer = suggestion._multiLayer
+  const allSuggestions = suggestion._allSuggestions || [suggestion]
 
   // Animate in on mount
   useEffect(() => {
@@ -815,6 +819,33 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Multi-layer Header */}
+      {isMultiLayer && allSuggestions.length > 1 && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-blue-600 text-sm">🔄</span>
+            <span className="text-sm font-semibold text-blue-800">Multiple Issues Found</span>
+          </div>
+                     <div className="flex flex-wrap gap-1">
+             {allSuggestions.map((sugg: any, index: number) => (
+               <span
+                 key={sugg.id}
+                 className={`text-xs px-2 py-1 rounded-full border font-medium ${
+                   sugg.id === suggestion.id
+                     ? 'bg-blue-100 text-blue-800 border-blue-300'
+                     : 'bg-gray-100 text-gray-600 border-gray-300'
+                 }`}
+               >
+                 {sugg.type.charAt(0).toUpperCase() + sugg.type.slice(1)}
+               </span>
+             ))}
+          </div>
+          <div className="text-xs text-blue-700 mt-2">
+            Showing: <strong>{suggestion.type.charAt(0).toUpperCase() + suggestion.type.slice(1)}</strong> (highest priority)
+          </div>
+        </div>
+      )}
+
       {/* Enhanced Header - Only for non-slang-protected, non-tone-rewrite, non-engagement, non-platform-adaptation, and non-seo types */}
       {suggestion.type !== 'slang-protected' && !suggestion.toneRewrite && suggestion.type !== 'engagement' && suggestion.type !== 'platform-adaptation' && suggestion.type !== 'seo' && (
         <div className="flex items-start gap-3 mb-4">

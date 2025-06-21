@@ -243,132 +243,119 @@ export function useSuggestions() {
     setError(null);
 
     try {
-      console.log('🎯 SEO Analysis - Making API call with advanced features:', {
-        seoOptimizationEnabled: requestBody.seoOptimizationEnabled,
-        seoTemplateEnabled: requestBody.seoTemplateEnabled,
-        seoMetaOptimization: requestBody.seoMetaOptimization,
-        seoKeywordResearch: requestBody.seoKeywordResearch,
-        seoCompetitorAnalysis: requestBody.seoCompetitorAnalysis,
-        seoInternalLinking: requestBody.seoInternalLinking,
-        seoSchemaMarkup: requestBody.seoSchemaMarkup
-      });
-
-      const response = await fetch('http://localhost:3001/api/suggestions', {
+      // PHASE 1: Get core suggestions first (grammar, spelling, demonetization)
+      // This is fast and gives immediate feedback
+      console.log('🚀 Phase 1: Fetching core suggestions (grammar & spelling)');
+      
+      const coreResponse = await fetch('http://localhost:3001/api/suggestions/core', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: content,
-          ...requestBody
+          formalityLevel: requestBody.formalityLevel,
+          userId: 'anonymous'
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!coreResponse.ok) {
+        throw new Error(`Core API error! status: ${coreResponse.status}`);
       }
 
-      const data = await response.json();
+      const coreData = await coreResponse.json();
+      const coreSuggestions = coreData.suggestions || [];
       
-      // Handle Phase 3 SEO analytics and insights
-      if (data.seoAnalytics && requestBody.seoAnalyticsDashboard) {
-        setSeoContentScore(data.seoAnalytics.contentScore || 0);
-        
-        // Update LSI keywords if keyword research is enabled
-        if (requestBody.seoKeywordResearch && data.seoAnalytics.suggestedLSIKeywords) {
-          setSeoLSIKeywords(data.seoAnalytics.suggestedLSIKeywords);
-        }
+      console.log('✅ Phase 1 complete:', coreSuggestions.length, 'core suggestions');
+      
+      // Immediately show core suggestions for fast feedback
+      debouncedSuggestionUpdate(coreSuggestions);
+      
+      // Store session info
+      if (coreData.sessionId) {
+        setCurrentSessionId(coreData.sessionId);
       }
 
-      const suggestions = data.suggestions || []
+      // PHASE 2: Get enhanced suggestions in parallel (only if enabled)
+      const enhancedPromises = [];
       
-      // Phase 4C: Handle enhanced response with insights
-      if (data.insights && data.insights.length > 0) {
-        console.log('✨ Writing Insights:')
-        data.insights.forEach((insight: any) => {
-          console.log(`  ${insight.icon} ${insight.message}`)
-        })
+      // Style suggestions (if style analysis is wanted)
+      if (requestBody.tonePreservingEnabled || requestBody.conflictResolutionMode !== 'grammar-first') {
+        console.log('🎨 Phase 2a: Fetching style suggestions');
+        enhancedPromises.push(
+          fetch('http://localhost:3001/api/suggestions/style', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: content,
+              formalityLevel: requestBody.formalityLevel,
+              toneDetectionSensitivity: requestBody.toneDetectionSensitivity
+            }),
+          }).then(res => res.ok ? res.json() : { suggestions: [] })
+        );
       }
       
-      if (data.processingMetadata) {
-        console.log('📊 Processing Metadata:', data.processingMetadata)
+      // Engagement suggestions (if engagement is enabled)
+      if (requestBody.engagementEnabled && content.length > 50) {
+        console.log('🎯 Phase 2b: Fetching engagement suggestions');
+        enhancedPromises.push(
+          fetch('http://localhost:3001/api/suggestions/engagement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: content }),
+          }).then(res => res.ok ? res.json() : { suggestions: [] })
+        );
       }
       
-      if (data.edgeCase) {
-        console.log(`🛡️ Edge Case Handled: ${data.edgeCase.type} - ${data.edgeCase.message}`)
+      // If no enhanced features are enabled, just use core suggestions
+      if (enhancedPromises.length === 0) {
+        console.log('✅ Using core suggestions only (no enhanced features enabled)');
+        return;
       }
       
-      // Debug logging for suggestions
-      console.log('🔍 Received suggestions:', suggestions.length)
+      // Wait for all enhanced suggestions to complete
+      const enhancedResults = await Promise.allSettled(enhancedPromises);
       
-      suggestions.forEach((suggestion: any) => {
-        const extractedText = content.substring(suggestion.start, suggestion.end)
-        const isTextMatch = extractedText === suggestion.text
+      // Combine all suggestions
+      let allSuggestions = [...coreSuggestions];
+      
+      enhancedResults.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value.suggestions) {
+          allSuggestions = [...allSuggestions, ...result.value.suggestions];
+          console.log(`✅ Phase 2${String.fromCharCode(97 + index)} complete:`, result.value.suggestions.length, 'suggestions');
+        } else {
+          console.warn(`⚠️ Phase 2${String.fromCharCode(97 + index)} failed:`, result.status === 'rejected' ? result.reason : 'No suggestions');
+        }
+      });
+      
+      console.log('🔄 Final combined suggestions:', allSuggestions.length);
+      
+      // Apply our priority-based filtering (spelling/grammar first)
+      const prioritizedSuggestions = allSuggestions.sort((a, b) => {
+        const priorityMap = {
+          'spelling': 100,
+          'grammar': 90,
+          'demonetization': 80,
+          'style': 50,
+          'engagement': 40,
+          'platform-adaptation': 30
+        };
         
-        console.log(`📍 Suggestion ${suggestion.id}:`, {
-          type: suggestion.type,
-          hasTextProperty: 'text' in suggestion,
-          apiText: suggestion.text,
-          apiTextLength: suggestion.text ? suggestion.text.length : 'N/A',
-          position: `${suggestion.start}-${suggestion.end}`,
-          extractedText: extractedText,
-          extractedLength: extractedText.length,
-          isMatch: isTextMatch
-        })
+        const aPriority = priorityMap[a.type as keyof typeof priorityMap] || 25;
+        const bPriority = priorityMap[b.type as keyof typeof priorityMap] || 25;
         
-        if (!isTextMatch) {
-          console.warn(`Text mismatch for suggestion ${suggestion.id}:`, {
-            expected: suggestion.text,
-            actual: extractedText,
-            position: `${suggestion.start}-${suggestion.end}`,
-            type: suggestion.type
-          })
-        }
-        
-        if (suggestion.type === 'demonetization') {
-          console.log(`  - ${suggestion.text} (${suggestion.start}-${suggestion.end}): "${content.substring(suggestion.start, suggestion.end)}"`)
-        }
-        if (suggestion.type === 'tone-rewrite') {
-          console.log(`  - Tone rewrite: "${suggestion.text}" -> "${suggestion.toneRewrite?.rewrittenText}"`)
-        }
-        if (suggestion.type === 'engagement') {
-          console.log(`  - Engagement (${suggestion.engagementCategory}): "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
-        }
-        if (suggestion.type === 'platform-adaptation') {
-          console.log(`  - Platform (${suggestion.platformName}): "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
-        }
-        if (suggestion.type === 'seo') {
-          console.log(`  - SEO: "${suggestion.text}" -> ${suggestion.alternatives?.[0] || 'N/A'}`)
-        }
-        if (suggestion.userTip) {
-          console.log(`    💡 Tip: ${suggestion.userTip}`)
-        }
-      })
+        return bPriority - aPriority; // Higher priority first
+      });
       
-      // Use debounced update to prevent flickering
-      debouncedSuggestionUpdate(suggestions)
+      // Update with final suggestions
+      debouncedSuggestionUpdate(prioritizedSuggestions);
       
-      // Store insights in the editor store for potential UI display
-      if (setWritingInsights && data.insights) {
-        setWritingInsights(data.insights)
-      }
-      
-      // Phase 5A: Handle analytics and session data
-      console.log('📊 Analytics Response Debug:', {
-        hasSessionId: !!data.sessionId,
-        hasAnalytics: !!data.analytics,
-        sessionId: data.sessionId,
-        analytics: data.analytics
-      })
-      
-      if (data.sessionId) {
-        console.log('Setting session ID:', data.sessionId)
-        setCurrentSessionId(data.sessionId)
-      }
-      if (data.analytics) {
-        console.log('Setting analytics:', data.analytics)
-        setAnalytics(data.analytics)
-      }
+      // Debug logging for final suggestions
+      console.log('🔍 Final suggestions by type:');
+      const suggestionsByType = prioritizedSuggestions.reduce((acc, s) => {
+        acc[s.type] = (acc[s.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log(suggestionsByType);
+
     } catch (err) {
       console.error('Error fetching suggestions:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -379,11 +366,7 @@ export function useSuggestions() {
     content,
     requestBody,
     debouncedSuggestionUpdate,
-    setWritingInsights,
     setCurrentSessionId,
-    setAnalytics,
-    setSeoContentScore,
-    setSeoLSIKeywords,
     setAllSuggestionsAndFilter
   ]);
 

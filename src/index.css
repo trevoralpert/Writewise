@@ -1018,3 +1018,133 @@ button:focus-visible {
 }
 
 /* ========== END SEO OPTIMIZATION ANIMATIONS ========== */
+
+/* Multi-layered suggestion highlighting system */
+/* Base class for all multi-layer suggestions */
+.suggestion-multi-base {
+  position: relative;
+  display: inline;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Individual suggestion type styles - designed to layer */
+.suggestion-multi-spelling {
+  text-decoration: underline wavy #dc2626; /* Red wavy underline for spelling */
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.suggestion-multi-grammar {
+  border-bottom: 2px solid #ef4444; /* Red solid border for grammar */
+  border-radius: 1px;
+}
+
+.suggestion-multi-style {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%); /* Blue background for style */
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.suggestion-multi-engagement {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(219, 39, 119, 0.08) 100%); /* Pink background for engagement */
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.suggestion-multi-demonetization {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%); /* Orange background for demonetization */
+  text-decoration: underline wavy #f59e0b;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 3px;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.suggestion-multi-slang-protected {
+  border-bottom: 2px dotted #10b981; /* Green dotted border for slang protection */
+  background: linear-gradient(120deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%);
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.suggestion-multi-tone-rewrite {
+  border-bottom: 2px solid #8b5cf6; /* Purple solid border for tone rewrite */
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%);
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.suggestion-multi-platform-adaptation {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.12) 0%, rgba(202, 138, 4, 0.06) 100%); /* Yellow background for platform adaptation */
+  border-bottom: 2px solid #eab308;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.suggestion-multi-seo {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(21, 128, 61, 0.05) 100%); /* Green background for SEO */
+  border-bottom: 2px solid #22c55e;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.suggestion-multi-style-consistency {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%); /* Purple background for style consistency */
+  border-bottom: 2px dotted #a855f7;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.suggestion-multi-default {
+  text-decoration: underline solid #6b7280; /* Gray underline for unknown types */
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* Hover effects for multi-layer suggestions */
+.suggestion-multi-base:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+/* Enhanced visual feedback for high-priority combinations */
+.suggestion-multi-base.suggestion-multi-spelling.suggestion-multi-grammar {
+  animation: critical-pulse 2s ease-in-out infinite;
+}
+
+.suggestion-multi-base.suggestion-multi-demonetization {
+  animation: warning-pulse 2.5s ease-in-out infinite;
+}
+
+/* Animations for multi-layer suggestions */
+@keyframes critical-pulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes warning-pulse {
+  0%, 100% { 
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
+  }
+  50% { 
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(217, 119, 6, 0.15) 100%);
+  }
+}
+
+/* Ensure proper layering with z-index */
+.suggestion-multi-base {
+  z-index: 1;
+}
+
+.suggestion-multi-base:hover {
+  z-index: 10;
+}
+
+/* suggestion underline */
