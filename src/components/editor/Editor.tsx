@@ -124,20 +124,35 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     content: content || '',
     onUpdate: ({ editor }) => {
       const newText = editor.getText();
-      setContent(newText)
-      requestSuggestions()
+      
+      // Only update if content actually changed to prevent loops
+      if (newText !== content) {
+        setContent(newText)
+        
+        // Only request suggestions if there's meaningful content
+        if (newText.trim().length > 0) {
+          requestSuggestions()
+        } else {
+          // Clear suggestions for empty content
+          useEditorStore.getState().setAllSuggestionsAndFilter([])
+        }
 
-      // Debounced autosave
-      if (saveTimeout.current) clearTimeout(saveTimeout.current)
-      saveTimeout.current = setTimeout(debouncedSave, 1000) // 1-second debounce
+        // Debounced autosave
+        if (saveTimeout.current) clearTimeout(saveTimeout.current)
+        saveTimeout.current = setTimeout(debouncedSave, 1000) // 1-second debounce
+      }
     },
   })
 
   // Sync external content (e.g. after accepting a suggestion) into the editor
   useEffect(() => {
     if (editor && content !== editor?.getText()) {
-      // Update without triggering another onUpdate
-      editor.commands.setContent(content, false)
+      // Prevent infinite loops by checking if content actually changed
+      const editorText = editor.getText()
+      if (content !== editorText) {
+        // Update without triggering another onUpdate
+        editor.commands.setContent(content, false)
+      }
     }
   }, [content, editor])
 
@@ -148,10 +163,15 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     }
   }, [])
 
-  // Refresh decorations when suggestions update
+  // Refresh decorations when suggestions update (with debounce to prevent flickering)
   useEffect(() => {
     if (editor) {
-      editor.view.dispatch(editor.state.tr) // empty transaction to force re-render
+      // Use a small delay to batch decoration updates and prevent flickering
+      const timeout = setTimeout(() => {
+        editor.view.dispatch(editor.state.tr) // empty transaction to force re-render
+      }, 50) // 50ms delay to batch updates
+      
+      return () => clearTimeout(timeout)
     }
   }, [suggestions, editor])
 

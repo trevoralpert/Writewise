@@ -4,6 +4,7 @@ import { updateDocument } from '../services/documents'
 
 interface Suggestion {
   id: string
+  text: string // The actual text that should be highlighted
   start: number
   end: number
   message: string

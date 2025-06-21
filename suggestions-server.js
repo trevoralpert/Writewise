@@ -73,6 +73,39 @@ const DEMONETIZATION_WORDS = [
   'investigation', 'scandal', 'corrupt', 'corruption', 'fraud', 'scam', 'fake', 'hoax'
 ];
 
+// Simple spelling error detection
+const SPELLING_ERRORS = {
+  "exmple": "example",
+  "spellng": "spelling",
+  "demonetised": "demonetized", // Common UK/US spelling issue
+  "wriet": "write",
+  "sentance": "sentence"
+};
+
+function detectSpellingErrors(text) {
+  const detectedErrors = [];
+  const lowerText = text.toLowerCase();
+
+  for (const [misspelling, correction] of Object.entries(SPELLING_ERRORS)) {
+    const regex = new RegExp(`\\b${misspelling}\\b`, 'gi');
+    let match;
+    while ((match = regex.exec(lowerText)) !== null) {
+      detectedErrors.push({
+        id: `spelling-${Math.random().toString(36).slice(2, 10)}`,
+        text: match[0],
+        start: match.index,
+        end: match.index + match[0].length,
+        message: `Spelling mistake. Did you mean "${correction}"?`,
+        type: 'spelling',
+        correction: correction,
+        status: 'pending',
+        priority: 100 // Highest by default
+      });
+    }
+  }
+  return detectedErrors;
+}
+
 function detectDemonetizationWords(text) {
   const detectedWords = [];
   
@@ -183,7 +216,7 @@ SPECIFIC REQUIREMENTS for each type:
 INDUSTRY STANDARD: Use actual terms content creators use to avoid demonetization:
 - "killed" → "unalived" 
 - "dead" → "unalived"
-- "suicide" → "self-deletion"
+- "suicide" → "self-deletion" 
 - "gun" → "pew pew"
 - "drugs" → "happy pills"
 
@@ -1090,39 +1123,35 @@ async function resolveConflictGroup(conflictGroup, fullText, conflictResolutionM
 
 // Helper function to calculate priority in conflict resolution
 function calculateConflictPriority(suggestion, conflictResolutionMode, toneAnalysis) {
+  // --- CORRECTED PRIORITIES ---
   const basePriorities = {
-    'demonetization': 9,
-    'tone-rewrite': 8,
-    'spelling': 7,
-    'grammar': 6,
-    'style': 4,
-    'slang-protected': 2
+    // Top priority: Correctness
+    'spelling': 100, // Significantly higher to win all conflicts
+    'grammar': 90,
+    
+    // High priority: Content safety and major tone changes
+    'demonetization': 80,
+    'tone-rewrite': 70,
+    
+    // Mid priority: Contextual and style suggestions
+    'style': 50,
+    'engagement': 40,
+    'platform-adaptation': 30,
+    
+    // Low priority: Informational
+    'slang-protected': 20,
   };
   
-  let priority = basePriorities[suggestion.type] || 5;
-  
-  // Adjust based on conflict resolution mode
-  switch (conflictResolutionMode) {
-    case 'grammar-first':
-      if (['grammar', 'spelling'].includes(suggestion.type)) priority += 3;
-      if (suggestion.type === 'style') priority += 1;
-      break;
-    case 'tone-first':
-      if (suggestion.type === 'tone-rewrite') priority += 3;
-      if (suggestion.type === 'slang-protected') priority += 2;
-      break;
-    case 'balanced':
-      // Slight boost for tone-preserving approaches
-      if (suggestion.type === 'tone-rewrite') priority += 1;
-      break;
-    case 'user-choice':
-      priority = 5; // Equal priority, let user decide
-      break;
+  let priority = basePriorities[suggestion.type] || 50; // Default to 50 for unknown types
+
+  if (conflictResolutionMode === 'tone-preserving' && toneAnalysis) {
+    if (suggestion.type === 'slang-protected' && toneAnalysis.formalityLevel === 'casual') {
+      priority = 95; // Boost to beat grammar, but not spelling
+    }
   }
-  
-  // Factor in tone analysis confidence
-  if (toneAnalysis.confidence > 0.8) {
-    if (suggestion.type === 'tone-rewrite') priority += 1;
+
+  if (suggestion.alternatives && suggestion.alternatives.length > 0) {
+    priority += 1;
   }
   
   return priority;
@@ -1564,26 +1593,36 @@ async function applyPriorityBasedFiltering(suggestions, primaryPriority, fullTex
 
 // Enhanced priority calculation
 function calculateEnhancedPriority(suggestion, toneAnalysis, settings) {
-  const basePriority = calculateConflictPriority(suggestion, settings.conflictResolutionMode, toneAnalysis);
-  
-  // Additional factors for enhanced priority
-  let enhancement = 0;
-  
-  // Boost based on tone confidence
-  if (toneAnalysis.confidence > 0.9) enhancement += 1;
-  if (toneAnalysis.confidence > 0.8) enhancement += 0.5;
-  
-  // Boost tone-preserving suggestions for casual/creative content
-  if (suggestion.type === 'tone-rewrite' && ['casual', 'creative'].includes(toneAnalysis.primaryTone)) {
-    enhancement += 1.5;
+  // --- ALSO CORRECTED PRIORITIES ---
+  const basePriorities = {
+    // Top priority: Correctness
+    'spelling': 100, // Significantly higher to win all conflicts
+    'grammar': 90,
+    
+    // High priority: Content safety and major tone changes
+    'demonetization': 80,
+    'tone-rewrite': 70,
+    
+    // Mid priority: Contextual and style suggestions
+    'style': 50,
+    'engagement': 40,
+    'platform-adaptation': 30,
+    
+    // Low priority: Informational
+    'slang-protected': 20,
+  };
+
+  let priority = basePriorities[suggestion.type] || 50;
+
+  // Add situational boosts
+  if (suggestion.impactScore && suggestion.impactScore > 0.8) {
+    priority += 5;
+  }
+  if (settings.conflictResolutionMode === 'tone-preserving' && suggestion.type === 'slang-protected') {
+    priority = 95; // Allow casual slang to override grammar
   }
   
-  // Boost demonetization for any content
-  if (suggestion.type === 'demonetization') {
-    enhancement += 2;
-  }
-  
-  return basePriority + enhancement;
+  return priority;
 }
 
 // Apply filtering to a single suggestion
@@ -3255,6 +3294,9 @@ Input:
     content = content.replace(/```json|```/g, '').trim()
     let suggestions = JSON.parse(content)
 
+    // Add spelling error detection
+    const spellingErrors = detectSpellingErrors(text);
+
     // Add demonetization word detection
     const demonetizationWords = detectDemonetizationWords(text);
     
@@ -3307,7 +3349,7 @@ Input:
     console.log('Created slang-protected suggestions:', slangProtectedSuggestions.length);
 
     // Combine all suggestions (before position calculation)
-    suggestions = [...suggestions, ...demonetizationSuggestions, ...slangProtectedSuggestions];
+    suggestions = [...suggestions, ...spellingErrors, ...demonetizationSuggestions, ...slangProtectedSuggestions];
 
     const escapeRegex = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
