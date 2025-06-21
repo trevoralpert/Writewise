@@ -141,52 +141,16 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
               })
               .filter(Boolean) as (typeof suggestions[0] & { actualText: string })[]
 
-            // Group overlapping suggestions
-            const groupOverlappingSuggestions = (suggestions: typeof validSuggestions): SuggestionGroup[] => {
-              if (suggestions.length === 0) return []
-
-              // Sort suggestions by start position
-              const sortedSuggestions = [...suggestions].sort((a, b) => a.start - b.start)
-              const groups: SuggestionGroup[] = []
-
-              for (const suggestion of sortedSuggestions) {
-                // Find if this suggestion overlaps with any existing group
-                let foundGroup = false
-                
-                for (const group of groups) {
-                  // Check for overlap: suggestion overlaps if it starts before group ends and ends after group starts
-                  if (suggestion.start < group.end && suggestion.end > group.start) {
-                    // Add to existing group and expand bounds
-                    group.suggestions.push(suggestion)
-                    group.start = Math.min(group.start, suggestion.start)
-                    group.end = Math.max(group.end, suggestion.end)
-                    foundGroup = true
-                    break
-                  }
-                }
-
-                if (!foundGroup) {
-                  // Create new group
-                  groups.push({
-                    start: suggestion.start,
-                    end: suggestion.end,
-                    suggestions: [suggestion],
-                    combinedClasses: [],
-                    combinedMessages: []
-                  })
-                }
-              }
-
-              // Generate combined classes and messages for each group
-              groups.forEach(group => {
-                // Sort suggestions in group by priority (highest first)
-                group.suggestions.sort((a, b) => (b.priority || 0) - (a.priority || 0))
-                
-                group.combinedClasses = group.suggestions.map(s => getSuggestionClassName(s.type))
-                group.combinedMessages = group.suggestions.map(s => `${s.type.toUpperCase()}: ${s.message}`)
-              })
-
-              return groups
+            // Create individual decorations for each suggestion (no grouping)
+            // This allows natural layering of highlights and underlines
+            const createIndividualSuggestions = (suggestions: typeof validSuggestions) => {
+              return suggestions.map(suggestion => ({
+                start: suggestion.start,
+                end: suggestion.end,
+                suggestion: suggestion,
+                className: getSuggestionClassName(suggestion.type),
+                message: `${suggestion.type.toUpperCase()}: ${suggestion.message}`
+              }))
             }
 
             // Helper function to get CSS class for suggestion type
@@ -217,19 +181,19 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
               }
             }
 
-            // Group the suggestions
-            const suggestionGroups = groupOverlappingSuggestions(validSuggestions)
+            // Create individual decorations for each suggestion
+            const individualSuggestions = createIndividualSuggestions(validSuggestions)
 
-            // Create decorations for each group
-            suggestionGroups.forEach((group) => {
+            // Create decorations for each individual suggestion
+            individualSuggestions.forEach((item) => {
               // Map text positions to ProseMirror positions
-              const fromPos = textToProseMirrorPos[group.start]
+              const fromPos = textToProseMirrorPos[item.start]
               
               let toPos: number
-              if (group.end >= totalTextLength) {
+              if (item.end >= totalTextLength) {
                 toPos = textToProseMirrorPos[totalTextLength - 1] + 1
               } else {
-                toPos = textToProseMirrorPos[group.end]
+                toPos = textToProseMirrorPos[item.end]
               }
               
               if (fromPos === undefined || toPos === undefined) {
@@ -249,29 +213,25 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                 return
               }
 
-              // Create combined class string
-              const combinedClassName = ['suggestion-multi-base', ...group.combinedClasses].join(' ')
-              
-              // Get the highest priority suggestion for primary data attributes
-              const primarySuggestion = group.suggestions[0]
+              // Create individual class string
+              const className = ['suggestion-multi-base', item.className].join(' ')
               
               try {
                 decos.push(
                   Decoration.inline(from, finalTo, {
-                    class: combinedClassName,
-                    'data-suggestion-ids': group.suggestions.map(s => s.id).join(','),
-                    'data-suggestion-types': group.suggestions.map(s => s.type).join(','),
-                    'data-primary-suggestion': primarySuggestion.id,
+                    class: className,
+                    'data-suggestion-id': item.suggestion.id,
+                    'data-suggestion-type': item.suggestion.type,
                     'data-from': String(from),
                     'data-to': String(finalTo),
-                    'data-text-start': String(group.start),
-                    'data-text-end': String(group.end),
-                    'data-actual-text': plainText.slice(group.start, group.end),
-                    title: group.combinedMessages.join(' | '),
+                    'data-text-start': String(item.start),
+                    'data-text-end': String(item.end),
+                    'data-actual-text': plainText.slice(item.start, item.end),
+                    title: item.message,
                   })
                 )
               } catch (error) {
-                console.warn(`Failed to create multi-layer decoration:`, error)
+                console.warn(`Failed to create individual decoration:`, error)
               }
             })
 
