@@ -82,6 +82,8 @@ interface EditorState {
   setCurrentSessionId: (sessionId: string | null) => void
   analytics: any | null
   setAnalytics: (analytics: any | null) => void
+  generateAnalytics: () => void
+  sessionStartTime: number
 
   // Feature toggles for settings page
   demonetizationEnabled: boolean
@@ -313,6 +315,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     })
     
     set({ allSuggestions: suggestionsWithPriority, suggestions: filteredSuggestions })
+    get().generateAnalytics()
   },
   refilterSuggestions: () => {
     const state = get()
@@ -351,6 +354,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     })
     
     set({ allSuggestions: suggestionsWithPriority, suggestions: filteredSuggestions })
+    get().generateAnalytics()
   },
   updateSuggestionStatus: (id, status) =>
     set((state) => {
@@ -444,6 +448,45 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setCurrentSessionId: (sessionId) => set({ currentSessionId: sessionId }),
   analytics: null,
   setAnalytics: (analytics) => set({ analytics }),
+  sessionStartTime: Date.now(),
+  generateAnalytics: () => {
+    const state = get()
+    const { allSuggestions, currentSessionId } = state
+    
+    // Generate analytics based on current suggestions
+    const suggestionBreakdown = allSuggestions.reduce((acc, suggestion) => {
+      const existing = acc.find(item => item.type === suggestion.type)
+      if (existing) {
+        existing.count += 1
+      } else {
+        acc.push({
+          type: suggestion.type,
+          count: 1,
+          percentage: 0 // Will calculate below
+        })
+      }
+      return acc
+    }, [] as any[])
+    
+    // Calculate percentages
+    const total = allSuggestions.length
+    suggestionBreakdown.forEach(item => {
+      item.percentage = total > 0 ? Math.round((item.count / total) * 100) : 0
+    })
+    
+    const analytics = {
+      session: {
+        id: currentSessionId || 'current',
+        suggestionsProcessed: allSuggestions.length,
+        duration: Date.now() - (state.sessionStartTime || Date.now()),
+        wordsAnalyzed: state.content.split(/\s+/).filter(word => word.length > 0).length,
+        improvementRate: 0 // Could calculate based on accepted suggestions
+      },
+      suggestionBreakdown
+    }
+    
+    set({ analytics })
+  },
 
   // Feature toggles for settings page
   demonetizationEnabled: true,

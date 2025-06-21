@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useEditorStore } from '../../store/editorStore'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
@@ -10,14 +10,24 @@ export default function AnalyticsPage() {
   const analytics = useEditorStore(s => s.analytics)
   const currentDocument = useEditorStore(s => s.currentDocument)
   const suggestions = useEditorStore(s => s.suggestions)
+  const allSuggestions = useEditorStore(s => s.allSuggestions)
+  const generateAnalytics = useEditorStore(s => s.generateAnalytics)
   const [showDebugInfo, setShowDebugInfo] = useState(false)
+
+  // Generate analytics when component mounts or suggestions change
+  useEffect(() => {
+    generateAnalytics()
+  }, [allSuggestions.length, generateAnalytics])
 
   // Debug information
   console.log('Analytics Page Debug:', {
     currentSessionId,
     analytics,
     currentDocument: currentDocument?.title,
-    suggestionsCount: suggestions.length
+    suggestionsCount: suggestions.length,
+    allSuggestionsCount: allSuggestions.length,
+    suggestionsData: suggestions,
+    allSuggestionsData: allSuggestions
   })
 
   return (
@@ -75,7 +85,8 @@ export default function AnalyticsPage() {
                 <p><strong>Session ID:</strong> {currentSessionId || 'null'}</p>
                 <p><strong>Analytics:</strong> {analytics ? 'Present' : 'null'}</p>
                 <p><strong>Document:</strong> {currentDocument?.title || 'None'}</p>
-                <p><strong>Suggestions:</strong> {suggestions.length}</p>
+                <p><strong>Filtered Suggestions:</strong> {suggestions.length}</p>
+                <p><strong>Total Suggestions:</strong> {allSuggestions.length}</p>
               </div>
             </div>
           )}

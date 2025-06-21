@@ -6333,18 +6333,25 @@ Text: "${text}"`;
     const spellingErrors = detectSpellingErrors(text);
     suggestions = [...suggestions, ...spellingErrors];
 
-    // Add demonetization detection (rule-based, no AI needed)
+    // Add demonetization detection with AI-generated alternatives
     const demonetizationWords = detectDemonetizationWords(text);
-    const demonetizationSuggestions = demonetizationWords.map(detected => ({
-      id: `demonetization-${Math.random().toString(36).slice(2, 10)}`,
-      text: detected.word,
-      message: `This word may cause demonetization. Consider alternatives.`,
-      type: 'demonetization',
-      alternatives: ['[content-friendly alternative]'], // Placeholder - can be enhanced later
-      start: detected.start,
-      end: detected.end,
-      status: 'pending'
-    }));
+    const demonetizationSuggestions = await Promise.all(
+      demonetizationWords.map(async (detected) => {
+        const context = getWordContext(text, detected.start, detected.end);
+        const alternatives = await generateDemonetizationAlternatives(detected.word, context);
+        
+        return {
+          id: `demonetization-${Math.random().toString(36).slice(2, 10)}`,
+          text: detected.word,
+          message: `This word may cause demonetization on content platforms. Consider using a safer alternative.`,
+          type: 'demonetization',
+          alternatives: alternatives,
+          start: detected.start,
+          end: detected.end,
+          status: 'pending'
+        };
+      })
+    );
 
     suggestions = [...suggestions, ...demonetizationSuggestions];
 
