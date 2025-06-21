@@ -400,5 +400,5 @@ export function useSuggestions() {
     }
   }, [])
 
-  return { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions }
+  return { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions, isLoading, error }
 }

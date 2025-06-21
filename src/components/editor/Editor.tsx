@@ -34,7 +34,7 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     conflictResolutionMode,
     toneDetectionSensitivity
   } = useEditorStore()
-  const { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions } = useSuggestions()
+  const { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions, isLoading } = useSuggestions()
   const saveTimeout = React.useRef<NodeJS.Timeout | null>(null)
   const [popup, setPopup] = React.useState<{rect: DOMRect, suggestion: any} | null>(null)
   const [contextMenu, setContextMenu] = React.useState<{x: number, y: number} | null>(null)
@@ -123,7 +123,7 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
           return state.suggestions
         },
       }),
-      // ClipboardExtension, // Temporarily disabled to debug
+      ClipboardExtension, // Minimal version - should work now
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
@@ -382,7 +382,12 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
   // Listen for clipboard paste events and refresh suggestions
   useEffect(() => {
     const handleClipboardPaste = (event: CustomEvent) => {
-      console.log('📥 Clipboard paste detected, refreshing suggestions for:', event.detail.content)
+      console.log('📥 Clipboard paste detected, clearing old suggestions and requesting new ones')
+      
+      // Clear existing suggestions immediately to avoid conflicts with new content
+      useEditorStore.getState().setAllSuggestionsAndFilter([])
+      
+      // Request fresh suggestions for the new content
       requestSuggestionsImmediate()
     }
 
@@ -509,8 +514,13 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
               </div>
             </div>
             
-            {/* Suggestion count */}
-            {(() => {
+            {/* Suggestion processing status */}
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <div className="loading loading-spinner loading-xs"></div>
+                Analyzing suggestions...
+              </div>
+            ) : (() => {
               const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
               return pendingSuggestions.length > 0 && (
                 <div className="text-sm text-blue-600">
