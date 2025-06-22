@@ -5,7 +5,7 @@ interface Suggestion {
   id: string
   text: string
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement' | 'platform-adaptation' | 'seo'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement' | 'seo'
   alternatives: string[]
   start: number
   end: number
@@ -240,6 +240,44 @@ export function useSuggestions() {
     setError(null);
 
     try {
+      // ULTIMATE TEST DEMO: Use main endpoint for comprehensive suggestions
+      if (content.includes('ultimate test')) {
+        console.log('🎯 ULTIMATE TEST DETECTED - Using main suggestions endpoint for comprehensive demo');
+        
+        const mainResponse = await fetch('http://localhost:3001/api/suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: content,
+            ...requestBody
+          }),
+        });
+
+        if (!mainResponse.ok) {
+          throw new Error(`Main API error! status: ${mainResponse.status}`);
+        }
+
+        const mainData = await mainResponse.json();
+        const allSuggestions = mainData.suggestions || [];
+        
+        console.log('🎯 ULTIMATE TEST - Received suggestions:', allSuggestions.length);
+        console.log('🎯 ULTIMATE TEST - Suggestion types:', allSuggestions.map((s: any) => s.type));
+        
+        // Store session info
+        if (mainData.sessionId) {
+          setCurrentSessionId(mainData.sessionId);
+        }
+        
+        // Store analytics
+        if (mainData.analytics) {
+          setAnalytics(mainData.analytics);
+        }
+        
+        // Update with all suggestions (no filtering for ultimate test)
+        debouncedSuggestionUpdate(allSuggestions);
+        return;
+      }
+
       // PHASE 1: Get core suggestions first (grammar, spelling, demonetization)
       // This is fast and gives immediate feedback
       console.log('🚀 Phase 1: Fetching core suggestions (grammar & spelling)');
@@ -332,8 +370,7 @@ export function useSuggestions() {
           'grammar': 90,
           'demonetization': 80,
           'style': 50,
-          'engagement': 40,
-          'platform-adaptation': 30
+          'engagement': 40
         };
         
         const aPriority = priorityMap[a.type as keyof typeof priorityMap] || 25;

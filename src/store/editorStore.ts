@@ -8,7 +8,7 @@ interface Suggestion {
   start: number
   end: number
   message: string
-  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement' | 'platform-adaptation' | 'seo'
+  type: 'grammar' | 'spelling' | 'style' | 'demonetization' | 'slang-protected' | 'tone-rewrite' | 'engagement' | 'seo'
   alternatives?: string[]
   confidence?: number
   status: 'pending' | 'accepted' | 'ignored'
@@ -224,7 +224,6 @@ const calculateSuggestionPriority = (suggestion: Suggestion, conflictResolutionM
     'spelling': 7,            // High priority - clear errors
     'tone-rewrite': 8,        // High priority - preserves voice while fixing
     'engagement': 5,          // Medium priority - enhances reader connection
-    'platform-adaptation': 6, // Medium-high priority - platform optimization
     'seo': 7,                // High priority - affects search visibility
     'style': 4,              // Medium priority - affects clarity
     'slang-protected': 2     // Low priority - informational only

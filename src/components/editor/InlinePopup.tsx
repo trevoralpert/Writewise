@@ -75,6 +75,9 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
     } else if (suggestion.type === 'seo') {
       popupWidth = 400
       popupHeight = 380
+    } else if (suggestion.type === 'tone-rewrite') {
+      popupWidth = 400
+      popupHeight = 380
     }
     
     let left = rect.left
@@ -812,7 +815,7 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
                suggestion.type === 'engagement' ? '350px' :
                suggestion.type === 'platform-adaptation' ? '380px' :
                suggestion.type === 'seo' ? '400px' :
-               suggestion.toneRewrite ? '400px' : 'auto',
+               suggestion.type === 'tone-rewrite' ? '400px' : 'auto',
         backdropFilter: 'blur(8px)',
         background: 'rgba(255, 255, 255, 0.95)'
       }}
@@ -846,8 +849,8 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
         </div>
       )}
 
-      {/* Enhanced Header - Only for non-slang-protected, non-tone-rewrite, non-engagement, non-platform-adaptation, and non-seo types */}
-      {suggestion.type !== 'slang-protected' && !suggestion.toneRewrite && suggestion.type !== 'engagement' && suggestion.type !== 'platform-adaptation' && suggestion.type !== 'seo' && (
+      {/* Enhanced Header - Only for non-slang-protected, non-tone-rewrite, non-engagement, and non-seo types */}
+      {suggestion.type !== 'slang-protected' && !suggestion.toneRewrite && suggestion.type !== 'engagement' && suggestion.type !== 'seo' && (
         <div className="flex items-start gap-3 mb-4">
           {suggestion.type === 'demonetization' && (
             <span className="text-orange-500 text-xl mt-0.5 drop-shadow-sm">⚠️</span>
@@ -885,7 +888,9 @@ const InlinePopup: React.FC<Props> = ({ rect, suggestion, onClose }) => {
             ? renderPlatformAdaptationButtons()
             : suggestion.type === 'seo'
             ? renderSeoButtons()
-            : suggestion.toneRewrite ? renderToneRewriteButtons() : renderRegularButtons()
+            : suggestion.type === 'tone-rewrite'
+            ? renderToneRewriteButtons()
+            : renderRegularButtons()
           }
         </>
       )}

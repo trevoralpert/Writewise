@@ -121,12 +121,13 @@ button:focus-visible {
 }
 
 .suggestion-underline,
+.suggestion-underline-grammar,
+.suggestion-underline-spelling,
 .suggestion-underline-style,
 .suggestion-underline-demonetization,
 .suggestion-underline-slang-protected,
 .suggestion-underline-tone-rewrite,
-.suggestion-underline-engagement,
-.suggestion-underline-platform-adaptation {
+.suggestion-underline-engagement {
   display: inline-block;      /* give it its own rect */
   position: relative;         /* stays inline, but Popper sees real coords */
 }
@@ -234,54 +235,7 @@ button:focus-visible {
   }
 }
 
-/* Platform adaptation suggestion underline */
-.suggestion-underline-platform-adaptation {
-  border-bottom: 3px solid rgb(234 179 8);
-  border-radius: 1px;
-  animation: platform-pulse 2.5s ease-in-out infinite;
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(202, 138, 4, 0.05) 100%);
-  padding: 1px 2px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-}
 
-.suggestion-underline-platform-adaptation:hover {
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(202, 138, 4, 0.1) 100%);
-  border-bottom-color: rgb(202 138 4);
-  border-bottom-width: 4px;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3);
-}
-
-.suggestion-underline-platform-adaptation::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, transparent, rgba(234, 179, 8, 0.1), transparent);
-  border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.suggestion-underline-platform-adaptation:hover::before {
-  opacity: 1;
-}
-
-@keyframes platform-pulse {
-  0%, 100% { 
-    border-bottom-color: rgb(234 179 8);
-    opacity: 1;
-  }
-  50% { 
-    border-bottom-color: rgba(234, 179, 8, 0.6);
-    opacity: 0.8;
-  }
-}
 
 @keyframes demonetization-pulse {
   0%, 100% { 
@@ -1019,99 +973,125 @@ button:focus-visible {
 
 /* ========== END SEO OPTIMIZATION ANIMATIONS ========== */
 
-/* Multi-layered suggestion highlighting system */
+/* Multi-layered suggestion highlighting system - REDESIGNED FOR ULTIMATE LAYERING */
 /* Base class for all multi-layer suggestions */
 .suggestion-multi-base {
   position: relative;
   display: inline;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Individual suggestion type styles - designed to layer */
-.suggestion-multi-spelling {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(220, 38, 38, 0.08) 100%); /* Light red highlight for spelling */
   border-radius: 3px;
   padding: 1px 3px;
-  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.2);
 }
 
+/* LAYER 1: BACKGROUND COLORS (Blendable) */
+.suggestion-multi-spelling {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.10) 100%); /* Red background only - no underline */
+}
+
+.suggestion-multi-style {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%); /* Blue background */
+}
+
+.suggestion-multi-engagement {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(219, 39, 119, 0.10) 100%); /* Pink background */
+}
+
+.suggestion-multi-seo {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(21, 128, 61, 0.08) 100%); /* Green background */
+}
+
+/* LAYER 2: BORDER STYLES (Non-conflicting patterns) */
 .suggestion-multi-grammar {
-  text-decoration: underline wavy #ef4444; /* Red wavy underline for grammar */
+  text-decoration: underline wavy #ef4444; /* Red wavy underline */
   text-decoration-thickness: 2px;
   text-underline-offset: 2px;
 }
 
-.suggestion-multi-style {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%); /* Blue background for style */
-  border-radius: 2px;
-  padding: 1px 2px;
-}
-
-.suggestion-multi-engagement {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.18) 0%, rgba(219, 39, 119, 0.12) 100%); /* Enhanced pink highlight for engagement */
-  border-radius: 3px;
-  padding: 1px 3px;
-  box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.25);
-}
-
 .suggestion-multi-demonetization {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%); /* Orange background for demonetization */
-  text-decoration: underline wavy #f59e0b;
+  text-decoration: underline wavy #f59e0b; /* Orange wavy underline */
   text-decoration-thickness: 3px;
-  text-underline-offset: 3px;
-  border-radius: 2px;
-  padding: 1px 2px;
+  text-underline-offset: 4px; /* Offset to avoid grammar underline */
 }
 
 .suggestion-multi-slang-protected {
-  border-bottom: 2px dotted #10b981; /* Green dotted border for slang protection */
-  background: linear-gradient(120deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%);
-  border-radius: 2px;
-  padding: 1px 2px;
+  border: 2px dotted #10b981; /* Green dotted border */
+  border-radius: 4px;
 }
 
 .suggestion-multi-tone-rewrite {
-  border-bottom: 2px solid #8b5cf6; /* Purple solid border for tone rewrite */
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%);
+  border-bottom: 3px solid #8b5cf6; /* Purple solid border */
   border-radius: 2px;
-  padding: 1px 2px;
 }
 
-.suggestion-multi-platform-adaptation {
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.12) 0%, rgba(202, 138, 4, 0.06) 100%); /* Yellow background for platform adaptation */
-  border-bottom: 2px solid #eab308;
-  border-radius: 2px;
-  padding: 1px 2px;
+/* LAYER 3: CORNER INDICATORS (For multiple suggestion awareness) */
+.suggestion-multi-base::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 5;
 }
 
-.suggestion-multi-seo {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(21, 128, 61, 0.05) 100%); /* Green background for SEO */
-  border-bottom: 2px solid #22c55e;
-  border-radius: 2px;
-  padding: 1px 2px;
+/* Show indicator when multiple suggestions are present */
+.suggestion-multi-base.multiple-suggestions::before {
+  opacity: 1;
+  background: linear-gradient(45deg, #ef4444, #f59e0b, #10b981, #8b5cf6, #ec4899);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
 }
 
-.suggestion-multi-style-consistency {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%); /* Purple background for style consistency */
-  border-bottom: 2px dotted #a855f7;
-  border-radius: 2px;
-  padding: 1px 2px;
+/* ULTIMATE COMBINATION: When ALL suggestion types are present */
+.suggestion-multi-base.ultimate-combo {
+  /* Blend ALL background colors */
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.08) 0%,    /* Red (spelling) */
+    rgba(59, 130, 246, 0.08) 20%,  /* Blue (style) */
+    rgba(236, 72, 153, 0.08) 40%,  /* Pink (engagement) */
+    rgba(34, 197, 94, 0.08) 60%,   /* Green (SEO) */
+    rgba(245, 158, 11, 0.08) 80%,  /* Orange (demonetization) */
+    rgba(139, 92, 246, 0.08) 100%  /* Purple (tone-rewrite) */
+  );
+  
+  /* Enhanced visual feedback for ultimate scenario */
+  box-shadow: 
+    inset 0 0 0 1px rgba(239, 68, 68, 0.2),   /* Spelling */
+    inset 0 0 0 2px rgba(59, 130, 246, 0.2),  /* Style */
+    inset 0 0 0 3px rgba(236, 72, 153, 0.2),  /* Engagement */
+    0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  /* Special animation for ultimate combo */
+  animation: ultimate-pulse 3s ease-in-out infinite;
 }
 
-.suggestion-multi-default {
-  text-decoration: underline solid #6b7280; /* Gray underline for unknown types */
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
-}
-
-/* Hover effects for multi-layer suggestions */
+/* ENHANCED HOVER EFFECTS */
 .suggestion-multi-base:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Enhanced visual feedback for high-priority combinations */
+/* Specific hover enhancements for each type */
+.suggestion-multi-spelling:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.20) 0%, rgba(220, 38, 38, 0.15) 100%);
+}
+
+.suggestion-multi-style:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(37, 99, 235, 0.12) 100%);
+}
+
+.suggestion-multi-engagement:hover {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.20) 0%, rgba(219, 39, 119, 0.15) 100%);
+}
+
+.suggestion-multi-seo:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18) 0%, rgba(21, 128, 61, 0.12) 100%);
+}
+
+/* PRIORITY COMBINATIONS */
 .suggestion-multi-base.suggestion-multi-spelling.suggestion-multi-grammar {
   animation: critical-pulse 2s ease-in-out infinite;
 }
@@ -1120,18 +1100,37 @@ button:focus-visible {
   animation: warning-pulse 2.5s ease-in-out infinite;
 }
 
-/* Individual suggestion hover effects */
-.suggestion-multi-base.suggestion-multi-spelling:hover {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(220, 38, 38, 0.12) 100%);
-  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.3), 0 2px 8px rgba(239, 68, 68, 0.2);
+/* NEW ANIMATIONS */
+@keyframes ultimate-pulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 
+      inset 0 0 0 1px rgba(239, 68, 68, 0.2),
+      inset 0 0 0 2px rgba(59, 130, 246, 0.2),
+      inset 0 0 0 3px rgba(236, 72, 153, 0.2),
+      0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  33% { 
+    opacity: 0.9;
+    transform: scale(1.02);
+    box-shadow: 
+      inset 0 0 0 1px rgba(239, 68, 68, 0.3),
+      inset 0 0 0 2px rgba(59, 130, 246, 0.3),
+      inset 0 0 0 3px rgba(236, 72, 153, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  66% { 
+    opacity: 0.95;
+    transform: scale(1.01);
+    box-shadow: 
+      inset 0 0 0 1px rgba(239, 68, 68, 0.25),
+      inset 0 0 0 2px rgba(59, 130, 246, 0.25),
+      inset 0 0 0 3px rgba(236, 72, 153, 0.25),
+      0 3px 10px rgba(0, 0, 0, 0.12);
+  }
 }
 
-.suggestion-multi-base.suggestion-multi-engagement:hover {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.25) 0%, rgba(219, 39, 119, 0.18) 100%);
-  box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.35), 0 2px 8px rgba(236, 72, 153, 0.2);
-}
-
-/* Animations for multi-layer suggestions */
 @keyframes critical-pulse {
   0%, 100% { 
     opacity: 1;
@@ -1145,10 +1144,10 @@ button:focus-visible {
 
 @keyframes warning-pulse {
   0%, 100% { 
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.10) 100%);
   }
   50% { 
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(217, 119, 6, 0.15) 100%);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.18) 100%);
   }
 }
 
@@ -1159,6 +1158,20 @@ button:focus-visible {
 
 .suggestion-multi-base:hover {
   z-index: 10;
+}
+
+/* Legacy classes for backward compatibility */
+.suggestion-multi-style-consistency {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%);
+  border-bottom: 2px dotted #a855f7;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+.suggestion-multi-default {
+  text-decoration: underline solid #6b7280;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
 
 /* suggestion underline */
