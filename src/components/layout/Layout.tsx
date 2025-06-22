@@ -99,11 +99,11 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
   return (
   <div className="min-h-screen bg-warm-cream flex flex-col items-center py-6 animate-fade-in-up">
       <header className="mb-6 flex flex-col items-center gap-3 animate-float">
-      <img src="/app_logo.jpg" alt="Writewise" className="w-48 h-24 object-cover rounded-creative shadow-lg hover-lift" />
+      <img src="/app_logo.jpg" alt="Writewise" className="w-48 h-24 object-cover rounded-lg shadow-lg hover-lift" />
         {user && (
           <div className="flex items-center gap-3">
             <button 
-              className="bg-orange-500 text-white px-5 py-2.5 rounded-creative hover:bg-orange-600 flex items-center shadow-lg disabled:opacity-50 font-ui font-medium transition-all duration-200" 
+              className="bg-orange-500 text-white px-5 py-2.5 rounded-lg hover:bg-orange-600 flex items-center shadow-lg disabled:opacity-50 font-ui font-medium transition-all duration-200" 
               onClick={() => handleNavigateWithSave('/analytics')}
               disabled={isNavigating}
             >
@@ -117,12 +117,12 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
               ⚙️ {isNavigating ? 'Saving...' : 'Settings'}
             </button>
             <button 
-              className="bg-gray-700 text-white px-5 py-2.5 rounded-creative hover:bg-gray-800 font-ui font-medium shadow-lg transition-all duration-200" 
+              className="bg-gray-700 text-white px-5 py-2.5 rounded-lg hover:bg-gray-800 font-ui font-medium shadow-lg transition-all duration-200" 
               onClick={handleLogout}
               disabled={isLoggingOut}
               style={{ animationDelay: '0.2s' }}
             >
-              Logout
+              🚪 {isLoggingOut ? "Saving & Logging out..." : "Logout"}
             </button>
           </div>
         )}
