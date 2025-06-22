@@ -168,16 +168,18 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
   }, [])
 
   // Refresh decorations when suggestions update (with debounce to prevent flickering)
-  useEffect(() => {
-    if (editor) {
-      // Use a small delay to batch decoration updates and prevent flickering
-      const timeout = setTimeout(() => {
-        editor.view.dispatch(editor.state.tr) // empty transaction to force re-render
-      }, 50) // 50ms delay to batch updates
-      
-      return () => clearTimeout(timeout)
-    }
-  }, [suggestions, editor])
+  // DISABLED: This was causing cursor jumping by dispatching transactions
+  // ProseMirror automatically re-renders decorations when they change
+  // useEffect(() => {
+  //   if (editor) {
+  //     // Use a small delay to batch decoration updates and prevent flickering
+  //     const timeout = setTimeout(() => {
+  //       editor.view.dispatch(editor.state.tr) // empty transaction to force re-render
+  //     }, 50) // 50ms delay to batch updates
+  //     
+  //     return () => clearTimeout(timeout)
+  //   }
+  // }, [suggestions, editor])
 
   // Request suggestions immediately when a document is first loaded
   useEffect(() => {
@@ -319,6 +321,11 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
         return
       }
       
+      // CRITICAL FIX: Don't close if clicking inside the editor content area
+      if (target && target.closest('.ProseMirror')) {
+        return
+      }
+      
       // Close popup for any other click
       setPopup(null)
     }
@@ -446,7 +453,8 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
   return (
     <div
       className="card-warm w-full cursor-text min-h-[600px] shadow-warm-lg"
-      onClick={() => editor?.commands.focus('end')}
+      // TESTING: Disabled focus handler that forces cursor to end
+      // onClick={() => editor?.commands.focus('end')}
     >
       <div className="p-8">
         {/* Enhanced Save Status Indicator */}
