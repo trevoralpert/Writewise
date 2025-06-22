@@ -32,8 +32,7 @@ body {
 
 .input:focus {
   outline: none;
-  ring: 2px;
-  ring-color: #8fd28f; /* forest-300 equivalent */
+  box-shadow: 0 0 0 2px #8fd28f; /* forest-300 equivalent */
   border-color: #5cb85c; /* forest-400 equivalent */
 }
 
@@ -1395,8 +1394,7 @@ button:focus-visible {
 
 .focus-ring-warm:focus {
   outline: none;
-  ring: 2px solid #2d5a27;
-  ring-opacity: 50%;
+  box-shadow: 0 0 0 2px rgba(45, 90, 39, 0.5);
   border-color: #2d5a27;
 }
 
