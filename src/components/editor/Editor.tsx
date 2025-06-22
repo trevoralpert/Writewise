@@ -34,7 +34,7 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     conflictResolutionMode,
     toneDetectionSensitivity
   } = useEditorStore()
-  const { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions, isLoading } = useSuggestions()
+  const { requestSuggestions, requestSuggestionsImmediate, requestSuggestionsWithText, refilterSuggestions, isLoading } = useSuggestions()
   const saveTimeout = React.useRef<NodeJS.Timeout | null>(null)
   const [popup, setPopup] = React.useState<{rect: DOMRect, suggestion: any} | null>(null)
   const [contextMenu, setContextMenu] = React.useState<{x: number, y: number} | null>(null)
@@ -135,7 +135,8 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
         
         // Only request suggestions if there's meaningful content
         if (newText.trim().length > 0) {
-          requestSuggestions()
+          // Pass the current text directly to avoid race conditions
+          requestSuggestionsWithText(newText)
         } else {
           // Clear suggestions for empty content
           useEditorStore.getState().setAllSuggestionsAndFilter([])

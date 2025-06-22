@@ -223,7 +223,7 @@ export function useSuggestions() {
     
     updateTimeoutRef.current = setTimeout(() => {
       setAllSuggestionsAndFilter(suggestions)
-    }, 100) // Small delay to batch updates
+    }, 50) // Small delay to batch updates
   }, [setAllSuggestionsAndFilter])
 
   const getSuggestions = useCallback(async () => {
@@ -428,8 +428,145 @@ export function useSuggestions() {
   const requestSuggestions = useCallback(() => {
     console.log('⏱️ Debounced suggestions request (typing)')
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    timeoutRef.current = setTimeout(getSuggestions, 500)
+    timeoutRef.current = setTimeout(getSuggestions, 200)
   }, [getSuggestions])
+
+  // Debounced fetch with specific text (to avoid race conditions)
+  const requestSuggestionsWithText = useCallback((text: string) => {
+    console.log('⏱️ Debounced suggestions request with specific text:', text.slice(-10))
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    
+    // Create a version of getSuggestions that uses the provided text
+    const getSuggestionsWithText = async () => {
+      if (!text.trim()) {
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current)
+        }
+        setAllSuggestionsAndFilter([]);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Use the same logic as getSuggestions but with the provided text
+        console.log('🚀 Phase 1: Fetching core suggestions (grammar & spelling) with text:', text.slice(-20));
+        
+        const coreResponse = await fetch('http://localhost:3001/api/suggestions/core', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: text, // Use the provided text instead of content from store
+            formalityLevel: requestBody.formalityLevel,
+            userId: 'anonymous'
+          }),
+        });
+
+        if (!coreResponse.ok) {
+          throw new Error(`Core API error! status: ${coreResponse.status}`);
+        }
+
+        const coreData = await coreResponse.json();
+        const coreSuggestions = coreData.suggestions || [];
+        
+        console.log('✅ Phase 1 complete:', coreSuggestions.length, 'core suggestions');
+        
+        // Immediately show core suggestions for fast feedback
+        debouncedSuggestionUpdate(coreSuggestions);
+        
+        // Store session info
+        if (coreData.sessionId) {
+          setCurrentSessionId(coreData.sessionId);
+        }
+        
+        if (coreData.analytics) {
+          setAnalytics(coreData.analytics);
+        }
+
+        // PHASE 2: Get enhanced suggestions in parallel (only if enabled)
+        const enhancedPromises = [];
+        
+        // Style suggestions (if style analysis is wanted)
+        if (requestBody.tonePreservingEnabled || requestBody.conflictResolutionMode !== 'grammar-first') {
+          console.log('🎨 Phase 2a: Fetching style suggestions');
+          enhancedPromises.push(
+            fetch('http://localhost:3001/api/suggestions/style', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: text, // Use provided text
+                formalityLevel: requestBody.formalityLevel,
+                toneDetectionSensitivity: requestBody.toneDetectionSensitivity
+              }),
+            }).then(res => res.ok ? res.json() : { suggestions: [] })
+          );
+        }
+        
+        // Engagement suggestions (if engagement is enabled)
+        if (requestBody.engagementEnabled && text.length > 50) {
+          console.log('🎯 Phase 2b: Fetching engagement suggestions');
+          enhancedPromises.push(
+            fetch('http://localhost:3001/api/suggestions/engagement', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: text }), // Use provided text
+            }).then(res => res.ok ? res.json() : { suggestions: [] })
+          );
+        }
+        
+        // If no enhanced features are enabled, just use core suggestions
+        if (enhancedPromises.length === 0) {
+          console.log('✅ Using core suggestions only (no enhanced features enabled)');
+          return;
+        }
+        
+        // Wait for all enhanced suggestions to complete
+        const enhancedResults = await Promise.allSettled(enhancedPromises);
+        
+        // Combine all suggestions
+        let allSuggestions = [...coreSuggestions];
+        
+        enhancedResults.forEach((result, index) => {
+          if (result.status === 'fulfilled' && result.value.suggestions) {
+            allSuggestions = [...allSuggestions, ...result.value.suggestions];
+            console.log(`✅ Phase 2${String.fromCharCode(97 + index)} complete:`, result.value.suggestions.length, 'suggestions');
+          } else {
+            console.warn(`⚠️ Phase 2${String.fromCharCode(97 + index)} failed:`, result.status === 'rejected' ? result.reason : 'No suggestions');
+          }
+        });
+        
+        console.log('🔄 Final combined suggestions:', allSuggestions.length);
+        
+        // Apply our priority-based filtering (spelling/grammar first)
+        const prioritizedSuggestions = allSuggestions.sort((a, b) => {
+          const priorityMap = {
+            'spelling': 100,
+            'grammar': 90,
+            'demonetization': 80,
+            'style': 50,
+            'engagement': 40
+          };
+          
+          const aPriority = priorityMap[a.type as keyof typeof priorityMap] || 25;
+          const bPriority = priorityMap[b.type as keyof typeof priorityMap] || 25;
+          
+          return bPriority - aPriority; // Higher priority first
+        });
+        
+        // Update with final suggestions
+        debouncedSuggestionUpdate(prioritizedSuggestions);
+
+      } catch (err) {
+        console.error('Error fetching suggestions with text:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    timeoutRef.current = setTimeout(getSuggestionsWithText, 200)
+  }, [requestBody, debouncedSuggestionUpdate, setCurrentSessionId, setAllSuggestionsAndFilter, setAnalytics])
 
   // Cleanup timeouts on unmount
   useCallback(() => {
@@ -439,5 +576,5 @@ export function useSuggestions() {
     }
   }, [])
 
-  return { requestSuggestions, requestSuggestionsImmediate, refilterSuggestions, isLoading, error }
+  return { requestSuggestions, requestSuggestionsImmediate, requestSuggestionsWithText, refilterSuggestions, isLoading, error }
 }
