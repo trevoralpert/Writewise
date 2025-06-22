@@ -1,10 +1,12 @@
 import React from 'react'
 import { useEffect, useState, forwardRef, useImperativeHandle } from 'react'
-import { getDocuments, createDocument, deleteDocument, getDocumentById } from '../../services/documents'
+import { getDocuments, createDocument, deleteDocument, getDocumentById, getSharedDocuments } from '../../services/documents'
 import { supabase } from '../../services/supabaseClient'
 import { useEditorStore } from '../../store/editorStore'
-import { PencilIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { PencilIcon, ArrowDownTrayIcon, ShareIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { Document as DocxDoc, Packer, Paragraph } from 'docx'
+import DocumentSharingModal from './DocumentSharingModal'
+import DocumentHistoryModal from './DocumentHistoryModal'
 
 interface DocumentSidebarRef {
   refreshDocuments: () => Promise<void>
@@ -13,10 +15,14 @@ interface DocumentSidebarRef {
 const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) => void, user: any }>(
   ({ onSelect, user }, ref) => {
     const [documents, setDocuments] = useState<any[]>([])
+    const [sharedDocuments, setSharedDocuments] = useState<any[]>([])
+    const [activeTab, setActiveTab] = useState<'my-docs' | 'shared'>('my-docs')
     const [title, setTitle] = useState('')
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editTitle, setEditTitle] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [sharingDocId, setSharingDocId] = useState<string | null>(null)
+    const [historyDocId, setHistoryDocId] = useState<string | null>(null)
     const setCurrentDocument = useEditorStore((s) => s.setCurrentDocument)
     const currentDocument = useEditorStore((s) => s.currentDocument)
     const saveCurrentDocument = useEditorStore((s) => s.saveCurrentDocument)
@@ -24,8 +30,12 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
 
     const fetchDocuments = async () => {
       if (user) {
-        const { data } = await getDocuments(user.id)
-        setDocuments(data || [])
+        const [myDocs, sharedDocs] = await Promise.all([
+          getDocuments(user.id),
+          getSharedDocuments(user.email)
+        ])
+        setDocuments(myDocs.data || [])
+        setSharedDocuments(sharedDocs.data || [])
       }
     }
 
@@ -183,20 +193,87 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
       setIsLoading(false)
     }
 
+    const handleSharedDocumentSelect = async (sharedDoc: any) => {
+      if (isLoading) return
+      
+      setIsLoading(true)
+      
+      try {
+        // Save current document if it has unsaved changes
+        if (hasUnsavedChanges) {
+          const saved = await saveCurrentDocument()
+          if (!saved) {
+            const proceed = window.confirm(
+              'Failed to save current document. Do you want to continue anyway? Unsaved changes will be lost.'
+            )
+            if (!proceed) {
+              setIsLoading(false)
+              return
+            }
+          }
+        }
+        
+        // Load the shared document
+        onSelect(sharedDoc.documents)
+      } catch (error) {
+        console.error('Error switching to shared document:', error)
+      }
+      
+      setIsLoading(false)
+    }
+
+    const handleDocumentRestore = async () => {
+      // Refresh the current document after restore
+      if (currentDocument?.id) {
+        const { data } = await getDocumentById(currentDocument.id)
+        if (data) {
+          onSelect(data)
+        }
+      }
+      await fetchDocuments()
+    }
+
     return (
       <aside className="w-64 bg-white border-r p-4">
-        <form onSubmit={handleCreate} className="mb-4 flex">
-          <input
-            className="input flex-1"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            placeholder="New document title"
-            disabled={isLoading}
-          />
-          <button className="btn ml-2" type="submit" disabled={isLoading}>
-            {isLoading ? '...' : '+'}
+        {/* Tab Navigation */}
+        <div className="flex mb-4 bg-gray-100 rounded-lg p-1">
+          <button
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'my-docs'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            onClick={() => setActiveTab('my-docs')}
+          >
+            My Documents
           </button>
-        </form>
+          <button
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'shared'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            onClick={() => setActiveTab('shared')}
+          >
+            Shared ({sharedDocuments.length})
+          </button>
+        </div>
+
+        {/* Create new document form - only show on my-docs tab */}
+        {activeTab === 'my-docs' && (
+          <form onSubmit={handleCreate} className="mb-4 flex">
+            <input
+              className="input flex-1"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="New document title"
+              disabled={isLoading}
+            />
+            <button className="btn ml-2" type="submit" disabled={isLoading}>
+              {isLoading ? '...' : '+'}
+            </button>
+          </form>
+        )}
         
         {isLoading && (
           <div className="text-center text-sm text-gray-500 mb-2">
@@ -204,92 +281,170 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
           </div>
         )}
         
+        {/* Document Lists */}
         <ul>
-          {documents.map(doc => (
-            <li key={doc.id} className="flex items-center mb-2">
-              {editingId === doc.id ? (
-                <>
-                  <input
-                    className="input flex-1"
-                    value={editTitle}
-                    onChange={e => setEditTitle(e.target.value)}
-                    onBlur={() => handleBlurEdit(doc.id, doc.title)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        handleRename(doc.id)
-                      } else if (e.key === 'Escape') {
-                        e.preventDefault()
-                        handleCancelEdit()
-                      }
-                    }}
-                    disabled={isLoading}
-                    autoFocus
-                    placeholder="Enter document title"
-                  />
-                  <button 
-                    className="btn ml-1" 
-                    onClick={() => handleRename(doc.id)}
-                    disabled={isLoading || !editTitle.trim()}
-                  >
-                    Save
-                  </button>
-                  <button 
-                    className="btn ml-1" 
-                    onClick={handleCancelEdit}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
+          {activeTab === 'my-docs' ? (
+            // My Documents
+            documents.map(doc => (
+              <li key={doc.id} className="flex items-center mb-2">
+                {editingId === doc.id ? (
+                  <>
+                    <input
+                      className="input flex-1"
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      onBlur={() => handleBlurEdit(doc.id, doc.title)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleRename(doc.id)
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault()
+                          handleCancelEdit()
+                        }
+                      }}
+                      disabled={isLoading}
+                      autoFocus
+                      placeholder="Enter document title"
+                    />
+                    <button 
+                      className="btn ml-1" 
+                      onClick={() => handleRename(doc.id)}
+                      disabled={isLoading || !editTitle.trim()}
+                    >
+                      Save
+                    </button>
+                    <button 
+                      className="btn ml-1" 
+                      onClick={handleCancelEdit}
+                      disabled={isLoading}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className={`text-left w-full py-1 px-2 rounded transition-colors ${
+                        currentDocument?.id === doc.id 
+                          ? 'font-bold bg-blue-100 text-blue-800' 
+                          : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => handleDocumentSelect(doc.id)}
+                      disabled={isLoading}
+                    >
+                      {doc.title}
+                      {currentDocument?.id === doc.id && hasUnsavedChanges && (
+                        <span className="ml-1 text-orange-600">•</span>
+                      )}
+                    </button>
+                    <button 
+                      className="btn btn-circle btn-ghost btn-xs" 
+                      onClick={() => {
+                        setEditTitle(doc.title)
+                        setEditingId(doc.id)
+                      }}
+                      disabled={isLoading}
+                      title="Rename"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                    </button>
+                    <button 
+                      className="btn btn-circle btn-ghost btn-xs" 
+                      onClick={() => setSharingDocId(doc.id)} 
+                      disabled={isLoading}
+                      title="Share"
+                    >
+                      <ShareIcon className="w-4 h-4" />
+                    </button>
+                    <button 
+                      className="btn btn-circle btn-ghost btn-xs" 
+                      onClick={() => setHistoryDocId(doc.id)} 
+                      disabled={isLoading}
+                      title="Version History"
+                    >
+                      <ClockIcon className="w-4 h-4" />
+                    </button>
+                    <button 
+                      className="btn btn-circle btn-ghost btn-xs" 
+                      onClick={() => handleExport(doc.id, doc.title)} 
+                      disabled={isLoading}
+                      title="Export"
+                    >
+                      <ArrowDownTrayIcon className="w-4 h-4" />
+                    </button>
+                    <button 
+                      className="ml-2 text-red-500 hover:text-red-700 disabled:text-red-300" 
+                      onClick={() => handleDelete(doc.id)}
+                      disabled={isLoading}
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  </>
+                )}
+              </li>
+            ))
+          ) : (
+            // Shared Documents
+            sharedDocuments.length === 0 ? (
+              <li className="text-center text-gray-500 py-8">
+                <ShareIcon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-sm">No shared documents</p>
+                <p className="text-xs">Documents shared with you will appear here</p>
+              </li>
+            ) : (
+              sharedDocuments.map(sharedDoc => (
+                <li key={sharedDoc.id} className="mb-2">
                   <button
-                    className={`text-left w-full py-1 px-2 rounded transition-colors ${
-                      currentDocument?.id === doc.id 
-                        ? 'font-bold bg-blue-100 text-blue-800' 
-                        : 'hover:bg-gray-100'
+                    className={`text-left w-full py-2 px-2 rounded transition-colors border-l-4 ${
+                      currentDocument?.id === sharedDoc.documents.id
+                        ? 'font-bold bg-blue-100 text-blue-800 border-blue-500'
+                        : 'hover:bg-gray-100 border-gray-300'
                     }`}
-                    onClick={() => handleDocumentSelect(doc.id)}
+                    onClick={() => handleSharedDocumentSelect(sharedDoc)}
                     disabled={isLoading}
                   >
-                    {doc.title}
-                    {currentDocument?.id === doc.id && hasUnsavedChanges && (
-                      <span className="ml-1 text-orange-600">•</span>
-                    )}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{sharedDoc.documents.title}</p>
+                        <p className="text-xs text-gray-600">
+                          {sharedDoc.permission} access • Shared by {sharedDoc.shared_by_user_id}
+                        </p>
+                      </div>
+                      {currentDocument?.id === sharedDoc.documents.id && hasUnsavedChanges && (
+                        <span className="ml-1 text-orange-600">•</span>
+                      )}
+                    </div>
                   </button>
-                  <button 
-                    className="btn btn-circle btn-ghost btn-xs" 
-                    onClick={() => {
-                      setEditTitle(doc.title)
-                      setEditingId(doc.id)
-                    }}
-                    disabled={isLoading}
-                    title="Rename"
-                  >
-                    <PencilIcon className="w-4 h-4" />
-                  </button>
-                  <button 
-                    className="btn btn-circle btn-ghost btn-xs" 
-                    onClick={() => handleExport(doc.id, doc.title)} 
-                    disabled={isLoading}
-                    title="Export"
-                  >
-                    <ArrowDownTrayIcon className="w-4 h-4" />
-                  </button>
-                  <button 
-                    className="ml-2 text-red-500 hover:text-red-700 disabled:text-red-300" 
-                    onClick={() => handleDelete(doc.id)}
-                    disabled={isLoading}
-                    title="Delete"
-                  >
-                    🗑️
-                  </button>
-                </>
-              )}
-            </li>
-          ))}
+                </li>
+              ))
+            )
+          )}
         </ul>
+
+        {/* Sharing Modal */}
+        {sharingDocId && (
+          <DocumentSharingModal
+            documentId={sharingDocId}
+            documentTitle={documents.find(d => d.id === sharingDocId)?.title || 'Document'}
+            isOpen={!!sharingDocId}
+            onClose={() => setSharingDocId(null)}
+            currentUserId={user?.id}
+          />
+        )}
+
+        {/* History Modal */}
+        {historyDocId && (
+          <DocumentHistoryModal
+            documentId={historyDocId}
+            documentTitle={documents.find(d => d.id === historyDocId)?.title || 'Document'}
+            isOpen={!!historyDocId}
+            onClose={() => setHistoryDocId(null)}
+            currentUserId={user?.id}
+            onDocumentRestore={handleDocumentRestore}
+          />
+        )}
       </aside>
     )
   }

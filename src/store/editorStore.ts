@@ -1,6 +1,7 @@
 // src/store/editorStore.ts
 import { create } from 'zustand'
-import { updateDocument } from '../services/documents'
+import { updateDocument, saveDocumentVersion } from '../services/documents'
+import { supabase } from '../services/supabaseClient'
 
 interface Suggestion {
   id: string
@@ -417,6 +418,32 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ isSaving: true })
     
     try {
+      // Get current user for version tracking
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      // Check if this is a significant change that warrants a manual version
+      const currentContent = state.content
+      const originalContent = state.currentDocument.content
+      const contentDiff = Math.abs(currentContent.length - originalContent.length)
+      const isSignificantChange = contentDiff > 50 || 
+        (currentContent !== originalContent && currentContent.split(' ').length !== originalContent.split(' ').length)
+      
+      // Create a manual version if this is a significant change and we have a user
+      if (isSignificantChange && user) {
+        try {
+          await saveDocumentVersion(
+            state.currentDocument.id,
+            originalContent,
+            state.currentDocument.title,
+            user.id,
+            'Manual save version'
+          )
+        } catch (versionError) {
+          console.warn('Failed to create version, but continuing with save:', versionError)
+        }
+      }
+      
+      // Update the document
       const { error } = await updateDocument(state.currentDocument.id, state.content)
       
       if (error) {
@@ -428,7 +455,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       set({ 
         isSaving: false, 
         hasUnsavedChanges: false, 
-        lastSaved: new Date() 
+        lastSaved: new Date(),
+        currentDocument: {
+          ...state.currentDocument,
+          content: state.content
+        }
       })
       return true
     } catch (error) {
