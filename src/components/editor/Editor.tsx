@@ -424,9 +424,9 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
   }, [editor])
 
   const getSaveStatusColor = () => {
-    if (isSaving) return 'text-yellow-600'
-    if (hasUnsavedChanges) return 'text-orange-600'
-    return 'text-green-600'
+    if (isSaving) return 'text-amber-600'
+    if (hasUnsavedChanges) return 'text-coral-500'
+    return 'text-forest-600'
   }
 
   const getSaveStatusText = () => {
@@ -445,13 +445,13 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
 
   return (
     <div
-      className="card bg-base-100 shadow-lg w-full cursor-text"
+      className="card-warm w-full cursor-text min-h-[600px] shadow-warm-lg"
       onClick={() => editor?.commands.focus('end')}
     >
-      <div className="card-body p-4">
+      <div className="p-8">
         {/* Enhanced Save Status Indicator */}
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center gap-2">
+        <div className="flex justify-between items-center mb-8 pb-6 border-b border-forest-100">
+          <div className="flex items-center gap-4">
             {isEditingTitle ? (
               <>
                 <input
@@ -466,14 +466,14 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
                     }
                   }}
                   placeholder="Enter document title"
-                  className="input input-sm font-semibold text-lg bg-transparent border-dashed border-gray-400 focus:border-blue-500"
+                  className="input font-semibold text-2xl bg-transparent border-dashed border-forest-300 focus:border-forest-500 font-writing"
                   autoFocus
                   disabled={isCreatingDocument}
                 />
                 <button
                   onClick={handleCreateDocumentFromUntitled}
                   disabled={!titleInput.trim() || isCreatingDocument}
-                  className="btn btn-sm btn-primary"
+                  className="btn text-sm px-6 py-3"
                 >
                   {isCreatingDocument ? 'Saving...' : 'Save'}
                 </button>
@@ -483,57 +483,68 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
                     setTitleInput('')
                   }}
                   disabled={isCreatingDocument}
-                  className="btn btn-sm btn-ghost"
+                  className="btn-ghost text-sm px-6 py-3"
                 >
                   Cancel
                 </button>
               </>
             ) : (
               <h2 
-                className={`text-lg font-semibold ${!currentDocument ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
+                className={`text-2xl font-bold font-writing text-gray-700 ${!currentDocument ? 'cursor-pointer hover:text-forest-600 transition-colors' : ''}`}
                 onClick={handleTitleClick}
                 title={!currentDocument ? 'Click to create a new document' : ''}
               >
                 {currentDocument?.title || 'Untitled'}
                 {!currentDocument && content && (
-                  <span className="text-sm text-gray-500 ml-2">(click to save)</span>
+                  <span className="text-sm text-forest-500 ml-3 font-ui font-normal">(click to save)</span>
                 )}
               </h2>
             )}
+            {hasUnsavedChanges && (
+              <div className="flex items-center gap-2 text-coral-600 bg-coral-50 px-3 py-1 rounded-full text-sm font-ui">
+                <span className="w-2 h-2 bg-coral-500 rounded-full animate-pulse"></span>
+                <span className="font-medium">Unsaved changes</span>
+              </div>
+            )}
           </div>
-          
+           
           {/* Enhanced status indicators */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             {/* Save status */}
             <div className="flex items-center gap-2">
               {(isSaving || isCreatingDocument) && (
-                <div className="loading loading-spinner loading-xs"></div>
+                <div className="loading loading-spinner loading-xs text-forest-500"></div>
               )}
-              <div className={`text-sm ${getSaveStatusColor()}`}>
+              <div className={`text-sm font-ui px-3 py-1 rounded-full ${getSaveStatusColor()}`}>
                 {isCreatingDocument ? 'Creating document...' : getSaveStatusText()}
               </div>
             </div>
-            
+
             {/* Suggestion processing status */}
             {isLoading ? (
-              <div className="flex items-center gap-2 text-sm text-blue-600">
+              <div className="flex items-center gap-2 text-sm text-forest-600 font-ui bg-forest-50 px-3 py-1 rounded-full">
                 <div className="loading loading-spinner loading-xs"></div>
                 Analyzing suggestions...
               </div>
             ) : (() => {
               const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
               return pendingSuggestions.length > 0 && (
-                <div className="text-sm text-blue-600">
+                <div className="text-sm text-forest-600 font-ui bg-forest-50 px-3 py-1 rounded-full">
                   {pendingSuggestions.length} suggestion{pendingSuggestions.length !== 1 ? 's' : ''}
                 </div>
               );
             })()}
+
+            {/* Word count */}
+            <div className="text-sm text-forest-600 font-ui">
+              <span className="font-medium">{content.length}</span> characters
+            </div>
           </div>
         </div>
 
         <EditorContent
           editor={editor}
-          className="prose w-full min-h-[300px] focus:outline-none focus:ring-0"
+          className="prose-writing w-full min-h-[400px] focus:outline-none focus:ring-0 p-6 border border-forest-100 rounded-lg bg-white shadow-inner"
         />
         
         {popup && (
@@ -545,6 +556,27 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
           position={contextMenu}
           onClose={() => setContextMenu(null)}
         />
+
+        {/* Word count and reading stats */}
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-forest-100 text-sm text-forest-600 font-ui">
+          <div className="flex items-center gap-6">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-forest-400 rounded-full"></span>
+              <strong>{content.split(' ').filter(word => word.length > 0).length}</strong> words
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-coral-400 rounded-full"></span>
+              <strong>{Math.ceil(content.split(' ').filter(word => word.length > 0).length / 200)}</strong> min read
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+              <strong>{content.split('\n').filter(line => line.trim().length > 0).length}</strong> paragraphs
+            </span>
+          </div>
+          <div className="text-forest-500">
+            {lastSaved ? `Last saved ${new Date(lastSaved).toLocaleTimeString()}` : 'Not saved yet'}
+          </div>
+        </div>
       </div>
     </div>
   )

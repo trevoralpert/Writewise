@@ -97,39 +97,38 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
   })
 
   return (
-  <div className="min-h-screen bg-gray-50 flex flex-col items-center py-1">
-      <header className="mb-2 flex flex-col items-center gap-1">
-      <img src="/app_logo.jpg" alt="Writewise" className="w-128 h-64 object-cover rounded-2xl overflow-hidden" />
+  <div className="min-h-screen bg-warm-cream flex flex-col items-center py-6 animate-fade-in-up">
+      <header className="mb-6 flex flex-col items-center gap-3 animate-float">
+      <img src="/app_logo.jpg" alt="Writewise" className="w-48 h-24 object-cover rounded-creative shadow-lg hover-lift" />
         {user && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button 
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition flex items-center disabled:opacity-50" 
+              className="bg-orange-500 text-white px-5 py-2.5 rounded-creative hover:bg-orange-600 flex items-center shadow-lg disabled:opacity-50 font-ui font-medium transition-all duration-200" 
               onClick={() => handleNavigateWithSave('/analytics')}
               disabled={isNavigating}
             >
-              <ChartBarIcon className="w-4 h-4 mr-2" />
-              {isNavigating ? 'Saving...' : 'Analytics'}
+              📊 {isNavigating ? 'Saving...' : 'Analytics'}
             </button>
             <button 
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center disabled:opacity-50" 
+              className="bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 flex items-center shadow-lg disabled:opacity-50 font-medium transition-all duration-200" 
               onClick={() => handleNavigateWithSave('/settings')}
               disabled={isNavigating}
             >
-              <CogIcon className="w-4 h-4 mr-2" />
-              {isNavigating ? 'Saving...' : 'Settings'}
+              ⚙️ {isNavigating ? 'Saving...' : 'Settings'}
             </button>
             <button 
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition" 
+              className="bg-gray-700 text-white px-5 py-2.5 rounded-creative hover:bg-gray-800 font-ui font-medium shadow-lg transition-all duration-200" 
               onClick={handleLogout}
               disabled={isLoggingOut}
+              style={{ animationDelay: '0.2s' }}
             >
-              {isLoggingOut ? 'Saving & Logging out...' : 'Logout'}
+              Logout
             </button>
           </div>
         )}
     </header>
       
-      <div className="flex w-full max-w-5xl">
+              <div className="flex w-full max-w-7xl gap-6 px-6">
         {user && (
           <DocumentSidebar ref={documentSidebarRef} user={user} onSelect={setCurrentDocument} />
         )}

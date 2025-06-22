@@ -234,28 +234,28 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
     }
 
     return (
-      <aside className="w-64 bg-white border-r p-4">
+      <aside className="w-80 bg-white border-r border-forest-100 p-8 rounded-creative shadow-warm min-h-screen">
         {/* Tab Navigation */}
-        <div className="flex mb-4 bg-gray-100 rounded-lg p-1">
+        <div className="flex mb-8 bg-forest-50 rounded-creative p-2">
           <button
-            className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`flex-1 px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 font-ui ${
               activeTab === 'my-docs'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-forest-800 shadow-warm font-semibold'
+                : 'text-forest-600 hover:text-forest-800 hover:bg-forest-100'
             }`}
             onClick={() => setActiveTab('my-docs')}
           >
-            My Documents
+            📄 My Documents
           </button>
           <button
-            className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`flex-1 px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 font-ui ${
               activeTab === 'shared'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-forest-800 shadow-warm font-semibold'
+                : 'text-forest-600 hover:text-forest-800 hover:bg-forest-100'
             }`}
             onClick={() => setActiveTab('shared')}
           >
-            Shared ({sharedDocuments.length})
+            🤝 Shared ({sharedDocuments.length})
           </button>
         </div>
 
@@ -269,8 +269,8 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
               placeholder="New document title"
               disabled={isLoading}
             />
-            <button className="btn ml-2" type="submit" disabled={isLoading}>
-              {isLoading ? '...' : '+'}
+            <button className="btn bg-forest-500 hover:bg-forest-600 text-white ml-2" type="submit" disabled={isLoading}>
+              {isLoading ? '⏳' : '✨ Create'}
             </button>
           </form>
         )}
@@ -339,7 +339,7 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
                       )}
                     </button>
                     <button 
-                      className="btn btn-circle btn-ghost btn-xs" 
+                      className="p-2 text-forest-600 hover:text-forest-800 hover:bg-forest-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => {
                         setEditTitle(doc.title)
                         setEditingId(doc.id)
@@ -347,34 +347,34 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
                       disabled={isLoading}
                       title="Rename"
                     >
-                      <PencilIcon className="w-4 h-4" />
+                      ✏️
                     </button>
                     <button 
-                      className="btn btn-circle btn-ghost btn-xs" 
+                      className="p-2 text-forest-600 hover:text-forest-800 hover:bg-forest-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => setSharingDocId(doc.id)} 
                       disabled={isLoading}
                       title="Share"
                     >
-                      <ShareIcon className="w-4 h-4" />
+                      🔗
                     </button>
                     <button 
-                      className="btn btn-circle btn-ghost btn-xs" 
+                      className="p-2 text-forest-600 hover:text-forest-800 hover:bg-forest-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => setHistoryDocId(doc.id)} 
                       disabled={isLoading}
                       title="Version History"
                     >
-                      <ClockIcon className="w-4 h-4" />
+                      📅
                     </button>
                     <button 
-                      className="btn btn-circle btn-ghost btn-xs" 
+                      className="p-2 text-forest-600 hover:text-forest-800 hover:bg-forest-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => handleExport(doc.id, doc.title)} 
                       disabled={isLoading}
                       title="Export"
                     >
-                      <ArrowDownTrayIcon className="w-4 h-4" />
+                      📥
                     </button>
                     <button 
-                      className="ml-2 text-red-500 hover:text-red-700 disabled:text-red-300" 
+                      className="p-2 text-coral-600 hover:text-coral-800 hover:bg-coral-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => handleDelete(doc.id)}
                       disabled={isLoading}
                       title="Delete"
@@ -430,7 +430,7 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
             documentTitle={documents.find(d => d.id === sharingDocId)?.title || 'Document'}
             isOpen={!!sharingDocId}
             onClose={() => setSharingDocId(null)}
-            currentUserId={user?.id}
+            currentUserId={user?.id || ''}
           />
         )}
 
@@ -441,7 +441,7 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
             documentTitle={documents.find(d => d.id === historyDocId)?.title || 'Document'}
             isOpen={!!historyDocId}
             onClose={() => setHistoryDocId(null)}
-            currentUserId={user?.id}
+            currentUserId={user?.id || ''}
             onDocumentRestore={handleDocumentRestore}
           />
         )}

@@ -42,18 +42,18 @@ export default function SuggestionSidebar() {
   const getSuggestionCardClass = (type: string) => {
     switch (type) {
       case 'style':
-        return 'bg-blue-500 text-white'
+        return 'bg-blue-500 text-white border-blue-200'
       case 'demonetization':
-        return 'bg-orange-500 text-white'
+        return 'bg-amber-500 text-white border-amber-200'
       case 'slang-protected':
-        return 'bg-green-500 text-white'
+        return 'bg-green-500 text-white border-green-200'
       case 'tone-rewrite':
-        return 'bg-purple-500 text-white'
+        return 'bg-purple-500 text-white border-purple-200'
       case 'grammar':
       case 'spelling':
-        return 'bg-red-500 text-white'
+        return 'bg-red-500 text-white border-red-200'
       default:
-        return 'bg-gray-500 text-white'
+        return 'bg-gray-700 text-white border-gray-200'
     }
   }
 
@@ -81,119 +81,140 @@ export default function SuggestionSidebar() {
   }
 
   return (
-    <aside className="w-72 bg-gray-50 border-l border-gray-200 p-4 space-y-4">
+    <aside className="w-80 bg-white border-l border-blue-100 p-8 space-y-6 rounded-lg shadow-lg min-h-screen">
       {/* Summary Section */}
-      <div className="bg-white rounded-lg border p-4">
-        <h2 className="font-semibold text-gray-900 mb-3">Writing Insights</h2>
-        <div className="space-y-2 text-sm">
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h2 className="font-semibold text-gray-700 mb-4 font-writing text-lg flex items-center">
+          ✨ Writing Insights
+        </h2>
+        <div className="space-y-3 text-sm font-ui">
           {getSuggestionCount('demonetization') > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-orange-400 rounded-full"></span>
-                Demonetization Risks
+            <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
+              <span className="flex items-center gap-3">
+                <span className="w-3 h-3 bg-amber-400 rounded-full"></span>
+                <span className="text-amber-800 font-medium">Demonetization Risks</span>
               </span>
-              <span className="font-medium">{getSuggestionCount('demonetization')}</span>
+              <span className="font-semibold text-amber-700 bg-amber-100 px-2 py-1 rounded-full text-xs">
+                {getSuggestionCount('demonetization')}
+              </span>
             </div>
           )}
           {getSuggestionCount('grammar') > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+              <span className="flex items-center gap-3">
                 <span className="w-3 h-3 bg-red-400 rounded-full"></span>
-                Grammar Issues
+                <span className="text-red-800 font-medium">Grammar Issues</span>
               </span>
-              <span className="font-medium">{getSuggestionCount('grammar')}</span>
+              <span className="font-semibold text-red-700 bg-red-100 px-2 py-1 rounded-full text-xs">
+                {getSuggestionCount('grammar')}
+              </span>
             </div>
           )}
           {getSuggestionCount('spelling') > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+              <span className="flex items-center gap-3">
                 <span className="w-3 h-3 bg-red-400 rounded-full"></span>
-                Spelling Issues
+                <span className="text-red-800 font-medium">Spelling Issues</span>
               </span>
-              <span className="font-medium">{getSuggestionCount('spelling')}</span>
+              <span className="font-semibold text-red-700 bg-red-100 px-2 py-1 rounded-full text-xs">
+                {getSuggestionCount('spelling')}
+              </span>
             </div>
           )}
           {getSuggestionCount('style') > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+              <span className="flex items-center gap-3">
                 <span className="w-3 h-3 bg-blue-400 rounded-full"></span>
-                Style Suggestions
+                <span className="text-blue-800 font-medium">Style Suggestions</span>
               </span>
-              <span className="font-medium">{getSuggestionCount('style')}</span>
+              <span className="font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full text-xs">
+                {getSuggestionCount('style')}
+              </span>
             </div>
           )}
           {getSuggestionCount('slang-protected') > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+              <span className="flex items-center gap-3">
                 <span className="w-3 h-3 bg-green-400 rounded-full"></span>
-                Protected Slang
+                <span className="text-green-800 font-medium">Protected Slang</span>
               </span>
-              <span className="font-medium">{getSuggestionCount('slang-protected')}</span>
+              <span className="font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full text-xs">
+                {getSuggestionCount('slang-protected')}
+              </span>
             </div>
           )}
           {getSuggestionCount('tone-rewrite') > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+              <span className="flex items-center gap-3">
                 <span className="w-3 h-3 bg-purple-400 rounded-full"></span>
-                Tone-Preserving Fixes
+                <span className="text-purple-800 font-medium">Tone-Preserving Fixes</span>
               </span>
-              <span className="font-medium">{getSuggestionCount('tone-rewrite')}</span>
+              <span className="font-semibold text-purple-700 bg-purple-100 px-2 py-1 rounded-full text-xs">
+                {getSuggestionCount('tone-rewrite')}
+              </span>
             </div>
           )}
           {filteredSuggestions.length === 0 && (
-            <p className="text-gray-500 text-center py-2">All clear! 🎉</p>
+            <div className="text-center py-8">
+              <div className="text-4xl mb-3">🎉</div>
+              <p className="text-blue-600 font-medium font-ui">All clear!</p>
+              <p className="text-blue-500 text-xs mt-1 font-ui">Keep writing to get AI-powered insights</p>
+            </div>
           )}
         </div>
       </div>
 
       {/* Suggestions List */}
-      <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900">Suggestions</h3>
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-700 font-writing text-lg flex items-center">
+          💡 Suggestions
+        </h3>
         {filteredSuggestions.length === 0 && (
-          <div className="bg-white rounded-lg border p-4 text-center">
-            <p className="text-gray-500">No suggestions at the moment.</p>
-            <p className="text-xs text-gray-400 mt-1">Keep writing to get AI-powered insights!</p>
+          <div className="bg-gray-50 rounded-lg p-6 text-center">
+            <div className="text-3xl mb-3">📝</div>
+            <p className="text-blue-600 font-medium font-ui">No suggestions at the moment</p>
+            <p className="text-xs text-blue-500 mt-2 font-ui">Keep writing to get AI-powered insights!</p>
           </div>
         )}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filteredSuggestions.map(s => (
-            <div key={s.id} className={`rounded-lg p-4 text-sm ${getSuggestionCardClass(s.type)}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-medium px-2 py-1 bg-white bg-opacity-20 rounded">
+            <div key={s.id} className={`rounded-lg p-5 text-sm font-ui shadow-lg border ${getSuggestionCardClass(s.type)}`}>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xs font-semibold px-3 py-1 bg-white bg-opacity-90 text-gray-800 rounded-full">
                   {getSuggestionTypeLabel(s.type)}
                 </span>
                 {s.type === 'demonetization' && (
-                  <span className="text-xs">⚠️</span>
+                  <span className="text-lg">⚠️</span>
                 )}
                 {s.type === 'slang-protected' && (
-                  <span className="text-xs">✅</span>
+                  <span className="text-lg">✅</span>
                 )}
                 {s.type === 'tone-rewrite' && (
-                  <span className="text-xs">🎨</span>
+                  <span className="text-lg">🎨</span>
                 )}
               </div>
-              <h4 className="font-medium mb-1">{s.message}</h4>
+              <h4 className="font-semibold mb-2 text-base">{s.message}</h4>
               {(s.alternatives?.length || s.toneRewrite?.rewrittenText) ? (
-                <p className="text-xs opacity-90 mb-3">
+                <p className="text-sm opacity-90 mb-4 bg-white bg-opacity-20 p-3 rounded-lg">
                   {s.type === 'demonetization' 
-                    ? "Hover over the highlighted word for AI-generated alternatives"
+                    ? "💡 Hover over the highlighted word for AI-generated alternatives"
                     : s.type === 'tone-rewrite'
-                    ? `Tone-preserving fix: "${s.toneRewrite?.rewrittenText}"`
-                    : `Suggested: "${s.alternatives?.[0]}"`
+                    ? `🎨 Tone-preserving fix: "${s.toneRewrite?.rewrittenText}"`
+                    : `✨ Suggested: "${s.alternatives?.[0]}"`
                   }
                 </p>
               ) : null}
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 {s.type === 'demonetization' ? (
                   <button 
-                    className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-xs font-medium transition-colors" 
+                    className="px-4 py-2 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-lg text-sm font-medium transition-all duration-200 text-gray-800 shadow-lg hover:shadow-xl" 
                     onClick={() => updateSuggestionStatus(s.id, 'ignored')}
                   >
                     Dismiss
                   </button>
                 ) : s.type === 'slang-protected' ? (
                   <button 
-                    className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-xs font-medium transition-colors" 
+                    className="px-4 py-2 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-lg text-sm font-medium transition-all duration-200 text-gray-800 shadow-lg hover:shadow-xl" 
                     onClick={() => updateSuggestionStatus(s.id, 'accepted')}
                   >
                     Got it
@@ -201,13 +222,13 @@ export default function SuggestionSidebar() {
                 ) : (
                   <>
                     <button 
-                      className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-xs font-medium transition-colors" 
+                      className="px-4 py-2 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-lg text-sm font-medium transition-all duration-200 text-gray-800 shadow-lg hover:shadow-xl" 
                       onClick={() => acceptSuggestion(s)}
                     >
                       Accept
                     </button>
                     <button 
-                      className="px-3 py-1 bg-white bg-opacity-10 hover:bg-opacity-20 rounded text-xs font-medium transition-colors" 
+                      className="px-4 py-2 bg-white bg-opacity-60 hover:bg-opacity-80 rounded-lg text-sm font-medium transition-all duration-200 text-gray-700" 
                       onClick={() => updateSuggestionStatus(s.id, 'ignored')}
                     >
                       Ignore

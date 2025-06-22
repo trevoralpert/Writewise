@@ -58,19 +58,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200">
-      <div className="card w-full max-w-md shadow-xl">
-        <div className="card-body">
-          <div className="flex flex-col items-center mb-6">
-            <img src="/logo.png" alt="WriteWise logo" className="w-24 h-24" />
+    <div className="min-h-screen flex items-center justify-center bg-warm-cream">
+      <div className="card-warm w-full max-w-md">
+        <div className="p-8">
+          <div className="flex flex-col items-center mb-8">
+            <img src="/logo.png" alt="WriteWise logo" className="w-24 h-24 rounded-creative" />
+            <h1 className="text-2xl font-bold text-gray-700 mt-4 font-writing">Welcome to Writewise</h1>
           </div>
-          <p className="text-sm text-gray-500 text-center mb-4">Your AI-powered grammar and style support</p>
+          <p className="text-sm text-forest-600 text-center mb-6 font-ui">Your AI-powered writing companion for creativity and clarity</p>
 
-          <form onSubmit={handleEmailAuth} className="space-y-3">
+          <form onSubmit={handleEmailAuth} className="space-y-4">
             <input
               type="email"
-              placeholder="Email"
-              className="input input-bordered w-full"
+              placeholder="Email address"
+              className="input w-full"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -78,36 +79,36 @@ export default function LoginPage() {
             <input
               type="password"
               placeholder="Password"
-              className="input input-bordered w-full"
+              className="input w-full"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <button className="btn btn-primary w-full" type="submit">
+            <button className="btn w-full" type="submit">
               {isSignUp ? 'Create account' : 'Sign in'}
             </button>
           </form>
 
           <button
-            className="btn btn-outline btn-primary w-full mt-2 flex gap-2 normal-case"
+            className="btn-ghost w-full mt-4 flex items-center justify-center gap-3 px-6 py-3 rounded-creative border border-forest-200 hover:bg-forest-50 transition-all duration-200"
             onClick={googleHandler}
           >
             <img src="/Google.png" alt="" className="w-5 h-5" />
-            Continue with Google
+            <span className="font-ui font-medium">Continue with Google</span>
           </button>
 
-          <Link to="/demo" className="btn btn-secondary w-full normal-case mt-2">
+          <Link to="/demo" className="btn-secondary w-full mt-4 inline-block text-center">
             Try Demo Without Account
           </Link>
 
           <button
-            className="btn btn-link btn-xs mt-2"
+            className="w-full mt-6 text-sm text-forest-600 hover:text-forest-800 transition-colors font-ui"
             onClick={() => setIsSignUp(!isSignUp)}
           >
-            {isSignUp ? 'Already have an account? Sign in' : 'New here? Create one'}
+            {isSignUp ? 'Already have an account? Sign in' : 'New here? Create an account'}
           </button>
 
-          {error && <p className="text-error text-center">{error}</p>}
+          {error && <p className="text-coral-600 text-center mt-4 text-sm font-ui">{error}</p>}
         </div>
       </div>
     </div>

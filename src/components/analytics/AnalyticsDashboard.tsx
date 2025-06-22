@@ -108,15 +108,15 @@ export default function AnalyticsDashboard({ sessionId, analytics: propAnalytics
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600'
-    if (score >= 60) return 'text-yellow-600'
-    return 'text-red-600'
+    if (score >= 80) return 'text-forest-600'
+    if (score >= 60) return 'text-amber-600'
+    return 'text-coral-600'
   }
 
   const getScoreBackground = (score: number) => {
-    if (score >= 80) return 'bg-green-100'
-    if (score >= 60) return 'bg-yellow-100'
-    return 'bg-red-100'
+    if (score >= 80) return 'bg-forest-50 border-forest-100'
+    if (score >= 60) return 'bg-amber-50 border-amber-100'
+    return 'bg-coral-50 border-coral-100'
   }
 
   if (loading) {
@@ -195,11 +195,13 @@ export default function AnalyticsDashboard({ sessionId, analytics: propAnalytics
   }
 
   return (
-    <div className="bg-white rounded-lg border">
+    <div className="card-warm shadow-warm-lg border border-forest-100">
       {/* Header */}
-      <div className="border-b p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Writing Analytics</h2>
+              <div className="border-b border-forest-100 p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-700 font-writing flex items-center">
+              📊 Writing Analytics
+            </h2>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Session: {analytics.session.id.slice(-8)}</span>
             <button
@@ -225,10 +227,10 @@ export default function AnalyticsDashboard({ sessionId, analytics: propAnalytics
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors font-ui ${
                 activeTab === tab.id
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-forest-100 text-forest-700 shadow-warm'
+                  : 'text-forest-600 hover:text-forest-800 hover:bg-forest-50'
               }`}
             >
               <span className="mr-2">{tab.icon}</span>
@@ -242,24 +244,24 @@ export default function AnalyticsDashboard({ sessionId, analytics: propAnalytics
       <div className="p-6">
         {activeTab === 'overview' && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-blue-600">{analytics.session.wordCount}</div>
-              <div className="text-sm text-blue-600">Words</div>
+            <div className="bg-forest-50 rounded-creative p-6 border border-forest-100 shadow-warm">
+              <div className="text-2xl font-bold text-forest-700 font-writing">{analytics.session.wordCount}</div>
+              <div className="text-sm text-forest-600 font-ui">Words</div>
             </div>
             
-            <div className="bg-green-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-green-600">{analytics.session.improvementRate}%</div>
-              <div className="text-sm text-green-600">Improvement Rate</div>
+            <div className="bg-coral-50 rounded-creative p-6 border border-coral-100 shadow-warm">
+              <div className="text-2xl font-bold text-coral-700 font-writing">{analytics.session.improvementRate}%</div>
+              <div className="text-sm text-coral-600 font-ui">Improvement Rate</div>
             </div>
             
-            <div className="bg-purple-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-purple-600">{analytics.session.suggestionsProcessed}</div>
-              <div className="text-sm text-purple-600">Suggestions</div>
+            <div className="bg-purple-50 rounded-creative p-6 border border-purple-100 shadow-warm">
+              <div className="text-2xl font-bold text-purple-700 font-writing">{analytics.session.suggestionsProcessed}</div>
+              <div className="text-sm text-purple-600 font-ui">Suggestions</div>
             </div>
             
-            <div className="bg-orange-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-orange-600">{Math.round(analytics.session.duration / 60000)}m</div>
-              <div className="text-sm text-orange-600">Time Spent</div>
+            <div className="bg-amber-50 rounded-creative p-6 border border-amber-100 shadow-warm">
+              <div className="text-2xl font-bold text-amber-700 font-writing">{Math.round(analytics.session.duration / 60000)}m</div>
+              <div className="text-sm text-amber-600 font-ui">Time Spent</div>
             </div>
           </div>
         )}
