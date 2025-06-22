@@ -16,8 +16,12 @@ export default function AnalyticsPage() {
 
   // Generate analytics when component mounts or suggestions change
   useEffect(() => {
-    generateAnalytics()
-  }, [allSuggestions.length, generateAnalytics])
+    // FIXED: Only generate local analytics if we don't have backend analytics
+    // This prevents overriding backend analytics with incomplete local analytics
+    if (!analytics && allSuggestions.length > 0) {
+      generateAnalytics()
+    }
+  }, [allSuggestions.length, generateAnalytics, analytics])
 
   // Debug information
   console.log('Analytics Page Debug:', {

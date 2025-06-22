@@ -450,7 +450,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   sessionStartTime: Date.now(),
   generateAnalytics: () => {
     const state = get()
-    const { allSuggestions, currentSessionId } = state
+    const { allSuggestions, currentSessionId, content } = state
     
     // Generate analytics based on current suggestions
     const suggestionBreakdown = allSuggestions.reduce((acc, suggestion) => {
@@ -473,14 +473,32 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       item.percentage = total > 0 ? Math.round((item.count / total) * 100) : 0
     })
     
+    // Calculate word count and other metrics
+    const wordCount = content.split(/\s+/).filter(word => word.length > 0).length
+    const charCount = content.length
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0).length
+    const avgSentenceLength = sentences > 0 ? Math.round(wordCount / sentences) : 0
+    
+    // Create analytics in the same format as backend
     const analytics = {
       session: {
-        id: currentSessionId || 'current',
-        suggestionsProcessed: allSuggestions.length,
+        id: currentSessionId || 'local-session',
         duration: Date.now() - (state.sessionStartTime || Date.now()),
-        wordsAnalyzed: state.content.split(/\s+/).filter(word => word.length > 0).length,
-        improvementRate: 0 // Could calculate based on accepted suggestions
+        wordCount: wordCount, // FIXED: Add wordCount field
+        charCount: charCount, // FIXED: Add charCount field
+        improvementRate: 0, // Could calculate based on accepted suggestions
+        suggestionsProcessed: allSuggestions.length,
+        suggestionsAccepted: 0 // Could track this in the future
       },
+      writingQuality: {
+        readabilityScore: Math.max(0, Math.min(100, 206.835 - (1.015 * avgSentenceLength))), // Simplified Flesch-Kincaid
+        readabilityLevel: avgSentenceLength < 12 ? 'Very Easy' : avgSentenceLength < 15 ? 'Easy' : avgSentenceLength < 18 ? 'Standard' : 'Difficult',
+        sentenceVariety: Math.min(100, Math.max(0, 100 - Math.abs(avgSentenceLength - 15) * 5)), // Variety based on sentence length consistency
+        vocabularyRichness: Math.min(100, Math.round((new Set(content.toLowerCase().split(/\s+/)).size / wordCount) * 100)), // Unique words ratio
+        avgSentenceLength: avgSentenceLength,
+        toneConsistency: 75 // Default value
+      },
+      improvements: [], // Could track improvements in the future
       suggestionBreakdown
     }
     

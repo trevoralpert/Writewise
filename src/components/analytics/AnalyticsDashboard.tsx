@@ -33,18 +33,26 @@ interface AnalyticsDashboardProps {
 }
 
 export default function AnalyticsDashboard({ sessionId, analytics: propAnalytics }: AnalyticsDashboardProps) {
-  const [analytics, setAnalytics] = useState<WritingAnalytics | null>(propAnalytics || null)
-  const [loading, setLoading] = useState(!propAnalytics)
+  const [analytics, setAnalytics] = useState<WritingAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'quality' | 'suggestions' | 'export'>('overview')
 
   const content = useEditorStore(s => s.content)
 
   useEffect(() => {
-    if (sessionId && !propAnalytics) {
+    // FIXED: Always try to fetch backend analytics first if we have a sessionId
+    // Only fall back to propAnalytics if backend fetch fails
+    if (sessionId) {
       fetchAnalytics()
+    } else if (propAnalytics) {
+      // Use prop analytics as fallback when no sessionId
+      setAnalytics(propAnalytics)
+      setLoading(false)
+    } else {
+      setLoading(false)
     }
-  }, [sessionId])
+  }, [sessionId, propAnalytics])
 
   const fetchAnalytics = async () => {
     if (!sessionId) return
@@ -63,6 +71,12 @@ export default function AnalyticsDashboard({ sessionId, analytics: propAnalytics
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analytics')
+      
+      // FIXED: Fall back to prop analytics if backend fetch fails
+      if (propAnalytics) {
+        setAnalytics(propAnalytics)
+        setError(null) // Clear error since we have fallback data
+      }
     } finally {
       setLoading(false)
     }

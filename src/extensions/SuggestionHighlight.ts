@@ -142,12 +142,32 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                   const currentSlice = plainText.slice(suggestion.start, suggestion.end)
                   if (suggestion.text !== currentSlice) {
                     // The API's positions are wrong. Find the real ones.
-                    const exactIndex = plainText.indexOf(suggestion.text)
+                    // CRITICAL FIX: Instead of using indexOf (which always finds first occurrence),
+                    // find the occurrence closest to the original suggested position
+                    let bestMatch = -1
+                    let bestDistance = Infinity
+                    let searchStart = 0
                     
-                    if (exactIndex !== -1) {
-                      // We found the text. Update the suggestion with the correct positions.
-                      suggestion.start = exactIndex
-                      suggestion.end = exactIndex + suggestion.text.length
+                    // Search for all occurrences of the suggestion text
+                    while (true) {
+                      const foundIndex = plainText.indexOf(suggestion.text, searchStart)
+                      if (foundIndex === -1) break
+                      
+                      // Calculate distance from original suggested position
+                      const distance = Math.abs(foundIndex - suggestion.start)
+                      if (distance < bestDistance) {
+                        bestDistance = distance
+                        bestMatch = foundIndex
+                      }
+                      
+                      searchStart = foundIndex + 1
+                    }
+                    
+                    if (bestMatch !== -1) {
+                      // We found the closest match. Update the suggestion with the correct positions.
+                      suggestion.start = bestMatch
+                      suggestion.end = bestMatch + suggestion.text.length
+                      console.log(`🔧 Position corrected: "${suggestion.text}" moved from ${currentSlice} to position ${bestMatch}`)
                     } else {
                       // If we can't find the exact text in the document, we can't highlight it.
                       console.warn(`Could not find suggestion text "${suggestion.text}" in the document. Skipping.`)
@@ -264,12 +284,14 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
               if (item.end >= totalTextLength) {
                 toPos = textToProseMirrorPos[totalTextLength - 1] + 1
               } else {
-                toPos = textToProseMirrorPos[item.end]
+                // CRITICAL FIX: item.end is exclusive, so we want the ProseMirror position 
+                // just BEFORE the character at item.end, which is the position AFTER item.end - 1
+                toPos = textToProseMirrorPos[item.end - 1] + 1
               }
               
               // CRITICAL FIX: Ensure toPos is properly calculated for boundary cases
               if (toPos === undefined) {
-                if (item.end <= totalTextLength && textToProseMirrorPos[item.end - 1] !== undefined) {
+                if (item.end > 0 && textToProseMirrorPos[item.end - 1] !== undefined) {
                   toPos = textToProseMirrorPos[item.end - 1] + 1
                 } else {
                   return
