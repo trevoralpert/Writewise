@@ -247,8 +247,18 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
 
             // Create decorations for each individual suggestion
             individualSuggestions.forEach((item) => {
-              // Map text positions to ProseMirror positions
-              const fromPos = textToProseMirrorPos[item.start]
+              // Map text positions to ProseMirror positions - FIXED FOR FIRST CHARACTER ALIGNMENT
+              // The issue was that we need to ensure the mapping accounts for the document structure properly
+              let fromPos = textToProseMirrorPos[item.start]
+              
+              // CRITICAL FIX: Handle edge case where first character position mapping might be undefined
+              if (fromPos === undefined && item.start === 0) {
+                // For the very first character, ProseMirror position should be 1 (after the doc node)
+                fromPos = 1
+              } else if (fromPos === undefined) {
+                // If we can't map the position, skip this decoration
+                return
+              }
               
               let toPos: number
               if (item.end >= totalTextLength) {
@@ -257,14 +267,19 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                 toPos = textToProseMirrorPos[item.end]
               }
               
-              if (fromPos === undefined || toPos === undefined) {
-                return
+              // CRITICAL FIX: Ensure toPos is properly calculated for boundary cases
+              if (toPos === undefined) {
+                if (item.end <= totalTextLength && textToProseMirrorPos[item.end - 1] !== undefined) {
+                  toPos = textToProseMirrorPos[item.end - 1] + 1
+                } else {
+                  return
+                }
               }
 
               const from = fromPos
               const to = toPos
               
-              // Final validation
+              // Final validation - ENHANCED FOR FIRST CHARACTER SUPPORT
               if (from < 1 || to < 1 || from >= to || to > doc.content.size + 1) {
                 return
               }
@@ -272,6 +287,11 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
               const finalTo = Math.min(to, doc.content.size)
               if (from >= finalTo) {
                 return
+              }
+
+              // DEBUGGING: Log position mapping for first few characters to verify fix
+              if (item.start <= 5) {
+                console.log(`🔍 Position mapping debug: text[${item.start}-${item.end}] = "${plainText.slice(item.start, item.end)}" -> ProseMirror[${from}-${finalTo}]`)
               }
 
               // Create comprehensive class string with all layers
@@ -305,6 +325,8 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                     'data-text-end': String(item.end),
                     'data-actual-text': plainText.slice(item.start, item.end),
                     title: item.message,
+                    // CRITICAL FIX: Allow click-through for cursor positioning
+                    style: 'pointer-events: auto; cursor: text;'
                   })
                 )
               } catch (error) {

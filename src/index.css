@@ -166,7 +166,8 @@ button:focus-visible {
   position: relative;
   cursor: help;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 1px 2px;
+  /* REMOVED: padding: 1px 2px; - was causing first character cut-off */
+  padding: 1px 0px; /* Keep vertical padding, remove horizontal padding */
 }
 
 .suggestion-underline-slang-protected:hover {
@@ -177,12 +178,13 @@ button:focus-visible {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
+/* CRITICAL FIX: Pseudo-element positioning causing first character cut-off */
 .suggestion-underline-slang-protected::before {
   content: '';
   position: absolute;
   top: -2px;
-  left: -2px;
-  right: -2px;
+  left: 0px; /* FIXED: Changed from -2px to 0px to align with text start */
+  right: 0px; /* FIXED: Changed from -2px to 0px to align with text end */
   bottom: -2px;
   background: linear-gradient(45deg, transparent, rgba(16, 185, 129, 0.1), transparent);
   border-radius: 4px;
@@ -212,7 +214,8 @@ button:focus-visible {
   border-radius: 1px;
   animation: engagement-pulse 2.5s ease-in-out infinite;
   background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(219, 39, 119, 0.05) 100%);
-  padding: 1px 2px;
+  /* REMOVED: padding: 1px 2px; - was causing first character cut-off */
+  padding: 1px 0px; /* Keep vertical padding, remove horizontal padding */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -786,7 +789,8 @@ button:focus-visible {
 .style-consistency-highlight {
   background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.1));
   border-radius: 3px;
-  padding: 1px 2px;
+  /* REMOVED: padding: 1px 2px; - was causing first character cut-off */
+  padding: 1px 0px; /* Keep vertical padding, remove horizontal padding */
   animation: style-consistency-pulse 4s ease-in-out infinite;
 }
 
@@ -896,7 +900,8 @@ button:focus-visible {
 .seo-highlight {
   background: linear-gradient(45deg, rgba(139, 92, 246, 0.1), rgba(168, 85, 247, 0.1));
   border-radius: 3px;
-  padding: 1px 2px;
+  /* REMOVED: padding: 1px 2px; - was causing first character cut-off */
+  padding: 1px 0px; /* Keep vertical padding, remove horizontal padding */
   animation: seo-highlight-pulse 4s ease-in-out infinite;
 }
 
@@ -980,7 +985,8 @@ button:focus-visible {
   display: inline;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 3px;
-  padding: 1px 3px;
+  /* REMOVED: padding: 1px 3px; - was causing first character cut-off */
+  padding: 1px 0px; /* Keep vertical padding, remove horizontal padding */
 }
 
 /* LAYER 1: BACKGROUND COLORS (Blendable) */
@@ -1028,7 +1034,7 @@ button:focus-visible {
   content: '';
   position: absolute;
   top: -2px;
-  right: -2px;
+  right: 0px; /* FIXED: Changed from -2px to 0px to align properly */
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -1067,11 +1073,12 @@ button:focus-visible {
   animation: ultimate-pulse 3s ease-in-out infinite;
 }
 
-/* ENHANCED HOVER EFFECTS */
+/* ENHANCED HOVER EFFECTS - FIXED FOR CURSOR POSITIONING */
 .suggestion-multi-base:hover {
-  transform: translateY(-1px);
-  z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  /* REMOVED: transform: translateY(-1px); - was interfering with cursor positioning */
+  z-index: 1; /* Reduced from 10 to minimize interference */
+  pointer-events: auto; /* Enable hover interactions */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Reduced shadow to minimize visual shift */
 }
 
 /* Specific hover enhancements for each type */
@@ -1151,21 +1158,22 @@ button:focus-visible {
   }
 }
 
-/* Ensure proper layering with z-index */
+/* Ensure proper layering with z-index - FIXED FOR CURSOR INTERACTION */
 .suggestion-multi-base {
-  z-index: 1;
+  z-index: 0; /* Reduced from 1 to allow text interaction */
+  pointer-events: none; /* Allow clicks to pass through to text */
+  cursor: text; /* Show text cursor */
 }
 
-.suggestion-multi-base:hover {
-  z-index: 10;
-}
+/* Removed duplicate hover rule - consolidated above */
 
 /* Legacy classes for backward compatibility */
 .suggestion-multi-style-consistency {
   background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%);
   border-bottom: 2px dotted #a855f7;
   border-radius: 2px;
-  padding: 1px 2px;
+  /* REMOVED: padding: 1px 2px; - was causing first character cut-off */
+  padding: 1px 0px; /* Keep vertical padding, remove horizontal padding */
 }
 
 .suggestion-multi-default {

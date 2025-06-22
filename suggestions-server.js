@@ -6494,11 +6494,30 @@ Text: "${text}"`;
       }
     });
 
+    // ANALYTICS FIX: Update session with suggestion data and generate analytics
+    const sessionUpdates = {
+      suggestions: {
+        total: suggestions.length,
+        accepted: 0,
+        ignored: 0,
+        byType: suggestions.reduce((acc, s) => {
+          acc.set(s.type, (acc.get(s.type) || 0) + 1);
+          return acc;
+        }, new Map()),
+        timeline: [{ timestamp: Date.now(), count: suggestions.length, type: 'generated' }]
+      }
+    };
+    updateWritingSession(sessionId, sessionUpdates);
+    
+    // Generate analytics for this session
+    const writingAnalyticsData = generateWritingAnalytics(sessionId);
+
     updatePerformanceMetrics(Date.now() - startTime, false, false, true);
     
     res.json({
       suggestions: suggestions.slice(0, 10), // Limit for performance
       sessionId,
+      analytics: writingAnalyticsData, // ANALYTICS FIX: Include analytics in response
       processingTime: Date.now() - startTime
     });
 

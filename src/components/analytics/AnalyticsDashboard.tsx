@@ -131,6 +131,23 @@ export default function AnalyticsDashboard({ sessionId, analytics: propAnalytics
           >
             Retry
           </button>
+          
+          <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <h3 className="font-medium text-yellow-800 mb-2">Local Analytics Available</h3>
+            <p className="text-sm text-yellow-700">
+              Showing basic analytics based on current session data while server analytics are unavailable.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-white p-2 rounded">
+                <div className="font-medium text-gray-900">{content.split(/\s+/).filter(w => w.length > 0).length}</div>
+                <div className="text-gray-600">Words</div>
+              </div>
+              <div className="bg-white p-2 rounded">
+                <div className="font-medium text-gray-900">{content.length}</div>
+                <div className="text-gray-600">Characters</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -142,6 +159,22 @@ export default function AnalyticsDashboard({ sessionId, analytics: propAnalytics
         <div className="text-center text-gray-500">
           <p>No analytics data available</p>
           <p className="text-sm">Start writing to see your analytics!</p>
+          
+          {content && content.trim().length > 0 && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-medium text-blue-800 mb-2">Current Session</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-white p-2 rounded">
+                  <div className="font-medium text-gray-900">{content.split(/\s+/).filter(w => w.length > 0).length}</div>
+                  <div className="text-gray-600">Words</div>
+                </div>
+                <div className="bg-white p-2 rounded">
+                  <div className="font-medium text-gray-900">{content.length}</div>
+                  <div className="text-gray-600">Characters</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )

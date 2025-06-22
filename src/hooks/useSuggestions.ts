@@ -308,6 +308,11 @@ export function useSuggestions() {
       if (coreData.sessionId) {
         setCurrentSessionId(coreData.sessionId);
       }
+      
+      // ANALYTICS FIX: Store analytics from core endpoint
+      if (coreData.analytics) {
+        setAnalytics(coreData.analytics);
+      }
 
       // PHASE 2: Get enhanced suggestions in parallel (only if enabled)
       const enhancedPromises = [];
