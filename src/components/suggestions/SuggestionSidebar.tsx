@@ -81,7 +81,7 @@ export default function SuggestionSidebar() {
   }
 
   return (
-    <aside className="w-80 bg-white border-l border-blue-100 p-8 space-y-6 rounded-lg shadow-lg min-h-screen">
+    <aside className="w-80 xl:w-96 2xl:w-[28rem] bg-white border-l border-blue-100 p-8 space-y-6 rounded-lg shadow-lg min-h-screen">
       {/* Summary Section */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="font-semibold text-gray-700 mb-4 font-writing text-lg flex items-center">

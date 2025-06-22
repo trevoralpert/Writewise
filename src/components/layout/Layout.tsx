@@ -128,7 +128,7 @@ const Layout = ({ children, user }: { children: ReactNode, user: any }) => {
         )}
     </header>
       
-              <div className="flex w-full max-w-7xl gap-6 px-6">
+              <div className="flex w-full max-w-none gap-6 px-6 xl:px-8 2xl:px-12">
         {user && (
           <DocumentSidebar ref={documentSidebarRef} user={user} onSelect={setCurrentDocument} />
         )}

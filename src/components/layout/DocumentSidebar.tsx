@@ -234,14 +234,14 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
     }
 
     return (
-      <aside className="w-80 bg-white border-r border-forest-100 p-8 rounded-creative shadow-warm min-h-screen">
+      <aside className="w-80 xl:w-96 2xl:w-[28rem] bg-white border-r border-gray-200 p-8 rounded-lg shadow-lg min-h-screen">
         {/* Tab Navigation */}
-        <div className="flex mb-8 bg-forest-50 rounded-creative p-2">
+        <div className="flex mb-8 bg-gray-50 rounded-lg p-2">
           <button
             className={`flex-1 px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 font-ui ${
               activeTab === 'my-docs'
-                ? 'bg-white text-forest-800 shadow-warm font-semibold'
-                : 'text-forest-600 hover:text-forest-800 hover:bg-forest-100'
+                ? 'bg-white text-gray-800 shadow-lg font-semibold'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
             }`}
             onClick={() => setActiveTab('my-docs')}
           >
@@ -250,8 +250,8 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
           <button
             className={`flex-1 px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 font-ui ${
               activeTab === 'shared'
-                ? 'bg-white text-forest-800 shadow-warm font-semibold'
-                : 'text-forest-600 hover:text-forest-800 hover:bg-forest-100'
+                ? 'bg-white text-gray-800 shadow-lg font-semibold'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
             }`}
             onClick={() => setActiveTab('shared')}
           >
@@ -269,7 +269,7 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
               placeholder="New document title"
               disabled={isLoading}
             />
-            <button className="btn bg-forest-500 hover:bg-forest-600 text-white ml-2" type="submit" disabled={isLoading}>
+            <button className="btn bg-green-600 hover:bg-green-700 text-white ml-2" type="submit" disabled={isLoading}>
               {isLoading ? '⏳' : '✨ Create'}
             </button>
           </form>
@@ -339,7 +339,7 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
                       )}
                     </button>
                     <button 
-                      className="p-2 text-forest-600 hover:text-forest-800 hover:bg-forest-50 rounded-lg transition-all duration-200 text-sm font-medium" 
+                      className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => {
                         setEditTitle(doc.title)
                         setEditingId(doc.id)
@@ -350,7 +350,7 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
                       ✏️
                     </button>
                     <button 
-                      className="p-2 text-forest-600 hover:text-forest-800 hover:bg-forest-50 rounded-lg transition-all duration-200 text-sm font-medium" 
+                      className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => setSharingDocId(doc.id)} 
                       disabled={isLoading}
                       title="Share"
@@ -358,7 +358,7 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
                       🔗
                     </button>
                     <button 
-                      className="p-2 text-forest-600 hover:text-forest-800 hover:bg-forest-50 rounded-lg transition-all duration-200 text-sm font-medium" 
+                      className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => setHistoryDocId(doc.id)} 
                       disabled={isLoading}
                       title="Version History"
@@ -366,7 +366,7 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
                       📅
                     </button>
                     <button 
-                      className="p-2 text-forest-600 hover:text-forest-800 hover:bg-forest-50 rounded-lg transition-all duration-200 text-sm font-medium" 
+                      className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => handleExport(doc.id, doc.title)} 
                       disabled={isLoading}
                       title="Export"
@@ -374,7 +374,7 @@ const DocumentSidebar = forwardRef<DocumentSidebarRef, { onSelect: (doc: any) =>
                       📥
                     </button>
                     <button 
-                      className="p-2 text-coral-600 hover:text-coral-800 hover:bg-coral-50 rounded-lg transition-all duration-200 text-sm font-medium" 
+                      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200 text-sm font-medium" 
                       onClick={() => handleDelete(doc.id)}
                       disabled={isLoading}
                       title="Delete"
