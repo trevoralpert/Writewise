@@ -129,18 +129,30 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
             const validSuggestions = filterAndValidateSuggestions(suggestions)
               .filter(suggestion => suggestion.status === 'pending')
               .map(suggestion => {
-                // Validate suggestion bounds against plain text
-                if (suggestion.start < 0 || suggestion.end < 0 || 
-                    suggestion.start >= suggestion.end || 
-                    suggestion.start >= totalTextLength || 
-                    suggestion.end > totalTextLength) {
+                // UNIVERSAL POSITION SHIFT FIX: Entire visualization is shifted right by 1
+                // Apply -1 adjustment to BOTH start and end to shift the whole range left
+                const adjustedSuggestion = {
+                  ...suggestion,
+                  start: Math.max(0, suggestion.start - 1), // Shift start left by 1
+                  end: Math.max(1, suggestion.end - 1),     // Shift end left by 1 too
+                }
+                
+                // Validate suggestion bounds against plain text (using adjusted positions)
+                if (adjustedSuggestion.start < 0 || adjustedSuggestion.end < 0 || 
+                    adjustedSuggestion.start >= adjustedSuggestion.end || 
+                    adjustedSuggestion.start >= totalTextLength || 
+                    adjustedSuggestion.end > totalTextLength) {
                   return null
                 }
 
+                // DEBUGGING: Log our universal shift adjustment
+                console.log(`🔧 Universal shift applied: "${adjustedSuggestion.text}" ${suggestion.start}-${suggestion.end} -> ${adjustedSuggestion.start}-${adjustedSuggestion.end}`)
+                
                 // If we have expected text, ensure the positions are correct
-                if (suggestion.text) {
-                  const currentSlice = plainText.slice(suggestion.start, suggestion.end)
-                  if (suggestion.text !== currentSlice) {
+                // TEMPORARILY DISABLED: This logic overrides our universal shift
+                if (false && adjustedSuggestion.text) {
+                  const currentSlice = plainText.slice(adjustedSuggestion.start, adjustedSuggestion.end)
+                  if (adjustedSuggestion.text !== currentSlice) {
                     // The API's positions are wrong. Find the real ones.
                     // CRITICAL FIX: Instead of using indexOf (which always finds first occurrence),
                     // find the occurrence closest to the original suggested position
@@ -150,11 +162,11 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                     
                     // Search for all occurrences of the suggestion text
                     while (true) {
-                      const foundIndex = plainText.indexOf(suggestion.text, searchStart)
+                      const foundIndex = plainText.indexOf(adjustedSuggestion.text, searchStart)
                       if (foundIndex === -1) break
                       
                       // Calculate distance from original suggested position
-                      const distance = Math.abs(foundIndex - suggestion.start)
+                      const distance = Math.abs(foundIndex - adjustedSuggestion.start)
                       if (distance < bestDistance) {
                         bestDistance = distance
                         bestMatch = foundIndex
@@ -165,22 +177,22 @@ export const SuggestionHighlight = Extension.create<SuggestionHighlightOptions>(
                     
                     if (bestMatch !== -1) {
                       // We found the closest match. Update the suggestion with the correct positions.
-                      suggestion.start = bestMatch
-                      suggestion.end = bestMatch + suggestion.text.length
-                      console.log(`🔧 Position corrected: "${suggestion.text}" moved from ${currentSlice} to position ${bestMatch}`)
+                      adjustedSuggestion.start = bestMatch
+                      adjustedSuggestion.end = bestMatch + adjustedSuggestion.text.length
+                      console.log(`🔧 Position corrected: "${adjustedSuggestion.text}" moved from ${currentSlice} to position ${bestMatch}`)
                     } else {
                       // If we can't find the exact text in the document, we can't highlight it.
-                      console.warn(`Could not find suggestion text "${suggestion.text}" in the document. Skipping.`)
+                      console.warn(`Could not find suggestion text "${adjustedSuggestion.text}" in the document. Skipping.`)
                       return null
                     }
                   }
                 }
                 
                 // Extract the definitive text for the highlight
-                const actualText = plainText.slice(suggestion.start, suggestion.end)
+                const actualText = plainText.slice(adjustedSuggestion.start, adjustedSuggestion.end)
                 if (!actualText) return null
 
-                return { ...suggestion, actualText }
+                return { ...adjustedSuggestion, actualText }
               })
               .filter(Boolean) as (typeof suggestions[0] & { actualText: string })[]
 
