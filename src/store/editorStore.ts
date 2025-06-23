@@ -574,7 +574,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   
   // New: Platform adaptation settings
   selectedPlatform: null,
-  setSelectedPlatform: (platform) => set({ selectedPlatform: platform }),
+  setSelectedPlatform: (platform) => {
+    set({ selectedPlatform: platform })
+    // Platform change requires full re-analysis for slang protection
+    const state = get()
+    if (state.content && state.content.trim().length > 0) {
+      // Import and call requestSuggestionsImmediate from useSuggestions hook
+      // This will be handled by the Editor component listening to this change
+      state.setAllSuggestionsAndFilter([]) // Clear old suggestions immediately
+    }
+  },
   
   // Priority preferences for conflict resolution
   conflictResolutionMode: 'balanced',
@@ -588,8 +597,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setToneDetectionSensitivity: (level) => set({ toneDetectionSensitivity: level }),
 
   // Formality spectrum setting
-  formalityLevel: 'casual',
-  setFormalityLevel: (level) => set({ formalityLevel: level }),
+  formalityLevel: 'balanced',
+  setFormalityLevel: (level) => {
+    set({ formalityLevel: level })
+    // Formality change requires full re-analysis for slang protection
+    const state = get()
+    if (state.content && state.content.trim().length > 0) {
+      state.setAllSuggestionsAndFilter([]) // Clear old suggestions immediately
+    }
+  },
 
   // SEO Content Optimization settings
   seoOptimizationEnabled: false,

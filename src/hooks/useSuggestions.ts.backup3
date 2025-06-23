@@ -294,10 +294,13 @@ export function useSuggestions() {
         coreResponse = await fetch('http://localhost:3001/api/suggestions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody), // Send full context
+          body: JSON.stringify({
+            text: content,
+            ...requestBody // Send full context for slang protection
+          }),
         });
       } else {
-        // Use fast core endpoint for standard checking
+        // Use fast core endpoint for standard suggestions
         console.log('🚀 Phase 1: Fetching core suggestions (grammar & spelling)');
         
         coreResponse = await fetch('http://localhost:3001/api/suggestions/core', {
@@ -333,13 +336,7 @@ export function useSuggestions() {
         setAnalytics(coreData.analytics);
       }
 
-      // PHASE 2: Get enhanced suggestions in parallel (only if enabled AND not using full endpoint)
-      
-      // Skip enhanced suggestions if we already used the full endpoint (it includes everything)
-      if (needsSlangProtection) {
-        console.log('✅ Using full endpoint suggestions only (includes all features)');
-        return;
-      }
+      // PHASE 2: Get enhanced suggestions in parallel (only if enabled)
       const enhancedPromises = [];
       
       // Style suggestions (if style analysis is wanted)
@@ -476,7 +473,7 @@ export function useSuggestions() {
       setError(null);
 
       try {
-        // PHASE 1: Determine if we need slang protection (platform + formality context)
+        // Use the same logic as getSuggestions but with the provided text
         console.log('🚀 Phase 1: Fetching core suggestions (grammar & spelling) with text:', text.slice(-20));
         
         const coreResponse = await fetch('http://localhost:3001/api/suggestions/core', {
@@ -510,13 +507,7 @@ export function useSuggestions() {
           setAnalytics(coreData.analytics);
         }
 
-        // PHASE 2: Get enhanced suggestions in parallel (only if enabled AND not using full endpoint)
-      
-      // Skip enhanced suggestions if we already used the full endpoint (it includes everything)
-      // if (needsSlangProtection) {
-      //   console.log('✅ Using full endpoint suggestions only (includes all features)');
-      //   return;
-      // }
+        // PHASE 2: Get enhanced suggestions in parallel (only if enabled)
         const enhancedPromises = [];
         
         // Style suggestions (if style analysis is wanted)
@@ -578,7 +569,7 @@ export function useSuggestions() {
             'demonetization': 80,
             'style': 50,
             'engagement': 40,
-            'slang-protected': 30
+          'slang-protected': 30
           };
           
           const aPriority = priorityMap[a.type as keyof typeof priorityMap] || 25;

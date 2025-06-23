@@ -186,7 +186,20 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
   useEffect(() => {
     if (editor && currentDocument && currentDocument.content) {
       console.log('📄 Document loaded, requesting immediate suggestions for:', currentDocument.title)
-      requestSuggestionsImmediate()
+      
+      // CRITICAL FIX: Clear suggestions immediately before requesting new ones
+      // This ensures no stale suggestions from previous document are visible
+      console.log('🧹 Clearing stale suggestions before loading new document')
+      useEditorStore.getState().setAllSuggestionsAndFilter([])
+      
+      // Small delay to ensure UI updates before requesting new suggestions
+      setTimeout(() => {
+        requestSuggestionsImmediate()
+      }, 50)
+    } else if (!currentDocument) {
+      // Also clear suggestions when no document is selected
+      console.log('📄 No document selected, clearing suggestions')
+      useEditorStore.getState().setAllSuggestionsAndFilter([])
     }
   }, [currentDocument, editor, requestSuggestionsImmediate])
 
@@ -222,6 +235,28 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
     useEditorStore(s => s.conflictResolutionMode),
     useEditorStore(s => s.toneDetectionSensitivity),
     refilterSuggestions
+  ])
+
+  // Listen for CRITICAL settings changes that require full re-analysis (platform + formality)
+  useEffect(() => {
+    const selectedPlatform = useEditorStore.getState().selectedPlatform
+    const formalityLevel = useEditorStore.getState().formalityLevel
+    
+    console.log('🛡️ Critical settings changed - triggering re-analysis:', {
+      selectedPlatform,
+      formalityLevel
+    })
+    
+    // Only re-analyze if we have content and these settings affect slang protection
+    if (content && content.trim().length > 0) {
+      console.log('🔄 Re-analyzing text with new platform/formality context...')
+      requestSuggestionsImmediate()
+    }
+  }, [
+    useEditorStore(s => s.selectedPlatform),
+    useEditorStore(s => s.formalityLevel),
+    content,
+    requestSuggestionsImmediate
   ])
 
   // Hover listeners with delay mechanism
@@ -353,6 +388,11 @@ const Editor = ({ refreshDocuments }: EditorProps) => {
       if (hasUnsavedChanges) {
         saveCurrentDocument();
       }
+      
+      // CRITICAL FIX: Clear suggestions immediately when document ID changes
+      // This handles cases where the store's setCurrentDocument might not have cleared them yet
+      console.log('🔄 Document ID changed, clearing stale suggestions')
+      useEditorStore.getState().setAllSuggestionsAndFilter([])
     }
     prevDocId.current = currentDocument?.id || null;
   }, [currentDocument, hasUnsavedChanges, saveCurrentDocument]);

@@ -434,37 +434,51 @@ async function detectSlangWords(text, formalityLevel = 'balanced') {
 
 // AI function to detect slang expressions in text
 async function aiDetectSlangExpressions(text, formalityLevel) {
-  const prompt = `You are an expert linguist specializing in modern slang, informal language, and internet culture. Your task is to identify ALL slang expressions, informal phrases, and casual language in the given text.
+  const prompt = `You are an expert linguist specializing in modern slang, informal language, and internet culture. Your task is to identify ALL intentional slang expressions and casual language while AVOIDING typos and misspellings.
+
+CRITICAL DISTINCTIONS:
+- SLANG: Intentional informal language (e.g., "fire" meaning cool, "yo" as greeting, "no cap" meaning no lie)
+- TYPOS: Unintentional misspellings (e.g., "firse" instead of "first", "teh" instead of "the")
 
 Instructions:
-1. Find EVERY instance of slang, informal language, or casual expressions
-2. Include single words (like "fire", "lit", "bussin") AND multi-word phrases (like "on god", "for real", "sending me")
-3. Consider internet slang, Gen Z expressions, AAVE, regional slang, and emerging language
-4. Don't limit yourself to any predefined list - use your full knowledge
-5. Include the exact text position (start and end character indices)
+1. Find ALL intentional slang, informal expressions, and casual language
+2. Include single words ("fire", "lit", "bussin", "yo") AND multi-word phrases ("on god", "no cap", "for real", "sending me")
+3. EXCLUDE obvious typos and misspellings - focus only on intentional informal language
+4. Consider context: platform is ${formalityLevel === 'casual' ? 'social media/casual' : formalityLevel}
+5. Include internet slang, Gen Z expressions, AAVE, regional slang, and emerging language
+6. Calculate exact character positions (start and end indices)
 
+Platform context: ${formalityLevel}
 Text to analyze: "${text}"
-Target formality: ${formalityLevel}
 
-For each slang expression found, provide:
+For each intentional slang expression found, provide:
 - exact_text: the exact slang as it appears in the text
 - start_pos: character position where it starts (0-indexed)
 - end_pos: character position where it ends (exclusive)
-- slang_type: category (e.g., "emphasis", "fashion", "reaction", "agreement", etc.)
-- confidence: how confident you are this is slang (0.0-1.0)
+- slang_type: category (e.g., "greeting", "emphasis", "agreement", "reaction", "intensifier")
+- confidence: how confident you are this is INTENTIONAL slang, not a typo (0.0-1.0)
+- is_multiword: true if this spans multiple words, false for single words
 
-Respond with ONLY a JSON array in this format:
+EXAMPLES:
+- "yo" → greeting slang, confidence 0.9
+- "fire" (meaning cool) → positive reaction, confidence 0.8
+- "no cap" → agreement/emphasis, confidence 0.95, is_multiword: true
+- "on god" → emphasis/swearing, confidence 0.9, is_multiword: true
+- "firse" → NOT slang (typo of "first"), exclude this
+
+Respond with ONLY a JSON array:
 [
   {
-    "exact_text": "bussin",
-    "start_pos": 12,
-    "end_pos": 18,
-    "slang_type": "positive_reaction",
-    "confidence": 0.95
+    "exact_text": "yo",
+    "start_pos": 0,
+    "end_pos": 2,
+    "slang_type": "greeting",
+    "confidence": 0.9,
+    "is_multiword": false
   }
 ]
 
-If no slang is found, return an empty array: []
+If no intentional slang is found, return: []
 
 Text: "${text}"`;
 
@@ -502,7 +516,8 @@ Text: "${text}"`;
       end: expr.end_pos,
       context: getWordContext(text, expr.start_pos, expr.end_pos),
       slangType: expr.slang_type,
-      aiConfidence: expr.confidence
+      aiConfidence: expr.confidence,
+      isMultiword: expr.is_multiword || false
     }));
     
   } catch (error) {
@@ -588,42 +603,48 @@ function calculateSlangConfidence(slangWord, context, fullText) {
 // AI-powered context analysis for slang detection
 async function analyzeSlangContext(text, slangWord, context, formalityLevel = 'balanced') {
   try {
-    const prompt = `You are an expert in modern language, slang, and content creation. Analyze whether the use of slang in the given text appears intentional and appropriate for the context.
+    const prompt = `You are an expert in modern language, slang, and typo detection. Analyze whether a word/phrase is intentional slang or an accidental typo.
+
+CRITICAL: First determine if this is a TYPO vs SLANG:
+- TYPOS: Misspellings of real words (e.g., "firse" → "first", "teh" → "the", "recieve" → "receive")
+- SLANG: Intentional informal language (e.g., "fire" meaning cool, "yo" as greeting, "no cap" meaning no lie)
 
 Context Information:
 - Full text: "${text}"
-- Slang word/phrase: "${slangWord}"
+- Word/phrase to analyze: "${slangWord}"
 - Surrounding context: "${context}"
 - Target formality level: ${formalityLevel}
 
-Your task:
-1. Determine if the slang usage appears intentional (vs accidental/inappropriate)
-2. Consider the overall tone, audience, and content type
-3. Assess if this slang fits the apparent target audience
-4. Account for the formality level preference
-5. Decide if this slang should be PROTECTED from grammar/style corrections (shown as recognized slang)
+Analysis Steps:
+1. Is this a typo/misspelling of a common word? If YES → isIntentional: false
+2. If not a typo, is it recognized slang/informal language?
+3. Does it fit the context and formality level?
+4. Should it be protected from grammar corrections?
 
-For shouldProtect:
-- TRUE if: slang is intentional AND matches formality level AND audience
-- FALSE if: slang seems accidental OR inappropriate for context OR too informal for target
+Protection Rules:
+- NEVER protect typos (always let them be corrected)
+- Protect intentional slang only if appropriate for formality level
+- Casual: protect most slang
+- Balanced: protect common/appropriate slang  
+- Formal: protect very little slang
 
-Respond with ONLY a JSON object in this exact format:
+Respond with ONLY a JSON object:
 {
   "isIntentional": boolean,
   "confidence": number (0.0-1.0),
-  "reasoning": "brief explanation",
+  "reasoning": "brief explanation focusing on typo vs slang distinction",
   "shouldProtect": boolean,
-  "audienceMatch": boolean
+  "audienceMatch": boolean,
+  "isTypo": boolean
 }
 
 Examples:
-- Social media content with multiple slang terms → likely intentional
-- Fashion/lifestyle content with "fire" → likely intentional  
-- Academic paper with random slang → likely accidental
-- Business email with slang → likely inappropriate
+- "firse" → isTypo: true, isIntentional: false, shouldProtect: false
+- "yo" → isTypo: false, isIntentional: true, shouldProtect: true (casual)
+- "fire" (meaning cool) → isTypo: false, isIntentional: true, shouldProtect: depends on formality
 
-Text context: "${text}"
-Slang: "${slangWord}"`;
+Text: "${text}"
+Word: "${slangWord}"`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -649,7 +670,8 @@ Slang: "${slangWord}"`;
       confidence: Math.max(0, Math.min(1, analysis.confidence)),
       reasoning: analysis.reasoning || 'AI analysis completed',
       shouldProtect: analysis.shouldProtect,
-      audienceMatch: analysis.audienceMatch || false
+      audienceMatch: analysis.audienceMatch || false,
+      isTypo: analysis.isTypo || false
     };
     
   } catch (error) {
